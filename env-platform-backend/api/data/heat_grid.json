@@ -1,0 +1,13 @@
+{
+  "placeholder": true,
+  "note": "Raw temperature raster for the heat-map visualization. Same 7x9 shape the frontend already hardcodes as HEAT_GRID. Real output will come from the Heat model's LST raster once trained (10-day-execution-guide.md, Day 3) -- replace the `grid` array, keep the same row/col shape or update both frontend and this file together.",
+  "grid": [
+    [30, 31, 32, 33, 33, 32, 31, 30, 29],
+    [31, 33, 35, 36, 36, 35, 33, 31, 30],
+    [32, 35, 37, 38, 38, 37, 35, 32, 31],
+    [33, 36, 38, 39, 39, 38, 36, 33, 32],
+    [32, 35, 38, 39, 38, 37, 35, 33, 31],
+    [31, 34, 36, 37, 36, 35, 33, 32, 30],
+    [30, 32, 34, 34, 33, 32, 31, 30, 29]
+  ]
+}

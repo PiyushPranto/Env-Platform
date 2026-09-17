@@ -1,0 +1,11 @@
+{
+  "type": "FeatureCollection",
+  "placeholder": true,
+  "note": "Stand-in for DBSCAN/KMeans clusters on LST pixel values (10-day-execution-guide.md, Day 3). Real output will be many more, denser points from actual pixel-level clustering.",
+  "features": [
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [91.8317, 22.3667] }, "properties": { "cluster_id": 0, "ward": "Panchlaish", "mean_lst_c": 38.4, "size": 42 } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [91.8325, 22.3560] }, "properties": { "cluster_id": 1, "ward": "Kotwali", "mean_lst_c": 37.9, "size": 37 } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [91.7930, 22.3780] }, "properties": { "cluster_id": 2, "ward": "Chandgaon", "mean_lst_c": 36.1, "size": 24 } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [91.8100, 22.3900] }, "properties": { "cluster_id": 3, "ward": "Bayezid", "mean_lst_c": 35.8, "size": 19 } }
+  ]
+}

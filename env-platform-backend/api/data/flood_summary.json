@@ -1,0 +1,13 @@
+{
+  "placeholder": false,
+  "note": "Real data, copied from the frontend's hardcoded FLOOD_SUMMARY — matches dhaka-flood-model-summary.md's computed results.",
+  "totalCells": 1650,
+  "floodProneCells": 187,
+  "floodPronePct": 11.3,
+  "alertDays": 34,
+  "totalDays": 62,
+  "peakPctAlerted": 46.0,
+  "peakDate": "14 Jul 2025",
+  "observedRainfall": 14.8,
+  "historicalRainfall": 12.0
+}

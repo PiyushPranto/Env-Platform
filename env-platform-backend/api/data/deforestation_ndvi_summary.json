@@ -1,0 +1,10 @@
+{
+  "placeholder": true,
+  "note": "For the deforestation trend chart / headline numbers. Real notebook writes this as deforestation_summary.json per 10-day-execution-guide.md's endpoint wiring.",
+  "years_compared": [2020, 2024],
+  "season_note": "Both composites are December (seasonally matched) — a genuine methodological strength worth stating at defense.",
+  "total_patches_detected": 541,
+  "min_mapping_unit_km2": 1.0,
+  "top_declining_districts": ["Rangamati", "Bandarban", "Khagrachari", "Sylhet", "Chattogram"],
+  "national_mean_ndvi_decline_pct": 9.4
+}

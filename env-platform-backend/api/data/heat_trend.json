@@ -1,0 +1,18 @@
+{
+  "placeholder": true,
+  "note": "City-average vs 10-year seasonal baseline. Same shape the frontend already hardcodes — swap values once the Heat model produces a real monthly series.",
+  "trend": [
+    { "month": "Oct", "temp": 30.8, "baseline": 29.9 },
+    { "month": "Nov", "temp": 28.4, "baseline": 28.1 },
+    { "month": "Dec", "temp": 25.9, "baseline": 25.7 },
+    { "month": "Jan", "temp": 25.1, "baseline": 25.3 },
+    { "month": "Feb", "temp": 27.6, "baseline": 27.0 },
+    { "month": "Mar", "temp": 31.4, "baseline": 29.8 },
+    { "month": "Apr", "temp": 34.7, "baseline": 32.6 },
+    { "month": "May", "temp": 36.9, "baseline": 34.1 },
+    { "month": "Jun", "temp": 35.2, "baseline": 33.5 },
+    { "month": "Jul", "temp": 33.6, "baseline": 32.4 },
+    { "month": "Aug", "temp": 34.0, "baseline": 32.8 },
+    { "month": "Sep", "temp": 35.5, "baseline": 33.0 }
+  ]
+}

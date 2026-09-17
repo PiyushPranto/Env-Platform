@@ -1,0 +1,16 @@
+{
+  "placeholder": true,
+  "region": "Chattogram City Corporation wards (matches current frontend — real Heat model per the sprint plan targets Gazipur, so this scope needs a team decision before go-live)",
+  "formula": "heat_risk = 0.4*(1 - ndvi_norm) + 0.4*lst_norm + 0.2*ndbi_norm  (per 10-day-execution-guide.md)",
+  "risk_categories": { "Extreme": ">=0.85", "High": "0.60-0.849", "Moderate": "0.40-0.599", "Low": "<0.40" },
+  "wards": [
+    { "name": "Panchlaish", "lst_c": 38.6, "ndvi": 0.11, "ndbi": 0.65, "lst_norm": 1.0, "ndvi_norm": 0.11, "ndbi_norm": 0.65, "heat_risk": 0.886, "risk_category": "Extreme", "population": 61000 },
+    { "name": "Kotwali", "lst_c": 38.1, "ndvi": 0.09, "ndbi": 0.68, "lst_norm": 0.929, "ndvi_norm": 0.09, "ndbi_norm": 0.68, "heat_risk": 0.871, "risk_category": "Extreme", "population": 74000 },
+    { "name": "Chandgaon", "lst_c": 36.4, "ndvi": 0.18, "ndbi": 0.55, "lst_norm": 0.686, "ndvi_norm": 0.18, "ndbi_norm": 0.55, "heat_risk": 0.712, "risk_category": "High", "population": 58000 },
+    { "name": "Bayezid", "lst_c": 36.0, "ndvi": 0.21, "ndbi": 0.52, "lst_norm": 0.629, "ndvi_norm": 0.21, "ndbi_norm": 0.52, "heat_risk": 0.671, "risk_category": "High", "population": 49500 },
+    { "name": "EPZ", "lst_c": 35.3, "ndvi": 0.24, "ndbi": 0.48, "lst_norm": 0.529, "ndvi_norm": 0.24, "ndbi_norm": 0.48, "heat_risk": 0.611, "risk_category": "High", "population": 33200 },
+    { "name": "Double Mooring", "lst_c": 34.1, "ndvi": 0.29, "ndbi": 0.42, "lst_norm": 0.357, "ndvi_norm": 0.29, "ndbi_norm": 0.42, "heat_risk": 0.511, "risk_category": "Moderate", "population": 41800 },
+    { "name": "Halishahar", "lst_c": 33.4, "ndvi": 0.33, "ndbi": 0.38, "lst_norm": 0.257, "ndvi_norm": 0.33, "ndbi_norm": 0.38, "heat_risk": 0.447, "risk_category": "Moderate", "population": 52700 },
+    { "name": "Patenga", "lst_c": 31.6, "ndvi": 0.44, "ndbi": 0.29, "lst_norm": 0.0, "ndvi_norm": 0.44, "ndbi_norm": 0.29, "heat_risk": 0.282, "risk_category": "Low", "population": 27900 }
+  ]
+}
