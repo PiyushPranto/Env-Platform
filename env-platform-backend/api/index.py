@@ -21,6 +21,7 @@ from pathlib import Path
 import json
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -30,7 +31,32 @@ app = FastAPI(
     description="Heat / Flood / Deforestation model output for the Government and Citizen dashboards.",
     version="0.1.0",
 )
+class LoginRequest(BaseModel):
+    officer_id: str
+    password: str
 
+
+DEMO_OFFICER_ID = "env_project"
+DEMO_PASSWORD = "env_project_400"
+DEMO_ROLE = "Environmental Analyst"
+
+
+@app.post("/auth/login")
+def login(credentials: LoginRequest):
+    if (
+        credentials.officer_id != DEMO_OFFICER_ID
+        or credentials.password != DEMO_PASSWORD
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Officer ID or password",
+        )
+
+    return {
+        "authenticated": True,
+        "officer_id": DEMO_OFFICER_ID,
+        "role": DEMO_ROLE,
+    }
 # Allow the deployed frontend (and local dev) to call this API from the browser.
 # Tighten allow_origins to the exact Vercel frontend URL before the real defense demo.
 app.add_middleware(
