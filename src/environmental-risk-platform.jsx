@@ -676,11 +676,28 @@ function CitizenDashboard({ onLogout }) {
 // Auth / role select
 // ---------------------------------------------------------------------------
 
+const ROLE_CREDENTIALS = {
+  "Environmental Analyst": { officer_id: "env_project", password: "env_project_400" },
+  "City Administrator": { officer_id: "city_admin", password: "city_admin_400" },
+  "Field Officer": { officer_id: "field_officer", password: "field_officer_400" },
+};
+
 function GovtLogin({ onBack, onLogin }) {
-  const [officerId, setOfficerId] = useState("");
-  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("Environmental Analyst");
+  const [officerId, setOfficerId] = useState(ROLE_CREDENTIALS["Environmental Analyst"].officer_id);
+  const [password, setPassword] = useState(ROLE_CREDENTIALS["Environmental Analyst"].password);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function handleRoleChange(newRole) {
+    setRole(newRole);
+    const creds = ROLE_CREDENTIALS[newRole];
+    if (creds) {
+      setOfficerId(creds.officer_id);
+      setPassword(creds.password);
+    }
+    setError("");
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -699,7 +716,7 @@ function GovtLogin({ onBack, onLogin }) {
       }
 
       const data = await res.json();
-      onLogin(data.role || "Environmental Analyst");
+      onLogin(data.role || role);
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -720,11 +737,21 @@ function GovtLogin({ onBack, onLogin }) {
           </h2>
           <p className="text-xs text-slate-500 mt-1 mb-5">Role-based access to environmental monitoring and decision support</p>
 
+          <label className="text-xs text-slate-400">Role</label>
+          <select
+            value={role}
+            onChange={(e) => handleRoleChange(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
+          >
+            <option>Environmental Analyst</option>
+            <option>City Administrator</option>
+            <option>Field Officer</option>
+          </select>
+
           <label className="text-xs text-slate-400">Officer ID</label>
           <input
             value={officerId}
             onChange={(e) => setOfficerId(e.target.value)}
-            placeholder="env_project"
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
           />
 
@@ -733,7 +760,6 @@ function GovtLogin({ onBack, onLogin }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
           />
 
@@ -748,7 +774,7 @@ function GovtLogin({ onBack, onLogin }) {
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
-          <p className="text-[11px] text-slate-600 mt-3 text-center">Demo credentials: env_project / env_project_400</p>
+          <p className="text-[11px] text-slate-600 mt-3 text-center">Role selects the matching demo credentials automatically</p>
         </form>
       </div>
     </div>
