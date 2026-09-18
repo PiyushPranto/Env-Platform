@@ -677,14 +677,43 @@ function CitizenDashboard({ onLogout }) {
 // ---------------------------------------------------------------------------
 
 function GovtLogin({ onBack, onLogin }) {
-  const [role, setRole] = useState("Environmental Analyst");
+  const [officerId, setOfficerId] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ officer_id: officerId, password }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Login failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      onLogin(data.role || "Environmental Analyst");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 mb-6">
           <ArrowLeft size={14} /> Back
         </button>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+        <form onSubmit={handleSubmit} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
           <ShieldCheck size={22} className="text-orange-400 mb-3" />
           <h2 className="text-lg font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Government sign in
@@ -693,36 +722,34 @@ function GovtLogin({ onBack, onLogin }) {
 
           <label className="text-xs text-slate-400">Officer ID</label>
           <input
-            defaultValue="pbk-officer-014"
+            value={officerId}
+            onChange={(e) => setOfficerId(e.target.value)}
+            placeholder="env_project"
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
           />
 
           <label className="text-xs text-slate-400">Password</label>
           <input
             type="password"
-            defaultValue="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
           />
 
-          <label className="text-xs text-slate-400">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-5 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
-          >
-            <option>Environmental Analyst</option>
-            <option>City Administrator</option>
-            <option>Field Officer</option>
-          </select>
+          {error && (
+            <p className="text-xs text-red-400 mb-3">{error}</p>
+          )}
 
           <button
-            onClick={() => onLogin(role)}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium py-2.5 rounded-lg"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
           >
-            Sign in
+            {loading ? "Signing in…" : "Sign in"}
           </button>
-          <p className="text-[11px] text-slate-600 mt-3 text-center">Demo login - any credentials work</p>
-        </div>
+          <p className="text-[11px] text-slate-600 mt-3 text-center">Demo credentials: env_project / env_project_400</p>
+        </form>
       </div>
     </div>
   );
