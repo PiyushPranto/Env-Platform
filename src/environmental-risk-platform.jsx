@@ -374,7 +374,7 @@ function GovtDashboard({ role, onLogout }) {
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-orange-400" />
             <span className="text-sm font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              PBK Environmental Console
+              Environmental Console
             </span>
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Government dashboard - {role}</div>
