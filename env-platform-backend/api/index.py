@@ -36,17 +36,17 @@ class LoginRequest(BaseModel):
     password: str
 
 
-DEMO_OFFICER_ID = "env_project"
-DEMO_PASSWORD = "env_project_400"
-DEMO_ROLE = "Environmental Analyst"
+DEMO_USERS = {
+    "env_project": {"password": "env_project_400", "role": "Environmental Analyst"},
+    "city_admin": {"password": "city_admin_400", "role": "City Administrator"},
+    "field_officer": {"password": "field_officer_400", "role": "Field Officer"},
+}
 
 
 @app.post("/auth/login")
 def login(credentials: LoginRequest):
-    if (
-        credentials.officer_id != DEMO_OFFICER_ID
-        or credentials.password != DEMO_PASSWORD
-    ):
+    user = DEMO_USERS.get(credentials.officer_id)
+    if not user or user["password"] != credentials.password:
         raise HTTPException(
             status_code=401,
             detail="Invalid Officer ID or password",
@@ -54,8 +54,8 @@ def login(credentials: LoginRequest):
 
     return {
         "authenticated": True,
-        "officer_id": DEMO_OFFICER_ID,
-        "role": DEMO_ROLE,
+        "officer_id": credentials.officer_id,
+        "role": user["role"],
     }
 # Allow the deployed frontend (and local dev) to call this API from the browser.
 # Tighten allow_origins to the exact Vercel frontend URL before the real defense demo.
