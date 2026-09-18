@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -9,10 +9,21 @@ import {
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Dummy data (stands in for the satellite / sensor pipeline)
+// Backend base URL
+// ---------------------------------------------------------------------------
+// Set VITE_API_URL in Vercel (env-platform project) -> Settings -> Environment
+// Variables, e.g. VITE_API_URL=https://env-platform-u7jb.vercel.app
+// Falls back to the known backend domain if the env var isn't set, so it still
+// works even if you forget to add it.
+const API_BASE =
+  import.meta.env.VITE_API_URL || "https://env-platform-u7jb.vercel.app";
+
+// ---------------------------------------------------------------------------
+// Fallback / placeholder data (used only while loading or if a call fails,
+// so the UI never looks broken)
 // ---------------------------------------------------------------------------
 
-const WARDS = [
+const FALLBACK_WARDS = [
   { name: "Panchlaish", temp: 38.6, risk: "Extreme", ndvi: 0.11, pop: 61000 },
   { name: "Kotwali", temp: 38.1, risk: "Extreme", ndvi: 0.09, pop: 74000 },
   { name: "Chandgaon", temp: 36.4, risk: "High", ndvi: 0.18, pop: 58000 },
@@ -24,8 +35,9 @@ const WARDS = [
 ];
 
 // 9x7 grid of temperatures approximating an urban-core hotspot with cooler,
-// greener edges — deterministic so the demo renders the same every time.
-const HEAT_GRID = [
+// greener edges — kept as a visual placeholder until /heat/hotspots returns
+// a grid shape (swap this out once you confirm the real response shape).
+const FALLBACK_HEAT_GRID = [
   [30, 31, 32, 33, 33, 32, 31, 30, 29],
   [31, 33, 35, 36, 36, 35, 33, 31, 30],
   [32, 35, 37, 38, 38, 37, 35, 32, 31],
@@ -35,7 +47,7 @@ const HEAT_GRID = [
   [30, 32, 34, 34, 33, 32, 31, 30, 29],
 ];
 
-const TREND = [
+const FALLBACK_TREND = [
   { month: "Oct", temp: 30.8, baseline: 29.9 },
   { month: "Nov", temp: 28.4, baseline: 28.1 },
   { month: "Dec", temp: 25.9, baseline: 25.7 },
@@ -77,7 +89,6 @@ function riskColor(risk) {
 }
 
 function tempToColor(t) {
-  // 29 -> cool teal, 39 -> hot red, interpolated through amber/orange
   const stops = [
     { t: 29, c: [45, 130, 130] },
     { t: 32, c: [90, 150, 90] },
@@ -96,15 +107,112 @@ function tempToColor(t) {
 }
 
 // ---------------------------------------------------------------------------
+// Backend response mapping
+// ---------------------------------------------------------------------------
+// /heat/hotspots currently returns a GeoJSON FeatureCollection (placeholder
+// clustering output — see backend note). Each feature has properties:
+// { cluster_id, ward, mean_lst_c, size }. It does NOT yet include risk
+// category, NDVI or population, so we derive/backfill those until the
+// backend adds them.
+
+function riskFromTemp(t) {
+  if (t >= 38) return "Extreme";
+  if (t >= 35) return "High";
+  if (t >= 32) return "Moderate";
+  return "Low";
+}
+
+function mapHotspotsGeoJsonToWards(geojson) {
+  if (!geojson || !Array.isArray(geojson.features)) return null;
+  const byName = Object.fromEntries(FALLBACK_WARDS.map((w) => [w.name, w]));
+  return geojson.features.map((f) => {
+    const props = f.properties || {};
+    const name = props.ward || "Unknown";
+    const temp = typeof props.mean_lst_c === "number" ? props.mean_lst_c : 0;
+    const known = byName[name];
+    return {
+      name,
+      temp,
+      risk: riskFromTemp(temp),
+      // ndvi / pop aren't in the placeholder response yet — fall back to
+      // known demo values for that ward, or 0 if it's a ward we don't
+      // otherwise have on file.
+      ndvi: known ? known.ndvi : 0,
+      pop: known ? known.pop : 0,
+      clusterSize: props.size,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Data hook — pulls live data from the backend
+// ---------------------------------------------------------------------------
+
+function useHeatData() {
+  const [wards, setWards] = useState(FALLBACK_WARDS);
+  const [heatGrid, setHeatGrid] = useState(FALLBACK_HEAT_GRID);
+  const [trend, setTrend] = useState(FALLBACK_TREND);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [hotspotsRes, trendRes] = await Promise.all([
+          fetch(`${API_BASE}/heat/hotspots`),
+          fetch(`${API_BASE}/heat/trend`),
+        ]);
+
+        if (!hotspotsRes.ok) throw new Error(`/heat/hotspots ${hotspotsRes.status}`);
+        if (!trendRes.ok) throw new Error(`/heat/trend ${trendRes.status}`);
+
+        const hotspotsData = await hotspotsRes.json();
+        const trendData = await trendRes.json();
+
+        if (cancelled) return;
+
+        // /heat/hotspots: GeoJSON FeatureCollection (placeholder clustering
+        // output). Map it into the ward-list shape the UI expects.
+        const mappedWards = mapHotspotsGeoJsonToWards(hotspotsData);
+        if (mappedWards && mappedWards.length) setWards(mappedWards);
+
+        // The grid visual isn't produced by any current endpoint — the
+        // fallback grid stays in place until the backend exposes one.
+
+        // /heat/trend: { trend: [{ month, temp, baseline }, ...] }
+        if (Array.isArray(trendData?.trend)) setTrend(trendData.trend);
+        else if (Array.isArray(trendData)) setTrend(trendData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load heat data:", err);
+          setError(err.message || "Failed to load live data");
+          // fallback/demo data stays in place so the UI still renders
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { wards, heatGrid, trend, loading, error };
+}
+
+// ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
 
-function HeatGrid({ compact }) {
-  const rows = HEAT_GRID.length, cols = HEAT_GRID[0].length;
+function HeatGrid({ grid, compact }) {
   const cell = compact ? 26 : 34;
   return (
     <div className="inline-block rounded-lg overflow-hidden border border-slate-800">
-      {HEAT_GRID.map((row, ri) => (
+      {grid.map((row, ri) => (
         <div key={ri} className="flex">
           {row.map((t, ci) => (
             <div
@@ -143,7 +251,7 @@ function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
 // Report modal (stands in for PDF/Excel export)
 // ---------------------------------------------------------------------------
 
-function ReportModal({ onClose }) {
+function ReportModal({ wards, onClose }) {
   const printRef = useRef(null);
   const now = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   return (
@@ -190,7 +298,7 @@ function ReportModal({ onClose }) {
               </tr>
             </thead>
             <tbody>
-              {WARDS.map((w) => (
+              {wards.map((w) => (
                 <tr key={w.name} className="border-b border-slate-900">
                   <td className="py-1.5 text-slate-300">{w.name}</td>
                   <td className="py-1.5 text-slate-400">{w.temp.toFixed(1)}C</td>
@@ -211,8 +319,8 @@ function ReportModal({ onClose }) {
           </ul>
 
           <p className="text-[11px] text-slate-600 mt-6">
-            Demo data for defense purposes. Production reports will pull from live satellite
-            ingestion and the trained heat risk model.
+            Report data reflects the live backend where available, with demo
+            values as a fallback for anything not yet wired up.
           </p>
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-800">
@@ -244,19 +352,21 @@ function GovtDashboard({ role, onLogout }) {
   const [showReport, setShowReport] = useState(false);
   const [selectedWard, setSelectedWard] = useState(null);
 
+  const { wards, heatGrid, trend, loading, error } = useHeatData();
+
   const filteredWards = useMemo(
-    () => WARDS.filter((w) => w.name.toLowerCase().includes(search.toLowerCase())),
-    [search]
+    () => wards.filter((w) => w.name.toLowerCase().includes(search.toLowerCase())),
+    [search, wards]
   );
 
   const sortedByRisk = useMemo(
-    () => [...WARDS].sort((a, b) => b.temp - a.temp),
-    []
+    () => [...wards].sort((a, b) => b.temp - a.temp),
+    [wards]
   );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex">
-      {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showReport && <ReportModal wards={wards} onClose={() => setShowReport(false)} />}
 
       {/* Sidebar */}
       <aside className="w-60 border-r border-slate-800 flex flex-col shrink-0">
@@ -319,6 +429,12 @@ function GovtDashboard({ role, onLogout }) {
             />
           </div>
           <div className="flex-1" />
+          {loading && <span className="text-[11px] text-slate-500">Loading live data…</span>}
+          {error && !loading && (
+            <span className="text-[11px] text-amber-500" title={error}>
+              Live data unavailable — showing demo values
+            </span>
+          )}
           <button className="relative text-slate-500 hover:text-slate-300">
             <Bell size={17} />
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
@@ -375,7 +491,7 @@ function GovtDashboard({ role, onLogout }) {
                   </div>
                 </div>
                 <div className="flex items-center justify-center py-4">
-                  <HeatGrid />
+                  <HeatGrid grid={heatGrid} />
                 </div>
                 <p className="text-[11px] text-slate-600 text-center">Grid cells approximate 500m resolution over the urban core</p>
               </div>
@@ -432,7 +548,7 @@ function GovtDashboard({ role, onLogout }) {
                 <p className="text-xs text-slate-500 mb-3">City average vs 10-year seasonal baseline</p>
                 <div style={{ width: "100%", height: 200 }}>
                   <ResponsiveContainer>
-                    <LineChart data={TREND} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[22, 40]} />
@@ -478,6 +594,8 @@ function GovtDashboard({ role, onLogout }) {
 // ---------------------------------------------------------------------------
 
 function CitizenDashboard({ onLogout }) {
+  const { heatGrid } = useHeatData();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <div className="border-b border-slate-800 px-5 py-4 flex items-center justify-between">
@@ -505,7 +623,7 @@ function CitizenDashboard({ onLogout }) {
             <span className="text-[11px] text-slate-500">Panchlaish</span>
           </div>
           <div className="flex justify-center">
-            <HeatGrid compact />
+            <HeatGrid grid={heatGrid} compact />
           </div>
         </div>
 
@@ -547,7 +665,7 @@ function CitizenDashboard({ onLogout }) {
         </div>
 
         <p className="text-[11px] text-slate-600 text-center pt-1">
-          Data shown is illustrative for demonstration purposes.
+          Live where available; demo values used as fallback.
         </p>
       </div>
     </div>
