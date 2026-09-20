@@ -212,7 +212,7 @@ function useHeatData() {
 function HeatGrid({ grid, compact }) {
   const cell = compact ? 26 : 34;
   return (
-    <div className="inline-block rounded-lg overflow-hidden border border-slate-800">
+    <div className="inline-block rounded-xl overflow-hidden border border-slate-800 shadow-lg shadow-black/30 ring-1 ring-black/20">
       {grid.map((row, ri) => (
         <div key={ri} className="flex">
           {row.map((t, ci) => (
@@ -220,12 +220,45 @@ function HeatGrid({ grid, compact }) {
               key={ci}
               title={`${t.toFixed(0)}C`}
               style={{ width: cell, height: cell, background: tempToColor(t) }}
-              className="border border-slate-950/40"
+              className="border border-slate-950/40 transition-transform duration-150 hover:scale-[1.12] hover:z-10 hover:shadow-lg"
             />
           ))}
         </div>
       ))}
     </div>
+  );
+}
+
+// Small tinted icon chip used throughout the dashboards for a consistent,
+// slightly more premium "icon in a badge" look instead of a bare icon.
+const ICON_BADGE_TONES = {
+  slate: "bg-slate-800/80 text-slate-400 ring-1 ring-slate-700/60",
+  orange: "bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20",
+  red: "bg-red-500/10 text-red-400 ring-1 ring-red-500/20",
+  teal: "bg-teal-500/10 text-teal-400 ring-1 ring-teal-500/20",
+  amber: "bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20",
+};
+
+function IconBadge({ icon: Icon, tone = "slate", size = 15, className = "" }) {
+  return (
+    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${ICON_BADGE_TONES[tone]} ${className}`}>
+      <Icon size={size} />
+    </span>
+  );
+}
+
+// Small uppercase label used above section headings for a bit more visual
+// hierarchy without adding much size/noise.
+function Eyebrow({ children, tone = "orange" }) {
+  const toneMap = {
+    orange: "text-orange-400",
+    teal: "text-teal-400",
+    slate: "text-slate-500",
+  };
+  return (
+    <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${toneMap[tone]}`}>
+      {children}
+    </span>
   );
 }
 
@@ -237,12 +270,14 @@ function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
     teal: "text-teal-400",
   };
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+    <div className="group bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">{label}</span>
-        {Icon && <Icon size={16} className="text-slate-600" />}
+        <span className="text-xs text-slate-500 font-medium">{label}</span>
+        {Icon && <IconBadge icon={Icon} tone={tone === "slate" ? "slate" : tone} size={14} />}
       </div>
-      <div className={`text-2xl font-semibold ${toneMap[tone]}`}>{value}</div>
+      <div className={`text-2xl font-semibold tracking-tight ${toneMap[tone]}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {value}
+      </div>
       {sub && <div className="text-xs text-slate-500">{sub}</div>}
     </div>
   );
@@ -256,14 +291,14 @@ function ReportModal({ wards, onClose }) {
   const printRef = useRef(null);
   const now = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-2xl shadow-black/50 animate-fade-in-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2 text-slate-300">
-            <FileText size={16} />
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <IconBadge icon={FileText} tone="orange" size={14} />
             <span className="text-sm font-medium">Heat risk report — Chattogram City</span>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 hover:bg-slate-900 rounded-lg p-1.5 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -289,22 +324,22 @@ function ReportModal({ wards, onClose }) {
           </div>
 
           <h3 className="text-sm font-medium text-slate-200 mt-6 mb-2">Ward ranking by heat risk</h3>
-          <table className="w-full text-xs">
+          <table className="w-full text-xs border-separate border-spacing-0">
             <thead>
-              <tr className="text-slate-500 text-left border-b border-slate-800">
-                <th className="py-1.5">Ward</th>
-                <th className="py-1.5">Temp</th>
-                <th className="py-1.5">Risk</th>
-                <th className="py-1.5">NDVI</th>
+              <tr className="text-slate-500 text-left">
+                <th className="py-1.5 font-medium border-b border-slate-800">Ward</th>
+                <th className="py-1.5 font-medium border-b border-slate-800">Temp</th>
+                <th className="py-1.5 font-medium border-b border-slate-800">Risk</th>
+                <th className="py-1.5 font-medium border-b border-slate-800">NDVI</th>
               </tr>
             </thead>
             <tbody>
-              {wards.map((w) => (
-                <tr key={w.name} className="border-b border-slate-900">
-                  <td className="py-1.5 text-slate-300">{w.name}</td>
-                  <td className="py-1.5 text-slate-400">{w.temp.toFixed(1)}C</td>
-                  <td className="py-1.5 text-slate-400">{w.risk}</td>
-                  <td className="py-1.5 text-slate-400">{w.ndvi.toFixed(2)}</td>
+              {wards.map((w, i) => (
+                <tr key={w.name} className={i % 2 === 1 ? "bg-slate-900/30" : ""}>
+                  <td className="py-1.5 px-1 text-slate-300 rounded-l-md">{w.name}</td>
+                  <td className="py-1.5 px-1 text-slate-400">{w.temp.toFixed(1)}C</td>
+                  <td className="py-1.5 px-1 text-slate-400">{w.risk}</td>
+                  <td className="py-1.5 px-1 text-slate-400 rounded-r-md">{w.ndvi.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -327,13 +362,13 @@ function ReportModal({ wards, onClose }) {
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-800">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-900"
+            className="px-3.5 py-1.5 text-sm rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-900 hover:text-slate-300 transition-colors"
           >
             Close
           </button>
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 text-sm rounded-lg bg-orange-600 text-white hover:bg-orange-500 flex items-center gap-1.5"
+            className="px-3.5 py-1.5 text-sm rounded-lg bg-orange-600 text-white hover:bg-orange-500 active:scale-[0.97] flex items-center gap-1.5 shadow-lg shadow-orange-950/40 transition-all duration-150"
           >
             <Download size={14} /> Save as PDF
           </button>
@@ -370,24 +405,31 @@ function GovtDashboard({ role, onLogout }) {
       {showReport && <ReportModal wards={wards} onClose={() => setShowReport(false)} />}
 
       {/* Sidebar */}
-      <aside className="w-60 border-r border-slate-800 flex flex-col shrink-0">
-        <div className="px-5 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-orange-400" />
-            <span className="text-sm font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      <aside className="w-60 border-r border-slate-800/80 flex flex-col shrink-0 bg-slate-950/60">
+        <div className="px-5 py-5 border-b border-slate-800/80">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
+              <ShieldCheck size={16} className="text-orange-400" />
+            </span>
+            <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Environmental Console
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Government dashboard - {role}</div>
+          <div className="text-[11px] text-slate-500 mt-2 pl-0.5">Government dashboard · <span className="text-slate-400">{role}</span></div>
         </div>
 
         <nav className="flex-1 py-3 px-3 space-y-1">
           <button
             onClick={() => setActiveModule("heat")}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              activeModule === "heat" ? "bg-orange-500/10 text-orange-400" : "text-slate-400 hover:bg-slate-900"
+            className={`relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+              activeModule === "heat"
+                ? "bg-orange-500/10 text-orange-400"
+                : "text-slate-400 hover:bg-slate-900 hover:text-slate-300"
             }`}
           >
+            {activeModule === "heat" && (
+              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-orange-500" />
+            )}
             <Thermometer size={16} />
             Heat monitoring
           </button>
@@ -395,8 +437,8 @@ function GovtDashboard({ role, onLogout }) {
             <button
               key={m.key}
               onClick={() => setActiveModule(m.key)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                activeModule === m.key ? "bg-slate-800 text-slate-300" : "text-slate-500 hover:bg-slate-900"
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+                activeModule === m.key ? "bg-slate-800/80 text-slate-300" : "text-slate-500 hover:bg-slate-900 hover:text-slate-400"
               }`}
             >
               <m.icon size={16} />
@@ -406,10 +448,10 @@ function GovtDashboard({ role, onLogout }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-800">
+        <div className="p-3 border-t border-slate-800/80">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-900 hover:text-slate-300"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-900 hover:text-slate-300 transition-colors"
           >
             <LogOut size={15} /> Sign out
           </button>
@@ -419,41 +461,47 @@ function GovtDashboard({ role, onLogout }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="border-b border-slate-800 px-6 py-3.5 flex items-center gap-4">
+        <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 py-3.5 flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by district, upazila or ward"
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50"
+              className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10 transition-shadow"
             />
           </div>
           <div className="flex-1" />
-          {loading && <span className="text-[11px] text-slate-500">Loading live data…</span>}
-          {error && !loading && (
-            <span className="text-[11px] text-amber-500" title={error}>
-              Live data unavailable — showing demo values
+          {loading && (
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse" /> Loading live data…
             </span>
           )}
-          <button className="relative text-slate-500 hover:text-slate-300">
+          {error && !loading && (
+            <span className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={error}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Demo values shown
+            </span>
+          )}
+          <button className="relative text-slate-500 hover:text-slate-300 transition-colors">
             <Bell size={17} />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
           </button>
           <button
             onClick={() => setShowReport(true)}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white"
+            className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150"
           >
             <FileText size={14} /> Generate report
           </button>
         </div>
 
         {activeModule !== "heat" ? (
-          <div className="flex-1 flex items-center justify-center p-10">
+          <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
             <div className="text-center max-w-sm">
-              <Lock size={28} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-300 font-medium">Module in development</p>
-              <p className="text-sm text-slate-500 mt-1.5">
+              <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4">
+                <Lock size={22} className="text-slate-600" />
+              </div>
+              <p className="text-slate-200 font-medium">Module in development</p>
+              <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
                 This demo prototype implements Heat Monitoring end-to-end. The
                 {" "}{OTHER_MODULES.find((m) => m.key === activeModule)?.label.toLowerCase()}
                 {" "}module follows the same architecture and is scoped for the next
@@ -461,14 +509,14 @@ function GovtDashboard({ role, onLogout }) {
               </p>
               <button
                 onClick={() => setActiveModule("heat")}
-                className="mt-4 text-sm text-orange-400 hover:text-orange-300 inline-flex items-center gap-1"
+                className="mt-5 text-sm text-orange-400 hover:text-orange-300 inline-flex items-center gap-1.5 transition-colors"
               >
                 <ArrowLeft size={14} /> Back to heat monitoring
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
             {/* KPIs */}
             <div className="grid grid-cols-4 gap-4">
               <Kpi label="City avg. surface temp" value="35.4C" sub="+2.1C vs seasonal baseline" icon={Thermometer} tone="orange" />
@@ -479,16 +527,17 @@ function GovtDashboard({ role, onLogout }) {
 
             <div className="grid grid-cols-3 gap-6">
               {/* Heat map */}
-              <div className="col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl p-5">
+              <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-medium text-slate-200">Surface temperature - Chattogram City</h3>
+                    <Eyebrow>Live layer</Eyebrow>
+                    <h3 className="text-sm font-medium text-slate-200 mt-0.5">Surface temperature — Chattogram City</h3>
                     <p className="text-xs text-slate-500 mt-0.5">Derived from Landsat LST composite, current cycle</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span>29C</span>
-                    <div className="w-16 h-2 rounded-full" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
-                    <span>39C</span>
+                    <span>29°C</span>
+                    <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
+                    <span>39°C</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-center py-4">
@@ -498,25 +547,26 @@ function GovtDashboard({ role, onLogout }) {
               </div>
 
               {/* Hotspot ranking */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-slate-200 mb-1">Heat mitigation priority</h3>
-                <p className="text-xs text-slate-500 mb-4">Ranked by risk score</p>
-                <div className="space-y-2">
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <Eyebrow>Priority ranking</Eyebrow>
+                <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">Heat mitigation priority</h3>
+                <div className="space-y-1">
                   {sortedByRisk.map((w, i) => {
                     const c = riskColor(w.risk);
+                    const isSelected = selectedWard?.name === w.name;
                     return (
                       <button
                         key={w.name}
                         onClick={() => setSelectedWard(w)}
-                        className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-900 text-left ${
-                          selectedWard?.name === w.name ? "ring-1 " + c.ring : ""
+                        className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
+                          isSelected ? "bg-slate-800/70 ring-1 " + c.ring : "hover:bg-slate-900/80"
                         }`}
                       >
-                        <span className="text-xs text-slate-600 w-4">{i + 1}</span>
+                        <span className="text-[11px] text-slate-600 w-4 tabular-nums">{i + 1}</span>
                         <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                         <span className="flex-1 text-sm text-slate-300">{w.name}</span>
-                        <span className="text-xs text-slate-500">{w.temp.toFixed(1)}C</span>
-                        <ChevronRight size={13} className="text-slate-600" />
+                        <span className="text-xs text-slate-500 tabular-nums">{w.temp.toFixed(1)}°C</span>
+                        <ChevronRight size={13} className={`text-slate-600 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
                       </button>
                     );
                   })}
@@ -525,15 +575,15 @@ function GovtDashboard({ role, onLogout }) {
             </div>
 
             {selectedWard && (
-              <div className={`rounded-xl p-4 border ${riskColor(selectedWard.risk).bg} border-slate-800 flex items-center gap-4`}>
-                <MapPin size={18} className={riskColor(selectedWard.risk).text} />
+              <div className={`rounded-2xl p-4 border ${riskColor(selectedWard.risk).bg} border-slate-800 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+                <IconBadge icon={MapPin} tone={selectedWard.risk === "Extreme" ? "red" : selectedWard.risk === "High" ? "orange" : selectedWard.risk === "Moderate" ? "amber" : "teal"} />
                 <div className="flex-1">
                   <span className="text-sm text-slate-200 font-medium">{selectedWard.name}</span>
                   <span className="text-xs text-slate-500 ml-2">
-                    {selectedWard.temp.toFixed(1)}C - {selectedWard.risk} risk - NDVI {selectedWard.ndvi.toFixed(2)} - population {selectedWard.pop.toLocaleString()}
+                    {selectedWard.temp.toFixed(1)}°C · {selectedWard.risk} risk · NDVI {selectedWard.ndvi.toFixed(2)} · population {selectedWard.pop.toLocaleString()}
                   </span>
                 </div>
-                <button onClick={() => setSelectedWard(null)} className="text-slate-500 hover:text-slate-300">
+                <button onClick={() => setSelectedWard(null)} className="text-slate-500 hover:text-slate-300 hover:bg-black/20 rounded-lg p-1 transition-colors">
                   <X size={15} />
                 </button>
               </div>
@@ -541,33 +591,43 @@ function GovtDashboard({ role, onLogout }) {
 
             <div className="grid grid-cols-3 gap-6">
               {/* Trend chart */}
-              <div className="col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl p-5">
+              <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp size={14} className="text-slate-500" />
+                  <TrendingUp size={14} className="text-orange-400/80" />
                   <h3 className="text-sm font-medium text-slate-200">12-month temperature trend</h3>
                 </div>
                 <p className="text-xs text-slate-500 mb-3">City average vs 10-year seasonal baseline</p>
                 <div style={{ width: "100%", height: 200 }}>
                   <ResponsiveContainer>
                     <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="tempLineGlow" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#fb923c" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[22, 40]} />
-                      <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,0,0,0.5)" }}
+                        labelStyle={{ color: "#cbd5e1", marginBottom: 2 }}
+                        cursor={{ stroke: "#334155", strokeWidth: 1 }}
+                      />
                       <Line type="monotone" dataKey="baseline" stroke="#475569" strokeWidth={1.5} dot={false} name="Baseline" />
-                      <Line type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={2} dot={{ r: 2 }} name="Observed" />
+                      <Line type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={2.5} dot={{ r: 2.5, fill: "#fb923c", strokeWidth: 0 }} activeDot={{ r: 4.5 }} name="Observed" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
               {/* Recommendations */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-slate-200 mb-3">Recommended interventions</h3>
-                <div className="space-y-3">
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <h3 className="text-sm font-medium text-slate-200 mb-3.5">Recommended interventions</h3>
+                <div className="space-y-3.5">
                   {RECOMMENDATIONS.map((r) => (
-                    <div key={r.title} className="flex gap-2.5">
-                      <r.icon size={15} className="text-teal-400 mt-0.5 shrink-0" />
+                    <div key={r.title} className="flex gap-3">
+                      <IconBadge icon={r.icon} tone="teal" size={14} />
                       <div>
                         <p className="text-xs font-medium text-slate-300">{r.title}</p>
                         <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{r.body}</p>
@@ -599,29 +659,33 @@ function CitizenDashboard({ onLogout }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
-      <div className="border-b border-slate-800 px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sun size={17} className="text-orange-400" />
-          <span className="text-sm font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-5 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
+            <Sun size={16} className="text-orange-400" />
+          </span>
+          <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Chattogram Heat Watch
           </span>
         </div>
-        <button onClick={onLogout} className="text-xs text-slate-500 hover:text-slate-300">Exit</button>
+        <button onClick={onLogout} className="text-xs text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors">Exit</button>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-5 space-y-4">
-        <div className="bg-red-950/30 border border-red-900/40 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-400 mt-0.5 shrink-0" />
+      <div className="max-w-md mx-auto px-4 py-5 space-y-4 animate-fade-in">
+        <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
+            <AlertTriangle size={16} className="text-red-400" />
+          </span>
           <div>
-            <p className="text-sm font-medium text-red-300">Extreme heat alert - Panchlaish and Kotwali</p>
-            <p className="text-xs text-red-400/80 mt-1">Surface temperatures above 38C expected through this afternoon. Avoid outdoor work between 12pm-4pm.</p>
+            <p className="text-sm font-medium text-red-300">Extreme heat alert — Panchlaish and Kotwali</p>
+            <p className="text-xs text-red-400/80 mt-1 leading-relaxed">Surface temperatures above 38°C expected through this afternoon. Avoid outdoor work between 12pm–4pm.</p>
           </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-200">Heat map - your area</h3>
-            <span className="text-[11px] text-slate-500">Panchlaish</span>
+            <h3 className="text-sm font-medium text-slate-200">Heat map — your area</h3>
+            <span className="text-[11px] text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">Panchlaish</span>
           </div>
           <div className="flex justify-center">
             <HeatGrid grid={heatGrid} compact />
@@ -629,19 +693,19 @@ function CitizenDashboard({ onLogout }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
-            <Thermometer size={16} className="text-orange-400 mb-2" />
-            <div className="text-xl font-semibold text-slate-100">38.6C</div>
-            <div className="text-[11px] text-slate-500">Current, your ward</div>
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+            <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>38.6°C</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Current, your ward</div>
           </div>
-          <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
-            <Wind size={16} className="text-teal-400 mb-2" />
-            <div className="text-xl font-semibold text-slate-100">Moderate</div>
-            <div className="text-[11px] text-slate-500">Air quality today</div>
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+            <IconBadge icon={Wind} tone="teal" size={14} className="mb-2.5" />
+            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Moderate</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Air quality today</div>
           </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
           <h3 className="text-sm font-medium text-slate-200 mb-2">Health advisory</h3>
           <p className="text-xs text-slate-400 leading-relaxed">
             Heat risk is extreme in your area today. Drink water regularly even without
@@ -650,22 +714,22 @@ function CitizenDashboard({ onLogout }) {
           </p>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
           <h3 className="text-sm font-medium text-slate-200 mb-3">Nearby cooling centers</h3>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {COOLING_CENTERS.map((c) => (
               <div key={c.name} className="flex items-center gap-3">
-                <MapPin size={14} className="text-teal-400 shrink-0" />
+                <IconBadge icon={MapPin} tone="teal" size={13} />
                 <div className="flex-1">
                   <p className="text-xs text-slate-300">{c.name}</p>
-                  <p className="text-[11px] text-slate-500">{c.distance} away - capacity {c.capacity}</p>
+                  <p className="text-[11px] text-slate-500">{c.distance} away · capacity {c.capacity}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-[11px] text-slate-600 text-center pt-1">
+        <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
           Live where available; demo values used as fallback.
         </p>
       </div>
@@ -920,14 +984,33 @@ function GovtLogin({ onBack, onLogin }) {
 
 function RoleSelect({ onSelect }) {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
+    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
+      {/* Subtle ambient background glow + dot grid, purely decorative */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(148,163,184,0.15) 1px, transparent 0)",
+          backgroundSize: "28px 28px",
+          maskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[560px] h-[360px] rounded-full blur-3xl opacity-30"
+        style={{ background: "radial-gradient(closest-side, rgba(251,146,60,0.35), transparent)" }}
+      />
+
+      <div className="relative max-w-2xl w-full animate-fade-in-up">
         <div className="text-center mb-10">
-          <p className="text-xs tracking-normal text-orange-400 mb-2">Environmental Risk Monitoring Platform</p>
-          <h1 className="text-3xl font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-orange-400 bg-orange-500/10 ring-1 ring-orange-500/20 px-3 py-1 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+            Environmental Risk Monitoring Platform
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Chattogram Climate and Hazard Console
           </h1>
-          <p className="text-sm text-slate-500 mt-3 max-w-md mx-auto">
+          <p className="text-sm text-slate-500 mt-3.5 max-w-md mx-auto leading-relaxed">
             Satellite-derived heat, flood, air quality and deforestation monitoring
             for government planning and public awareness.
           </p>
@@ -935,27 +1018,31 @@ function RoleSelect({ onSelect }) {
         <div className="grid grid-cols-2 gap-5">
           <button
             onClick={() => onSelect("govt")}
-            className="text-left bg-slate-900/60 border border-slate-800 hover:border-orange-500/40 rounded-2xl p-6 transition-colors group"
+            className="text-left bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-slate-800 hover:border-orange-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-950/20"
           >
-            <ShieldCheck size={24} className="text-orange-400 mb-4" />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <ShieldCheck size={22} className="text-orange-400" />
+            </span>
             <p className="text-slate-100 font-medium">Government dashboard</p>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
               Full access to risk analysis, AI predictions, resource planning and report generation.
             </p>
-            <span className="text-xs text-orange-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+            <span className="text-xs text-orange-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
               Continue <ChevronRight size={13} />
             </span>
           </button>
           <button
             onClick={() => onSelect("citizen")}
-            className="text-left bg-slate-900/60 border border-slate-800 hover:border-teal-500/40 rounded-2xl p-6 transition-colors group"
+            className="text-left bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-slate-800 hover:border-teal-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-950/20"
           >
-            <Users size={24} className="text-teal-400 mb-4" />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-teal-500/10 ring-1 ring-teal-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <Users size={22} className="text-teal-400" />
+            </span>
             <p className="text-slate-100 font-medium">Citizen dashboard</p>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
               Heat and flood alerts, air quality, health advisories and nearby shelters.
             </p>
-            <span className="text-xs text-teal-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+            <span className="text-xs text-teal-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
               Continue <ChevronRight size={13} />
             </span>
           </button>
