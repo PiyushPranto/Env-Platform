@@ -1,0 +1,101 @@
+name: Update model outputs
+
+# Runs the model-output automation and, only if it produced real, validated
+# changes, commits them back to env-platform-backend/api/data/ so Vercel
+# picks them up on the next deploy. Never runs model training inside Vercel
+# — this workflow is the separate scheduled environment that does the heavy
+# lifting; the FastAPI backend only ever serves whatever is currently in
+# api/data/.
+#
+# NOTE: this repo's backend lives in the env-platform-backend/ subfolder
+# (the frontend lives at the repo root alongside it), so every step below
+# runs with that as its working directory. GitHub only discovers workflow
+# files under .github/workflows/ at the REPO ROOT, which is why this file
+# lives here rather than inside env-platform-backend/ itself — everything
+# it operates on is still scoped to that subfolder.
+
+on:
+  schedule:
+    # Every 3 days at 02:00 UTC. NOTE on cron and "every 3 days": GitHub
+    # Actions cron has no native "every N days" step for day-of-month that
+    # rolls cleanly forever — "0 2 */3 * *" fires on day-of-month
+    # 1,4,7,...,31, then wraps to 1 again, which means the gap between the
+    # 31st (or 30th/28th) and the 1st of the next month can be 1-2 days
+    # instead of exactly 3. This is a real limitation of cron's day-of-month
+    # field, not a bug here — documented honestly in AUTOMATION.md rather
+    # than silently claiming a perfectly even 3-day cadence. If you need an
+    # exact rolling 3-day interval regardless of month boundaries, that
+    # requires either a paid scheduler add-on or a small "skip if last run
+    # was <3 days ago" check inside this workflow — ask if you want that
+    # added.
+    - cron: "0 2 */3 * *"
+  workflow_dispatch: {}  # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write  # required to commit updated api/data/ files back to the repo
+
+concurrency:
+  group: update-model-outputs
+  cancel-in-progress: false  # never cancel a run mid-write; let it finish or fail cleanly
+
+defaults:
+  run:
+    working-directory: env-platform-backend
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install automation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -s scripts/requirements-automation.txt ]; then
+            pip install -r scripts/requirements-automation.txt
+          fi
+
+      - name: Run model-output automation
+        id: run_automation
+        run: |
+          python scripts/update_model_outputs.py
+        # Intentionally NOT using --strict here: a failed model must not
+        # fail the whole job (that would just be noise on a recurring
+        # schedule). Per-model failures are recorded in refresh_status.json
+        # and printed above in the logs for you to read directly in the
+        # Actions run — that's the "useful logs on failure" requirement.
+
+      - name: Show what changed (for the run log)
+        run: |
+          git status --porcelain -- api/data/ || true
+          echo "---"
+          git diff --stat -- api/data/ || true
+
+      - name: Commit and push updated outputs (only if something actually changed)
+        run: |
+          git config user.name "env-platform-automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add api/data/
+          if git diff --cached --quiet; then
+            echo "No changes to api/data/ — nothing to commit."
+          else
+            git commit -m "chore: automated model output update ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push
+          fi
+
+      - name: Upload full run log as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-model-outputs-log-${{ github.run_id }}
+          path: |
+            env-platform-backend/api/data/refresh_status.json
+          retention-days: 30

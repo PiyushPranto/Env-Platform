@@ -1,0 +1,34 @@
+# Dependencies for the model-update automation ONLY.
+#
+# Deliberately kept separate from the backend's own requirements.txt:
+# api/index.py (the Vercel serverless function) must stay tiny and fast to
+# cold-start, so none of this should ever be installed into the backend's
+# deployment. This file is installed only inside the GitHub Actions runner
+# that executes scripts/update_model_outputs.py.
+#
+# The orchestrator itself (update_model_outputs.py, validators.py,
+# runners/*.py) needs nothing beyond the Python standard library — the
+# entries below are for the REAL model code you add under scripts/models/
+# (heat_export.py / flood_export.py / deforestation_export.py). Uncomment
+# / add exactly what your real pipeline needs; don't install everything
+# "just in case" — it slows down every single automated run.
+
+# --- Deforestation model (deforestation_model.ipynb) currently uses: ---
+# numpy
+# pandas
+# scikit-learn
+# geopandas
+# rasterio
+# joblib
+
+# --- If you convert the GEE exports to run headlessly instead of via the
+#     interactive Code Editor, you will also need: ---
+# earthengine-api
+# google-cloud-storage
+
+# --- Nationwide flood model (build_bangladesh_flood_model.py) currently uses: ---
+# numpy
+# pandas
+# scikit-learn
+
+# --- Heat model: no code exists yet, so nothing to list here until you add it. ---

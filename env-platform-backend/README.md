@@ -57,6 +57,16 @@ The frontend and this API live on **two separate Vercel projects** — that's
 normal and doesn't need any special configuration beyond CORS and the env
 var above.
 
+## Automated model-output updates
+
+`api/data/*` can now be refreshed automatically every 3 days by a GitHub
+Actions workflow instead of by hand — see **[AUTOMATION.md](./AUTOMATION.md)**
+for the full picture, including exactly which models are wired up for real
+vs. still need real model code plugged in. Short version: nothing above
+changes (same endpoints, same files, same deploy process); a new endpoint,
+`GET /model/refresh-status`, reports when each model last updated
+successfully and whether any run is currently failing.
+
 ## Endpoint -> file -> real source map
 
 | Endpoint | File (`api/data/`) | Status | Real source to eventually swap in |
@@ -72,6 +82,7 @@ var above.
 | `GET /deforestation/detect` | `deforestation_detect.geojson` | Placeholder | Not wired into the frontend yet (module still locked) |
 | `GET /deforestation/districts` | `deforestation_districts.geojson` | Placeholder | Not wired into the frontend yet |
 | `GET /deforestation/ndvi` | `deforestation_ndvi_summary.json` | Placeholder | Not wired into the frontend yet |
+| `GET /model/refresh-status` | `refresh_status.json` | **Real** (self-reporting) | Written automatically by `scripts/update_model_outputs.py` every automation run — see AUTOMATION.md |
 
 To update a "Real" file with a finer-grained export later (e.g. the actual
 1,650-cell `dhaka_flood_grid.geojson` instead of the 7x9 block-average), or

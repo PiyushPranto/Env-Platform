@@ -83,6 +83,7 @@ def root():
             "/heat/risk", "/heat/hotspots", "/heat/trend",
             "/flood/risk", "/flood/trend", "/flood/top-risk-areas", "/flood/summary",
             "/deforestation/detect", "/deforestation/districts", "/deforestation/ndvi",
+            "/model/refresh-status",
         ],
     }
 
@@ -185,3 +186,31 @@ def deforestation_ndvi():
     """NDVI summary for the trend chart / headline numbers. Replace with the
     real deforestation_summary.json."""
     return _load("deforestation_ndvi_summary.json")
+
+
+# ---------------------------------------------------------------------------
+# Model refresh status — written by scripts/update_model_outputs.py
+# (see .github/workflows/update-model-outputs.yml) every time the
+# automation runs. Lets the dashboard show "Last model update" / whether
+# each model is live, skipped (no real model code wired in yet) or failed
+# (previous valid output is still being served). This is the only change
+# made to this file for the automation — every existing endpoint above,
+# including /auth/login, is unchanged.
+# ---------------------------------------------------------------------------
+
+@app.get("/model/refresh-status")
+def model_refresh_status():
+    """Status of the automated model-output update pipeline. Returns a
+    safe default (nothing has run yet) if refresh_status.json doesn't
+    exist yet, rather than a 404 — the dashboard should be able to render
+    a "not yet automated" state instead of erroring."""
+    path = DATA_DIR / "refresh_status.json"
+    if not path.exists():
+        return {
+            "status": "not_yet_run",
+            "last_run_at": None,
+            "last_run_had_updates": False,
+            "last_run_had_failures": False,
+            "models": {},
+        }
+    return json.loads(path.read_text())
