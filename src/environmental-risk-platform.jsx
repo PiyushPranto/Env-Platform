@@ -6,6 +6,7 @@ import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp,
   FileText, X, Lock, ChevronRight, Sun, Building2, Sprout, ArrowLeft,
+  UserPlus,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -682,12 +683,30 @@ const ROLE_CREDENTIALS = {
   "Field Officer": { officer_id: "field_officer", password: "field_officer_400" },
 };
 
+const REGISTERABLE_ROLES = Object.keys(ROLE_CREDENTIALS);
+
 function GovtLogin({ onBack, onLogin }) {
+  const [mode, setMode] = useState("login"); // "login" | "register"
+
+  // --- login state ---
   const [role, setRole] = useState("Environmental Analyst");
   const [officerId, setOfficerId] = useState(ROLE_CREDENTIALS["Environmental Analyst"].officer_id);
   const [password, setPassword] = useState(ROLE_CREDENTIALS["Environmental Analyst"].password);
+
+  // --- register state ---
+  const [regName, setRegName] = useState("");
+  const [regRole, setRegRole] = useState(REGISTERABLE_ROLES[0]);
+  const [regOfficerId, setRegOfficerId] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function switchMode(newMode) {
+    setMode(newMode);
+    setError("");
+  }
 
   function handleRoleChange(newRole) {
     setRole(newRole);
@@ -699,7 +718,7 @@ function GovtLogin({ onBack, onLogin }) {
     setError("");
   }
 
-  async function handleSubmit(e) {
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -724,58 +743,176 @@ function GovtLogin({ onBack, onLogin }) {
     }
   }
 
+  async function handleRegisterSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!regName.trim() || !regOfficerId.trim() || !regPassword) {
+      setError("Please fill in every field.");
+      return;
+    }
+    if (regPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          officer_id: regOfficerId.trim(),
+          password: regPassword,
+          name: regName.trim(),
+          role: regRole,
+        }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.detail || `Registration failed (${res.status})`);
+      }
+
+      // Instant access: a successful registration logs the new officer
+      // straight in, same as the login flow.
+      onLogin(body.role || regRole);
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputClass =
+    "w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50";
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 mb-6">
           <ArrowLeft size={14} /> Back
         </button>
-        <form onSubmit={handleSubmit} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
-          <ShieldCheck size={22} className="text-orange-400 mb-3" />
-          <h2 className="text-lg font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Government sign in
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 mb-5">Role-based access to environmental monitoring and decision support</p>
 
-          <label className="text-xs text-slate-400">Role</label>
-          <select
-            value={role}
-            onChange={(e) => handleRoleChange(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
-          >
-            <option>Environmental Analyst</option>
-            <option>City Administrator</option>
-            <option>Field Officer</option>
-          </select>
+        {mode === "login" ? (
+          <form onSubmit={handleLoginSubmit} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+            <ShieldCheck size={22} className="text-orange-400 mb-3" />
+            <h2 className="text-lg font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Government sign in
+            </h2>
+            <p className="text-xs text-slate-500 mt-1 mb-5">Role-based access to environmental monitoring and decision support</p>
 
-          <label className="text-xs text-slate-400">Officer ID</label>
-          <input
-            value={officerId}
-            onChange={(e) => setOfficerId(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
-          />
+            <label className="text-xs text-slate-400">Role</label>
+            <select
+              value={role}
+              onChange={(e) => handleRoleChange(e.target.value)}
+              className={inputClass}
+            >
+              {REGISTERABLE_ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
 
-          <label className="text-xs text-slate-400">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
-          />
+            <label className="text-xs text-slate-400">Officer ID</label>
+            <input value={officerId} onChange={(e) => setOfficerId(e.target.value)} className={inputClass} />
 
-          {error && (
-            <p className="text-xs text-red-400 mb-3">{error}</p>
-          )}
+            <label className="text-xs text-slate-400">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass}
+            />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-          <p className="text-[11px] text-slate-600 mt-3 text-center">Role selects the matching demo credentials automatically</p>
-        </form>
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+            <p className="text-[11px] text-slate-600 mt-3 text-center">Role selects the matching demo credentials automatically</p>
+
+            <div className="border-t border-slate-800 mt-4 pt-4 text-center">
+              <button
+                type="button"
+                onClick={() => switchMode("register")}
+                className="text-xs text-orange-400 hover:text-orange-300 inline-flex items-center gap-1"
+              >
+                <UserPlus size={13} /> New officer? Register here
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleRegisterSubmit} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+            <UserPlus size={22} className="text-orange-400 mb-3" />
+            <h2 className="text-lg font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Officer registration
+            </h2>
+            <p className="text-xs text-slate-500 mt-1 mb-5">Create an account to get government dashboard access</p>
+
+            <label className="text-xs text-slate-400">Full name</label>
+            <input value={regName} onChange={(e) => setRegName(e.target.value)} className={inputClass} placeholder="e.g. Rahim Uddin" />
+
+            <label className="text-xs text-slate-400">Role</label>
+            <select value={regRole} onChange={(e) => setRegRole(e.target.value)} className={inputClass}>
+              {REGISTERABLE_ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+
+            <label className="text-xs text-slate-400">Officer ID</label>
+            <input
+              value={regOfficerId}
+              onChange={(e) => setRegOfficerId(e.target.value)}
+              className={inputClass}
+              placeholder="Choose a unique ID, e.g. rahim_2026"
+            />
+
+            <label className="text-xs text-slate-400">Password</label>
+            <input
+              type="password"
+              value={regPassword}
+              onChange={(e) => setRegPassword(e.target.value)}
+              className={inputClass}
+              placeholder="At least 6 characters"
+            />
+
+            <label className="text-xs text-slate-400">Confirm password</label>
+            <input
+              type="password"
+              value={regConfirmPassword}
+              onChange={(e) => setRegConfirmPassword(e.target.value)}
+              className={inputClass}
+            />
+
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+            >
+              {loading ? "Creating account…" : "Register & sign in"}
+            </button>
+
+            <div className="border-t border-slate-800 mt-4 pt-4 text-center">
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="text-xs text-slate-400 hover:text-slate-300"
+              >
+                Already have an account? Sign in
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

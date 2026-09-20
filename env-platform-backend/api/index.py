@@ -21,8 +21,20 @@ from pathlib import Path
 import json
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+
+try:
+    # Normal case when this module is imported as part of the `api` package
+    # (e.g. local testing with `import api.index`).
+    from . import officers_db
+except ImportError:
+    # Vercel's Python runtime loads api/index.py directly rather than as a
+    # package submodule, which makes the relative import above fail with
+    # "attempted relative import with no known parent package". Its own
+    # directory is on sys.path in that case, so a plain import resolves
+    # officers_db.py sitting right next to this file either way.
+    import officers_db
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -36,6 +48,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    officer_id: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=6, max_length=128)
+    name: str = Field(min_length=1, max_length=128)
+    role: str = Field(min_length=1, max_length=64)
+
+
 DEMO_USERS = {
     "env_project": {"password": "env_project_400", "role": "Environmental Analyst"},
     "city_admin": {"password": "city_admin_400", "role": "City Administrator"},
@@ -45,18 +64,87 @@ DEMO_USERS = {
 
 @app.post("/auth/login")
 def login(credentials: LoginRequest):
-    user = DEMO_USERS.get(credentials.officer_id)
-    if not user or user["password"] != credentials.password:
+    # 1. The three original demo accounts keep working exactly as before —
+    #    unchanged behavior, checked first so nothing here can break them.
+    demo_user = DEMO_USERS.get(credentials.officer_id)
+    if demo_user:
+        if demo_user["password"] != credentials.password:
+            raise HTTPException(status_code=401, detail="Invalid Officer ID or password")
+        return {
+            "authenticated": True,
+            "officer_id": credentials.officer_id,
+            "role": demo_user["role"],
+        }
+
+    # 2. Not a demo account — check officers who registered for real.
+    if not officers_db.is_configured():
+        # Same officer_id might be a real registration, but there's no DB
+        # to check — say so plainly rather than a misleading 401.
         raise HTTPException(
             status_code=401,
             detail="Invalid Officer ID or password",
         )
 
+    try:
+        officer = officers_db.get_officer(credentials.officer_id)
+    except officers_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Login storage unavailable: {e}")
+
+    if not officer or not officers_db.verify_password(
+        credentials.password, officer["password_salt"], officer["password_hash"]
+    ):
+        raise HTTPException(status_code=401, detail="Invalid Officer ID or password")
+
     return {
         "authenticated": True,
-        "officer_id": credentials.officer_id,
-        "role": user["role"],
+        "officer_id": officer["officer_id"],
+        "role": officer["role"],
     }
+
+
+@app.post("/auth/register")
+def register(request: RegisterRequest):
+    """Registers a new officer account. Returns the same shape as /auth/login
+    so the frontend can log the new officer straight in — see REGISTRATION.md
+    for the full setup (this needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+    to be set; without them this returns a clear 503, not a fake success)."""
+    if request.officer_id in DEMO_USERS:
+        raise HTTPException(
+            status_code=409,
+            detail="That Officer ID is reserved for a demo account. Choose a different Officer ID.",
+        )
+
+    if not officers_db.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Registration isn't set up yet: SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY are not configured on this "
+                "backend. See REGISTRATION.md for setup steps."
+            ),
+        )
+
+    try:
+        existing = officers_db.get_officer(request.officer_id)
+        if existing:
+            raise HTTPException(status_code=409, detail="That Officer ID is already registered.")
+
+        officer = officers_db.create_officer(
+            officer_id=request.officer_id,
+            name=request.name,
+            role=request.role,
+            password=request.password,
+        )
+    except officers_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Registration storage unavailable: {e}")
+
+    return {
+        "authenticated": True,
+        "officer_id": officer["officer_id"],
+        "role": officer["role"],
+    }
+
+
 # Allow the deployed frontend (and local dev) to call this API from the browser.
 # Tighten allow_origins to the exact Vercel frontend URL before the real defense demo.
 app.add_middleware(

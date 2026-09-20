@@ -57,6 +57,16 @@ The frontend and this API live on **two separate Vercel projects** — that's
 normal and doesn't need any special configuration beyond CORS and the env
 var above.
 
+## Officer registration
+
+The government sign-in screen has a "New officer? Register here" link
+(`POST /auth/register`, alongside the existing `POST /auth/login`). It needs
+a one-time, ~10-minute setup (a free Supabase database — this backend has no
+database otherwise) before it actually works — see
+**[REGISTRATION.md](./REGISTRATION.md)** for the exact steps. Until that
+setup is done, registering returns a clear error instead of silently
+failing; the three original demo accounts are unaffected either way.
+
 ## Automated model-output updates
 
 `api/data/*` can now be refreshed automatically every 3 days by a GitHub
