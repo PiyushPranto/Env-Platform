@@ -113,6 +113,102 @@ def _check_deforestation_ndvi_summary(data: Any) -> None:
         raise ValidationError("deforestation_ndvi_summary.json must be a non-empty object")
 
 
+# ---------------------------------------------------------------------------
+# Nationwide flood (64-district Random Forest model, scripts/models/flood_export.py)
+# and real Deforestation (7 files converted from the user's real, already-run
+# notebook output) — added when both were wired into this automation.
+# Field names taken directly from the actual api/data/*.json files shipped
+# with that delivery, NOT invented.
+# ---------------------------------------------------------------------------
+
+def _check_flood_national_severity(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("flood_national_severity.json must be a non-empty list of district records")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"flood_national_severity.json[{i}] is not an object")
+        _require(row, "district_id", "district_name", "avg_predicted_risk", "severity_tier", "historical_magnitude",
+                  where=f"flood_national_severity.json[{i}]: ")
+
+
+def _check_flood_national_priority(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("flood_national_priority.json must be a non-empty list of district records")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"flood_national_priority.json[{i}] is not an object")
+        _require(row, "district_id", "district_name", "priority_rank", "priority_score", "avg_predicted_risk", "area_km2",
+                  where=f"flood_national_priority.json[{i}]: ")
+
+
+def _check_flood_national_summary(data: Any) -> None:
+    if not isinstance(data, dict):
+        raise ValidationError("flood_national_summary.json must be an object")
+    _require(data, "districts", "rows_total", "date_range", "train_years", "test_years",
+              "observed_years", "proxy_years", "top5_priority_districts", where="flood_national_summary.json: ")
+
+
+def _check_deforestation_districts(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("deforestation_districts.json must be a non-empty list of district records")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"deforestation_districts.json[{i}] is not an object")
+        _require(row, "district", "forest_pct_now", "forest_loss_pct", "trend", "alert", "priority", "protected_loss_km2",
+                  where=f"deforestation_districts.json[{i}]: ")
+
+
+def _check_deforestation_worklist(data: Any) -> None:
+    if not isinstance(data, dict):
+        raise ValidationError("deforestation_worklist.json must be an object")
+    _require(data, "total_patches", "showing", "patches", where="deforestation_worklist.json: ")
+    if not isinstance(data["patches"], list) or len(data["patches"]) == 0:
+        raise ValidationError("deforestation_worklist.json 'patches' must be a non-empty list")
+
+
+def _check_deforestation_citizen_cards(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("deforestation_citizen_cards.json must be a non-empty list of district cards")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"deforestation_citizen_cards.json[{i}] is not an object")
+        _require(row, "district", "forest_pct", "years", "sparkline", "message", "call_to_action",
+                  where=f"deforestation_citizen_cards.json[{i}]: ")
+
+
+def _check_deforestation_timeseries(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("deforestation_timeseries.json must be a non-empty list of district-year rows")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"deforestation_timeseries.json[{i}] is not an object")
+        _require(row, "district", "year", "forest_km2", where=f"deforestation_timeseries.json[{i}]: ")
+
+
+def _check_deforestation_restoration_priority(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("deforestation_restoration_priority.json must be a non-empty list of district records")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"deforestation_restoration_priority.json[{i}] is not an object")
+        _require(row, "district", "restoration_need", "restoration_tier", where=f"deforestation_restoration_priority.json[{i}]: ")
+
+
+def _check_deforestation_loss_by_year(data: Any) -> None:
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValidationError("deforestation_loss_by_year.json must be a non-empty list of {year, km2_lost} rows")
+    for i, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise ValidationError(f"deforestation_loss_by_year.json[{i}] is not an object")
+        _require(row, "year", "km2_lost", where=f"deforestation_loss_by_year.json[{i}]: ")
+
+
+def _check_deforestation_model_metrics(data: Any) -> None:
+    if not isinstance(data, dict):
+        raise ValidationError("deforestation_model_metrics.json must be an object")
+    _require(data, "accuracy", "precision", "recall", "f1", "roc_auc", where="deforestation_model_metrics.json: ")
+
+
 REQUIRED_FIELDS = {
     "heat_risk.json": _check_heat_risk,
     "heat_trend.json": _check_heat_trend,
@@ -122,9 +218,19 @@ REQUIRED_FIELDS = {
     "flood_trend.json": _check_flood_trend,
     "flood_top_risk_areas.json": _check_flood_top_risk_areas,
     "flood_summary.json": _check_flood_summary,
+    "flood_national_severity.json": _check_flood_national_severity,
+    "flood_national_priority.json": _check_flood_national_priority,
+    "flood_national_summary.json": _check_flood_national_summary,
     "deforestation_detect.geojson": lambda d: _check_geojson(d, "deforestation_detect.geojson"),
     "deforestation_districts.geojson": lambda d: _check_geojson(d, "deforestation_districts.geojson"),
     "deforestation_ndvi_summary.json": _check_deforestation_ndvi_summary,
+    "deforestation_districts.json": _check_deforestation_districts,
+    "deforestation_worklist.json": _check_deforestation_worklist,
+    "deforestation_citizen_cards.json": _check_deforestation_citizen_cards,
+    "deforestation_timeseries.json": _check_deforestation_timeseries,
+    "deforestation_restoration_priority.json": _check_deforestation_restoration_priority,
+    "deforestation_loss_by_year.json": _check_deforestation_loss_by_year,
+    "deforestation_model_metrics.json": _check_deforestation_model_metrics,
 }
 
 

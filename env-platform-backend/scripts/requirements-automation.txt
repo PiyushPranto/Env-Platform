@@ -26,9 +26,10 @@
 # earthengine-api
 # google-cloud-storage
 
-# --- Nationwide flood model (build_bangladesh_flood_model.py) currently uses: ---
-# numpy
-# pandas
-# scikit-learn
+# --- Nationwide flood model (scripts/models/flood_export.py) — REAL, wired in: ---
+joblib
+scikit-learn
+# (deliberately stdlib-only otherwise — urllib for the Open-Meteo fetch, no
+# pandas/numpy needed for this script's own feature-engineering code)
 
 # --- Heat model: no code exists yet, so nothing to list here until you add it. ---

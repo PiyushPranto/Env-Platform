@@ -1,12 +1,17 @@
 """
 Deforestation model runner.
 
-STATUS: real methodology and code exist (deforestation_model.ipynb,
-deforestation-model-summary.md, deforestation-api-contract.md — all dated
-20 Sept), but as stored in the project the notebook has never actually
-been executed: every cell has execution_count: null and empty outputs.
-There is no confirmed real output anywhere yet, so this runner currently
-always raises ModelUnavailable until that changes.
+STATUS (updated): the notebook (deforestation_model_Final7_2.ipynb) HAS
+now actually been executed — real output was delivered by the user from
+their own Google Drive run (deforestation_outputs.zip) and converted into
+the 7 real files api/index.py now serves: deforestation_districts.json,
+deforestation_worklist.json, deforestation_citizen_cards.json,
+deforestation_timeseries.json, deforestation_restoration_priority.json,
+deforestation_loss_by_year.json, deforestation_model_metrics.json. That
+was a ONE-TIME conversion of a real, already-run notebook's output — not
+headless automation. This runner still always raises ModelUnavailable
+(no scripts/models/deforestation_export.py exists yet) until the GEE
+export path below is rebuilt to run unattended.
 
 TWO THINGS TO KNOW BEFORE WIRING THIS UP FOR REAL AUTOMATION:
 
@@ -32,9 +37,23 @@ TWO THINGS TO KNOW BEFORE WIRING THIS UP FOR REAL AUTOMATION:
    workflow (a second, separate schedule) — not something this runner
    needs to know about.
 
+3. Two fields are permanently excluded from ANY future automated output,
+   not just the one-time conversion already shipped: national year-by-year
+   trend direction and the loss forecast. The notebook's own Step 14
+   "Integration Readiness" check quarantined both (three normalisation
+   methods disagree even on the sign of the decade change; the forecast's
+   backtest MAE exceeds its own 10pp usability cap). A future
+   deforestation_export.py must keep honoring that quarantine — do not
+   compute and ship those two fields just because automation makes it
+   easy to.
+
 Once real, headless-capable export code exists, wire it into
 scripts/models/deforestation_export.py (see _template_export.py) and this
-runner will pick it up with no changes.
+runner will pick it up with no changes. OUTPUT_FILES below already
+reflects the 7 real filenames api/index.py currently serves (kept in sync
+with the one-time conversion delivered this round) — a future export
+script must produce exactly these, with the same field names, so the
+frontend needs zero changes.
 """
 
 from __future__ import annotations
@@ -45,7 +64,15 @@ from . import run_export_module
 
 MODEL_NAME = "deforestation"
 
-OUTPUT_FILES = ["deforestation_detect.geojson", "deforestation_districts.geojson", "deforestation_ndvi_summary.json"]
+OUTPUT_FILES = [
+    "deforestation_districts.json",
+    "deforestation_worklist.json",
+    "deforestation_citizen_cards.json",
+    "deforestation_timeseries.json",
+    "deforestation_restoration_priority.json",
+    "deforestation_loss_by_year.json",
+    "deforestation_model_metrics.json",
+]
 
 
 def run(staging_dir: Path) -> None:
