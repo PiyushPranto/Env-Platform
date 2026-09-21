@@ -170,7 +170,10 @@ def root():
         "endpoints": [
             "/heat/risk", "/heat/hotspots", "/heat/trend",
             "/flood/risk", "/flood/trend", "/flood/top-risk-areas", "/flood/summary",
-            "/deforestation/detect", "/deforestation/districts", "/deforestation/ndvi",
+            "/flood/national/severity", "/flood/national/priority", "/flood/national/summary",
+            "/deforestation/districts", "/deforestation/worklist", "/deforestation/citizen-cards",
+            "/deforestation/timeseries", "/deforestation/restoration-priority",
+            "/deforestation/loss-by-year", "/deforestation/model-metrics",
             "/model/refresh-status",
         ],
     }
@@ -250,30 +253,139 @@ def flood_summary():
 
 
 # ---------------------------------------------------------------------------
-# Deforestation — NDVI change-detection notebook already exists; outputs
-# below are placeholders shaped to match its documented file structure.
+# Deforestation — REAL data. Produced by deforestation_model.ipynb (Random
+# Forest classifier on seasonal MODIS NDVI, 2015-2025, all 64 Bangladesh
+# districts), run by the team and verified via the notebook's own Step 14
+# integration-readiness check (READY, 35/35 core checks passed). See
+# claude/deforestation-model-summary.md and deforestation-api-contract.md
+# in the project for the full methodology and field-by-field schema.
+#
+# Two fields the notebook itself flags as NOT safe to ship are deliberately
+# left out of every response below: national year-by-year trend direction
+# (the eleven-year series isn't identifiable — three normalisation methods
+# disagree even on the SIGN of the decade change) and the risk forecast
+# (backtest error 16.8pp against a 10pp usability cap). What's served here
+# is exactly what the readiness check marked safe: the 2020 cross-section,
+# district rankings, and loss locations.
+#
+# Large geometry files (deforestation_districts.geojson at 29MB,
+# deforestation_detect.geojson at 6.9MB) are intentionally NOT served here —
+# Vercel serverless functions cap a response around 4.5MB, so both would
+# fail once deployed even though they work in local testing. Every other
+# module on this platform renders its map as a custom colored grid/list
+# rather than a real map library, so this follows the same pattern: district
+# data is served as flat JSON for a ranking list, and the worklist below
+# ships its top 200 rows (already sorted worst-first) rather than all 10,427.
 # ---------------------------------------------------------------------------
-
-@app.get("/deforestation/detect")
-def deforestation_detect():
-    """Vectorized, minimum-mapping-unit-filtered deforestation patches, GeoJSON.
-    Replace with the real deforestation_detect.geojson (541 patches after
-    filtering, per the notebook run)."""
-    return _load("deforestation_detect.geojson")
-
 
 @app.get("/deforestation/districts")
 def deforestation_districts():
-    """Per-district NDVI / vegetation-cover change — choropleth layer +
-    ranking-table source. Replace with the real deforestation_districts.geojson."""
-    return _load("deforestation_districts.geojson")
+    """All 64 districts, full metrics (forest cover, loss, trend, priority,
+    restoration need). Drives the government ranking table and the citizen
+    link-out. Real data — see deforestation_summary.json in the notebook's
+    output contract."""
+    return _load("deforestation_districts.json")
 
 
-@app.get("/deforestation/ndvi")
-def deforestation_ndvi():
-    """NDVI summary for the trend chart / headline numbers. Replace with the
-    real deforestation_summary.json."""
-    return _load("deforestation_ndvi_summary.json")
+@app.get("/deforestation/worklist")
+def deforestation_worklist():
+    """Top 200 deforestation patches (of 10,427 total), already sorted:
+    protected areas first, then most recent, then largest. Each row has
+    district, loss_year, lat/lon, area_km2, in_protected — the field
+    worklist for "where do I send someone, and when did it happen." """
+    return _load("deforestation_worklist.json")
+
+
+@app.get("/deforestation/citizen-cards")
+def deforestation_citizen_cards():
+    """One card per district for the Citizen dashboard: current tree cover,
+    a 9-point sparkline (2016-2024), a conditional outlook, and a
+    ready-to-display message + planting call-to-action. No alert/alarm
+    styling — per the model's own citizen framing, a deforestation stat
+    isn't something a citizen can act on the way a flood alert is."""
+    return _load("deforestation_citizen_cards.json")
+
+
+@app.get("/deforestation/timeseries")
+def deforestation_timeseries():
+    """Long-format forest-cover time series, district x year (2016-2024,
+    9 years — the first/last of the 11 imagery years are dropped since a
+    3-year temporal filter can't apply symmetrically to them). Drives the
+    per-district trend chart."""
+    return _load("deforestation_timeseries.json")
+
+
+@app.get("/deforestation/restoration-priority")
+def deforestation_restoration_priority():
+    """All 64 districts ranked by replanting priority, with the inputs
+    (loss, trend, current cover) that produced the ranking."""
+    return _load("deforestation_restoration_priority.json")
+
+
+@app.get("/deforestation/loss-by-year")
+def deforestation_loss_by_year():
+    """National km2 lost per year, 2017-2024 — the headline bar chart."""
+    return _load("deforestation_loss_by_year.json")
+
+
+@app.get("/deforestation/model-metrics")
+def deforestation_model_metrics():
+    """Classifier performance — accuracy/precision/recall/F1/ROC-AUC
+    (agreement with ESA WorldCover 2020 labels, not field-survey ground
+    truth — see the model summary doc for why that distinction matters),
+    plus feature importances. For the thesis defense / methodology panel."""
+    return _load("deforestation_model_metrics.json")
+
+
+# ---------------------------------------------------------------------------
+# Flood — nationwide (64-district) model. A separate effort from the
+# Dhaka-only rule-based score above: a real Random Forest trained on 10
+# years of daily district-level rainfall + terrain, validated against real
+# flood-event ground truth (DFO + Global Flood Database) for 2015-2018 and
+# a disclosed rainfall-extremity proxy for 2019-2024 (no free machine-
+# readable ground truth exists for those years). See
+# claude/bangladesh-flood-data-plan.md for the full build/validation story.
+#
+# Headline validated result: on 2018 held-out OBSERVED rows (real ground
+# truth, not proxy), precision 0.12 / recall 0.83 / F1 0.21 / ROC-AUC 0.91.
+# Low precision is expected and disclosed: floods are ~2-5% of district-days,
+# and class_weight="balanced" deliberately trades some false alarms for
+# catching more real floods — the right tradeoff for an early-warning tool.
+#
+# This is a SEPARATE, national-scale view alongside the Dhaka-specific grid
+# above, not a replacement — Dhaka's model is city-block resolution;
+# this one is district-level and country-wide. The raw per-day feature
+# table (233,792 rows) and the trained model (.joblib) are intentionally
+# not served here — nothing in the dashboard needs day-by-day granularity
+# yet, and the model file isn't safe to expose over an API unauthenticated.
+# ---------------------------------------------------------------------------
+
+@app.get("/flood/national/severity")
+def flood_national_severity():
+    """All 64 districts: historical flood severity profile, combining DFO's
+    event-severity rating and the Global Flood Database's flooded-area
+    fraction into one 0-1 historical_magnitude score, plus a Low/Moderate/
+    High/Severe tier. 63 of 64 districts have at least one recorded event;
+    the one without gets the dataset median, not a fabricated zero."""
+    return _load("flood_national_severity.json")
+
+
+@app.get("/flood/national/priority")
+def flood_national_priority():
+    """All 64 districts ranked for flood-mitigation investment: a weighted
+    composite of average predicted risk (50%), historical severity
+    magnitude (30%), and district area as an exposure proxy (20%) —
+    population wasn't in the original export, so area substitutes for it,
+    disclosed here as a known weak spot."""
+    return _load("flood_national_priority.json")
+
+
+@app.get("/flood/national/summary")
+def flood_national_summary():
+    """Model provenance: row/district counts, date range, which years used
+    real ground truth vs. a disclosed rainfall-extremity proxy, train/test
+    split years, and the feature list. For the thesis methodology panel."""
+    return _load("flood_national_summary.json")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,51 @@
+{
+  "rows_total": 233792,
+  "districts": 64,
+  "date_range": [
+    "2015-01-01",
+    "2024-12-31"
+  ],
+  "observed_years": [
+    2015,
+    2016,
+    2017,
+    2018
+  ],
+  "proxy_years": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "train_years": [
+    2015,
+    2017
+  ],
+  "test_years": [
+    2018,
+    2024
+  ],
+  "feature_cols": [
+    "rainfall_mm",
+    "rain_roll3",
+    "rain_roll7",
+    "rain_roll14",
+    "rain_lag1",
+    "month",
+    "day_of_year",
+    "elevation_m_mean",
+    "elevation_m_min",
+    "slope_deg_mean",
+    "river_distance_m_mean",
+    "area_km2"
+  ],
+  "top5_priority_districts": [
+    "Jamalpur",
+    "Netrakona",
+    "Kishoreganj",
+    "Gaibandha",
+    "Dhaka"
+  ]
+}

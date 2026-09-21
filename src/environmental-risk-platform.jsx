@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp,
   FileText, X, Lock, ChevronRight, Sun, Building2, Sprout, ArrowLeft,
-  UserPlus,
+  UserPlus, ShieldAlert, Info,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -77,9 +77,9 @@ const RECOMMENDATIONS = [
 ];
 
 const OTHER_MODULES = [
-  { key: "flood", label: "Flood monitoring", icon: Droplets },
-  { key: "air", label: "Air pollution", icon: Wind },
-  { key: "forest", label: "Deforestation", icon: TreeDeciduous },
+  { key: "flood", label: "Flood monitoring", icon: Droplets, locked: false },
+  { key: "air", label: "Air pollution", icon: Wind, locked: true },
+  { key: "forest", label: "Deforestation", icon: TreeDeciduous, locked: false },
 ];
 
 function riskColor(risk) {
@@ -105,6 +105,36 @@ function tempToColor(t) {
   const f = Math.max(0, Math.min(1, (t - lo.t) / range));
   const c = lo.c.map((v, i) => Math.round(v + (hi.c[i] - v) * f));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Flood-risk grid color scale: same teal->amber->red family as the heat
+// scale, keyed to a 0-1 risk score with 0.7 as the alert threshold (matches
+// dhaka-flood-model-summary.md's own color system).
+function riskScoreToColor(v) {
+  const stops = [
+    { t: 0, c: [45, 130, 130] },
+    { t: 0.4, c: [90, 150, 90] },
+    { t: 0.7, c: [210, 170, 40] },
+    { t: 0.85, c: [225, 120, 30] },
+    { t: 1, c: [190, 40, 30] },
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (v >= stops[i].t && v <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const range = hi.t - lo.t || 1;
+  const f = Math.max(0, Math.min(1, (v - lo.t) / range));
+  const c = lo.c.map((val, i) => Math.round(val + (hi.c[i] - val) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Deforestation priority-tier colors, shared across the district ranking
+// list, worklist and restoration list so "High" always reads the same way.
+function tierColor(tier) {
+  if (tier === "Severe" || tier === "High") return { bg: "bg-red-950/40", text: "text-red-400", ring: "ring-red-500/30", dot: "bg-red-500" };
+  if (tier === "Moderate" || tier === "Medium") return { bg: "bg-amber-950/40", text: "text-amber-400", ring: "ring-amber-500/30", dot: "bg-amber-500" };
+  if (tier === "no forest") return { bg: "bg-slate-800/40", text: "text-slate-500", ring: "ring-slate-600/30", dot: "bg-slate-600" };
+  return { bg: "bg-teal-950/40", text: "text-teal-400", ring: "ring-teal-500/30", dot: "bg-teal-500" };
 }
 
 // ---------------------------------------------------------------------------
@@ -206,10 +236,166 @@ function useHeatData() {
 }
 
 // ---------------------------------------------------------------------------
+// Flood — Dhaka (city-block, real data) and nationwide (64-district, real
+// trained model) are two separate, real datasets served by two separate
+// parts of the backend. Both hooks below fail soft: on any error the state
+// just stays null/empty and the UI shows an explicit "couldn't load" note
+// rather than inventing numbers, since (unlike Heat) no demo fallback
+// dataset exists for either of these.
+// ---------------------------------------------------------------------------
+
+function useFloodDhakaData() {
+  const [grid, setGrid] = useState(null);
+  const [trend, setTrend] = useState(null);
+  const [areas, setAreas] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [gridRes, trendRes, areasRes, summaryRes] = await Promise.all([
+          fetch(`${API_BASE}/flood/risk`),
+          fetch(`${API_BASE}/flood/trend`),
+          fetch(`${API_BASE}/flood/top-risk-areas`),
+          fetch(`${API_BASE}/flood/summary`),
+        ]);
+        if (!gridRes.ok || !trendRes.ok || !areasRes.ok || !summaryRes.ok) {
+          throw new Error("One or more /flood endpoints failed");
+        }
+        const [gridData, trendData, areasData, summaryData] = await Promise.all([
+          gridRes.json(), trendRes.json(), areasRes.json(), summaryRes.json(),
+        ]);
+        if (cancelled) return;
+        setGrid(gridData.grid || null);
+        setTrend(trendData.trend || null);
+        setAreas(areasData.areas || null);
+        setSummary(summaryData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load Dhaka flood data:", err);
+          setError(err.message || "Failed to load flood data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { grid, trend, areas, summary, loading, error };
+}
+
+function useNationalFloodData() {
+  const [severity, setSeverity] = useState(null);
+  const [priority, setPriority] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [sevRes, prRes, sumRes] = await Promise.all([
+          fetch(`${API_BASE}/flood/national/severity`),
+          fetch(`${API_BASE}/flood/national/priority`),
+          fetch(`${API_BASE}/flood/national/summary`),
+        ]);
+        if (!sevRes.ok || !prRes.ok || !sumRes.ok) {
+          throw new Error("One or more /flood/national endpoints failed");
+        }
+        const [sevData, prData, sumData] = await Promise.all([sevRes.json(), prRes.json(), sumRes.json()]);
+        if (cancelled) return;
+        setSeverity(sevData);
+        setPriority(prData);
+        setSummary(sumData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load national flood data:", err);
+          setError(err.message || "Failed to load national flood data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { severity, priority, summary, loading, error };
+}
+
+// ---------------------------------------------------------------------------
+// Deforestation — real data (Random Forest on seasonal MODIS NDVI, 2015-2025,
+// all 64 districts). No demo fallback exists for this module either; a
+// failed fetch surfaces as an explicit error state rather than fake numbers.
+// ---------------------------------------------------------------------------
+
+function useDeforestationData() {
+  const [districts, setDistricts] = useState(null);
+  const [worklist, setWorklist] = useState(null);
+  const [worklistTotal, setWorklistTotal] = useState(null);
+  const [restoration, setRestoration] = useState(null);
+  const [lossByYear, setLossByYear] = useState(null);
+  const [citizenCards, setCitizenCards] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [distRes, workRes, restRes, lossRes, cardsRes] = await Promise.all([
+          fetch(`${API_BASE}/deforestation/districts`),
+          fetch(`${API_BASE}/deforestation/worklist`),
+          fetch(`${API_BASE}/deforestation/restoration-priority`),
+          fetch(`${API_BASE}/deforestation/loss-by-year`),
+          fetch(`${API_BASE}/deforestation/citizen-cards`),
+        ]);
+        if (!distRes.ok || !workRes.ok || !restRes.ok || !lossRes.ok || !cardsRes.ok) {
+          throw new Error("One or more /deforestation endpoints failed");
+        }
+        const [distData, workData, restData, lossData, cardsData] = await Promise.all([
+          distRes.json(), workRes.json(), restRes.json(), lossRes.json(), cardsRes.json(),
+        ]);
+        if (cancelled) return;
+        setDistricts(distData);
+        setWorklist(workData.patches || []);
+        setWorklistTotal(workData.total_patches ?? null);
+        setRestoration(restData);
+        setLossByYear(lossData);
+        setCitizenCards(cardsData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load deforestation data:", err);
+          setError(err.message || "Failed to load deforestation data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { districts, worklist, worklistTotal, restoration, lossByYear, citizenCards, loading, error };
+}
+
+// ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
 
-function HeatGrid({ grid, compact }) {
+function HeatGrid({ grid, compact, colorFn = tempToColor, labelFn = (t) => `${t.toFixed(0)}C` }) {
   const cell = compact ? 26 : 34;
   return (
     <div className="inline-block rounded-xl overflow-hidden border border-slate-800 shadow-lg shadow-black/30 ring-1 ring-black/20">
@@ -218,8 +404,8 @@ function HeatGrid({ grid, compact }) {
           {row.map((t, ci) => (
             <div
               key={ci}
-              title={`${t.toFixed(0)}C`}
-              style={{ width: cell, height: cell, background: tempToColor(t) }}
+              title={labelFn(t)}
+              style={{ width: cell, height: cell, background: colorFn(t) }}
               className="border border-slate-950/40 transition-transform duration-150 hover:scale-[1.12] hover:z-10 hover:shadow-lg"
             />
           ))}
@@ -260,6 +446,30 @@ function Eyebrow({ children, tone = "orange" }) {
       {children}
     </span>
   );
+}
+
+// Shown in place of module content while real data is loading, or if it
+// failed to load — used by Flood and Deforestation, which (unlike Heat)
+// have no hardcoded demo fallback to quietly fall back to.
+function DataStateNotice({ loading, error, label }) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-slate-500 py-16 justify-center">
+        <span className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
+        Loading {label}…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-sm text-amber-500 py-16 text-center px-6">
+        <IconBadge icon={AlertTriangle} tone="amber" />
+        <span>Couldn't load {label} from the backend.</span>
+        <span className="text-xs text-slate-500">{error}</span>
+      </div>
+    );
+  }
+  return null;
 }
 
 function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
@@ -387,8 +597,23 @@ function GovtDashboard({ role, onLogout }) {
   const [search, setSearch] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [selectedWard, setSelectedWard] = useState(null);
+  const [floodTab, setFloodTab] = useState("dhaka"); // "dhaka" | "national"
+  const [selectedFloodArea, setSelectedFloodArea] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   const { wards, heatGrid, trend, loading, error } = useHeatData();
+  const floodDhaka = useFloodDhakaData();
+  const floodNational = useNationalFloodData();
+  const deforestation = useDeforestationData();
+
+  const activeLoading =
+    activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
+    : activeModule === "forest" ? deforestation.loading
+    : loading;
+  const activeError =
+    activeModule === "flood" ? (floodTab === "national" ? floodNational.error : floodDhaka.error)
+    : activeModule === "forest" ? deforestation.error
+    : error;
 
   const filteredWards = useMemo(
     () => wards.filter((w) => w.name.toLowerCase().includes(search.toLowerCase())),
@@ -443,7 +668,7 @@ function GovtDashboard({ role, onLogout }) {
             >
               <m.icon size={16} />
               <span className="flex-1 text-left">{m.label}</span>
-              <Lock size={12} className="text-slate-600" />
+              {m.locked && <Lock size={12} className="text-slate-600" />}
             </button>
           ))}
         </nav>
@@ -472,14 +697,15 @@ function GovtDashboard({ role, onLogout }) {
             />
           </div>
           <div className="flex-1" />
-          {loading && (
+          {activeLoading && (
             <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse" /> Loading live data…
             </span>
           )}
-          {error && !loading && (
-            <span className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={error}>
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Demo values shown
+          {activeError && !activeLoading && (
+            <span className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={activeError}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              {activeModule === "heat" ? "Demo values shown" : "Couldn't load"}
             </span>
           )}
           <button className="relative text-slate-500 hover:text-slate-300 transition-colors">
@@ -494,7 +720,22 @@ function GovtDashboard({ role, onLogout }) {
           </button>
         </div>
 
-        {activeModule !== "heat" ? (
+        {activeModule === "flood" ? (
+          <FloodModuleContent
+            floodTab={floodTab}
+            setFloodTab={setFloodTab}
+            dhaka={floodDhaka}
+            national={floodNational}
+            selectedArea={selectedFloodArea}
+            setSelectedArea={setSelectedFloodArea}
+          />
+        ) : activeModule === "forest" ? (
+          <DeforestationModuleContent
+            data={deforestation}
+            selectedDistrict={selectedDistrict}
+            setSelectedDistrict={setSelectedDistrict}
+          />
+        ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
             <div className="text-center max-w-sm">
               <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4">
@@ -502,7 +743,8 @@ function GovtDashboard({ role, onLogout }) {
               </div>
               <p className="text-slate-200 font-medium">Module in development</p>
               <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-                This demo prototype implements Heat Monitoring end-to-end. The
+                This demo prototype implements Heat, Flood and Deforestation
+                monitoring end-to-end. The
                 {" "}{OTHER_MODULES.find((m) => m.key === activeModule)?.label.toLowerCase()}
                 {" "}module follows the same architecture and is scoped for the next
                 build phase.
@@ -651,11 +893,391 @@ function GovtDashboard({ role, onLogout }) {
 }
 
 // ---------------------------------------------------------------------------
+// Flood module content — two real, separate datasets: Dhaka (city-block
+// rule-based composite score, historical 2025 window) and Nationwide
+// (64-district trained Random Forest, 2015-2024). Shown as two tabs rather
+// than merged, since they're different scales and different methods —
+// merging them would blur that distinction rather than clarify it.
+// ---------------------------------------------------------------------------
+
+function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea }) {
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
+      <div className="inline-flex items-center gap-1 bg-slate-900/80 border border-slate-800 rounded-lg p-1">
+        <button
+          onClick={() => setFloodTab("dhaka")}
+          className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "dhaka" ? "bg-slate-800 text-slate-100" : "text-slate-500 hover:text-slate-300"}`}
+        >
+          Dhaka (detailed)
+        </button>
+        <button
+          onClick={() => setFloodTab("national")}
+          className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "national" ? "bg-slate-800 text-slate-100" : "text-slate-500 hover:text-slate-300"}`}
+        >
+          Nationwide overview (64 districts)
+        </button>
+      </div>
+
+      {floodTab === "dhaka" ? (
+        <FloodDhakaView dhaka={dhaka} selectedArea={selectedArea} setSelectedArea={setSelectedArea} />
+      ) : (
+        <FloodNationalView national={national} />
+      )}
+    </div>
+  );
+}
+
+function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
+  const { grid, trend, areas, summary, loading, error } = dhaka;
+
+  if (loading || error || !summary) {
+    return <DataStateNotice loading={loading} error={error} label="Dhaka flood data" />;
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-4">
+        <Kpi label="Flood-prone area" value={`${summary.floodPronePct}%`} sub={`${summary.floodProneCells} of ${summary.totalCells} grid cells`} icon={Droplets} tone="orange" />
+        <Kpi label="Peak area under alert" value={`${summary.peakPctAlerted}%`} sub={summary.peakDate} icon={AlertTriangle} tone="red" />
+        <Kpi label="Alert days" value={summary.alertDays} sub={`of ${summary.totalDays} days observed`} />
+        <Kpi label="Rainfall vs baseline" value={`${summary.observedRainfall}mm`} sub={`baseline ${summary.historicalRainfall}mm/day`} tone="teal" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>Real data — 2025 monsoon window</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5">Flood risk — Dhaka (14 Jul 2025, historical peak)</h3>
+          <p className="text-xs text-slate-500 mt-0.5 mb-4">Rule-based composite score: 0.5×terrain susceptibility + 0.5×rainfall factor</p>
+          <div className="flex items-center justify-center py-4">
+            {grid && <HeatGrid grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `risk ${(v * 100).toFixed(0)}%`} />}
+          </div>
+          <p className="text-[11px] text-slate-600 text-center">Block-averaged from the real 1,650-cell Dhaka analysis grid</p>
+        </div>
+
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>Highest risk</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">Top locations</h3>
+          <div className="space-y-1 max-h-72 overflow-y-auto">
+            {(areas || []).map((a, i) => {
+              const isSelected = selectedArea?.area === a.area;
+              return (
+                <button
+                  key={a.area}
+                  onClick={() => setSelectedArea(a)}
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-slate-800/70 ring-1 ring-orange-500/30" : "hover:bg-slate-900/80"}`}
+                >
+                  <span className="text-[11px] text-slate-600 w-4 tabular-nums">{i + 1}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${a.category === "High" ? "bg-red-500" : a.category === "Medium" ? "bg-amber-500" : "bg-teal-500"}`} />
+                  <span className="flex-1 text-xs text-slate-300 truncate">{a.area}</span>
+                  <span className="text-xs text-slate-500 tabular-nums">{(a.risk * 100).toFixed(0)}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {selectedArea && (
+        <div className="rounded-2xl p-4 border bg-slate-900/40 border-slate-800 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20">
+          <IconBadge icon={MapPin} tone={selectedArea.category === "High" ? "red" : "amber"} />
+          <div className="flex-1">
+            <span className="text-sm text-slate-200 font-medium">{selectedArea.area}</span>
+            <span className="text-xs text-slate-500 ml-2">
+              risk {(selectedArea.risk * 100).toFixed(0)}% · {selectedArea.category} · elevation {selectedArea.elevation}m · {selectedArea.riverDist}m from river
+            </span>
+          </div>
+          <button onClick={() => setSelectedArea(null)} className="text-slate-500 hover:text-slate-300 hover:bg-black/20 rounded-lg p-1 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {trend && (
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={14} className="text-orange-400/80" />
+            <h3 className="text-sm font-medium text-slate-200">62-day rainfall vs. % of Dhaka under alert</h3>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">8 Jun – 8 Aug 2025, real observed rainfall</p>
+          <div style={{ width: "100%", height: 200 }}>
+            <ResponsiveContainer>
+              <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} interval={6} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }} />
+                <Line type="monotone" dataKey="rainfall" stroke="#38bdf8" strokeWidth={1.5} dot={false} name="Rainfall (mm)" />
+                <Line type="monotone" dataKey="pctAlerted" stroke="#fb923c" strokeWidth={2} dot={false} name="% area alerted" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px] text-slate-600">
+        No supervised model was trained for Dhaka — no flood-event ground truth exists for this window. Risk
+        scores are a relative, comparative signal, not a calibrated probability.
+      </p>
+    </>
+  );
+}
+
+function FloodNationalView({ national }) {
+  const { severity, priority, summary, loading, error } = national;
+
+  const severityByDistrict = useMemo(() => {
+    const m = {};
+    (severity || []).forEach((s) => { m[s.district_id] = s; });
+    return m;
+  }, [severity]);
+
+  if (loading || error || !summary) {
+    return <DataStateNotice loading={loading} error={error} label="nationwide flood data" />;
+  }
+
+  const topPriority = (priority || []).slice(0, 20);
+  const observedYears = summary.observed_years || [];
+  const proxyYears = summary.proxy_years || [];
+
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-4">
+        <Kpi label="Districts covered" value={summary.districts} sub="All of Bangladesh" icon={MapPin} />
+        <Kpi label="Validated recall" value="83%" sub="on real 2018 held-out events" icon={ShieldCheck} tone="teal" />
+        <Kpi label="Validated ROC-AUC" value="0.91" sub="real ground-truth test year" tone="teal" />
+        <Kpi label="Top priority district" value={topPriority[0]?.district_name || "—"} sub="highest mitigation priority" icon={AlertTriangle} tone="red" />
+      </div>
+
+      <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
+        <IconBadge icon={Info} tone="amber" size={14} />
+        <p className="text-xs text-amber-200/90 leading-relaxed">
+          Trained on real flood-event ground truth (DFO + Global Flood Database) for {observedYears.join("–")}.
+          No free machine-readable ground truth exists for {proxyYears[0]}–{proxyYears[proxyYears.length - 1]},
+          so those years use a disclosed rainfall-extremity proxy label instead — never silently mixed with real
+          events. Precision is intentionally low (a district-day is genuinely a flood ~3–5% of the time); the model
+          trades some false alarms for catching more real floods, the right tradeoff for early warning.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>Mitigation priority</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-1">Top 20 of 64 districts</h3>
+          <p className="text-xs text-slate-500 mb-4">Weighted: 50% predicted risk, 30% historical severity, 20% area exposure</p>
+          <div className="space-y-1">
+            {topPriority.map((d) => {
+              const sev = severityByDistrict[d.district_id];
+              const tier = sev?.severity_tier || "Moderate";
+              const c = tierColor(tier);
+              return (
+                <div key={d.district_id} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-900/80 transition-colors">
+                  <span className="text-[11px] text-slate-600 w-5 tabular-nums">{d.priority_rank}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                  <span className="flex-1 text-sm text-slate-300">{d.district_name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                  <span className="text-xs text-slate-500 tabular-nums w-16 text-right">risk {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-slate-600 mt-3">+{Math.max(0, (priority || []).length - 20)} more districts, ranked, in the full export.</p>
+        </div>
+
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow tone="teal">Model provenance</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-3">For the defense panel</h3>
+          <div className="space-y-3 text-xs text-slate-400">
+            <div><span className="text-slate-300">Algorithm:</span> Random Forest, class-weighted</div>
+            <div><span className="text-slate-300">Rows:</span> {summary.rows_total?.toLocaleString()} district-days</div>
+            <div><span className="text-slate-300">Date range:</span> {summary.date_range?.[0]} – {summary.date_range?.[1]}</div>
+            <div><span className="text-slate-300">Train years:</span> {summary.train_years?.join("–")} (real events only)</div>
+            <div><span className="text-slate-300">Test years:</span> {summary.test_years?.join("–")}</div>
+            <div className="pt-2 border-t border-slate-800">
+              <span className="text-slate-300">Exposure proxy:</span> district area (population data wasn't in the
+              original export — a disclosed limitation, not a hidden one)
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Deforestation module content — real data: Random Forest on seasonal MODIS
+// NDVI, 2015-2025, all 64 districts. National year-by-year trend direction
+// and the loss forecast are deliberately NOT shown — the notebook's own
+// integration-readiness check quarantined both (three normalisation methods
+// disagree even on the sign of the decade change; the forecast's backtest
+// error exceeds its usability threshold). What IS shown — the 2020
+// cross-section, district rankings, and loss locations — passed all 35
+// core checks.
+// ---------------------------------------------------------------------------
+
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict }) {
+  const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
+
+  if (loading || error || !districts) {
+    return (
+      <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
+        <DataStateNotice loading={loading} error={error} label="deforestation data" />
+      </div>
+    );
+  }
+
+  const nationalLossKm2 = (lossByYear || []).reduce((sum, r) => sum + (r.km2_lost || 0), 0);
+  const alertCount = districts.filter((d) => d.alert).length;
+  const avgForestPct = districts.reduce((s, d) => s + (d.forest_pct_now || 0), 0) / districts.length;
+  const sortedByLoss = [...districts].sort((a, b) => (b.forest_loss_pct || 0) - (a.forest_loss_pct || 0));
+  const topRestoration = (restoration || []).filter((r) => r.restoration_tier === "High").slice(0, 10);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
+      <div className="grid grid-cols-4 gap-4">
+        <Kpi label="National loss, 2017–2024" value={`${Math.round(nationalLossKm2).toLocaleString()} km²`} sub="persistent, 2-year-confirmed loss" icon={TreeDeciduous} tone="red" />
+        <Kpi label="Districts accelerating" value={alertCount} sub="recent loss ≥1.5× own baseline" icon={AlertTriangle} tone="orange" />
+        <Kpi label="Avg. tree cover" value={`${avgForestPct.toFixed(1)}%`} sub="national average, 2024" tone="teal" />
+        <Kpi label="Loss patches mapped" value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub="≥0.25 km², 2017–2023" />
+      </div>
+
+      <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
+        <IconBadge icon={Info} tone="amber" size={14} />
+        <p className="text-xs text-amber-200/90 leading-relaxed">
+          This reports tree cover (includes homestead groves and plantations), not gazetted forest — do not
+          compare to the Forest Department's 11–15% figure. National year-by-year trend direction and the
+          loss forecast are intentionally not shown here: three normalisation methods on this data disagree
+          even on the sign of the decade change, and the forecast's error exceeds a usable threshold. District
+          rankings and loss locations below passed every integration check.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>Ranked by loss</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">District ranking — 64 districts</h3>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {sortedByLoss.map((d, i) => {
+              const c = tierColor(d.priority);
+              const isSelected = selectedDistrict?.district === d.district;
+              return (
+                <button
+                  key={d.district}
+                  onClick={() => setSelectedDistrict(d)}
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-slate-800/70 ring-1 " + c.ring : "hover:bg-slate-900/80"}`}
+                >
+                  <span className="text-[11px] text-slate-600 w-5 tabular-nums">{i + 1}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                  <span className="flex-1 text-sm text-slate-300">{d.district}</span>
+                  <span className="text-xs text-slate-500 tabular-nums">{d.forest_pct_now?.toFixed(1)}% cover</span>
+                  <ChevronRight size={13} className={`text-slate-600 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow tone="teal">Restoration priority</Eyebrow>
+          <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">Top replanting targets</h3>
+          <div className="space-y-2.5">
+            {topRestoration.map((r, i) => (
+              <div key={r.district} className="flex items-center gap-2.5">
+                <IconBadge icon={Sprout} tone="teal" size={13} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-300 truncate">{r.district}</p>
+                  <p className="text-[11px] text-slate-500">{r.forest_pct_now?.toFixed(1)}% cover · {r.trend}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {selectedDistrict && (
+        <div className={`rounded-2xl p-4 border ${tierColor(selectedDistrict.priority).bg} border-slate-800 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+          <IconBadge icon={TreeDeciduous} tone={selectedDistrict.priority === "High" ? "red" : selectedDistrict.priority === "Medium" ? "amber" : "teal"} />
+          <div className="flex-1">
+            <span className="text-sm text-slate-200 font-medium">{selectedDistrict.district}</span>
+            <span className="text-xs text-slate-500 ml-2">
+              {selectedDistrict.forest_pct_now?.toFixed(1)}% cover · lost {selectedDistrict.forest_loss_pct?.toFixed(1)}% since 2016 ·
+              {" "}{selectedDistrict.trend} · restoration: {selectedDistrict.restoration_tier}
+              {selectedDistrict.protected_loss_km2 > 0 && ` · ${selectedDistrict.protected_loss_km2.toFixed(1)} km² lost inside protected areas`}
+            </span>
+          </div>
+          <button onClick={() => setSelectedDistrict(null)} className="text-slate-500 hover:text-slate-300 hover:bg-black/20 rounded-lg p-1 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {lossByYear && lossByYear.length > 0 && (
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <h3 className="text-sm font-medium text-slate-200 mb-1">National loss by year</h3>
+          <p className="text-xs text-slate-500 mb-3">km² of persistent, 2-year-confirmed loss</p>
+          <div style={{ width: "100%", height: 180 }}>
+            <ResponsiveContainer>
+              <BarChart data={lossByYear} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="year" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }} />
+                <Bar dataKey="km2_lost" fill="#dc2626" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {worklist && worklist.length > 0 && (
+        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <Eyebrow tone="orange">Field worklist</Eyebrow>
+              <h3 className="text-sm font-medium text-slate-200 mt-0.5">Recent loss patches</h3>
+            </div>
+            <span className="text-[11px] text-slate-500">showing {Math.min(50, worklist.length)} of {(worklistTotal ?? worklist.length).toLocaleString()}, protected + recent first</span>
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            <table className="w-full text-xs border-separate border-spacing-0">
+              <thead className="sticky top-0 bg-slate-900">
+                <tr className="text-slate-500 text-left">
+                  <th className="py-1.5 font-medium border-b border-slate-800">District</th>
+                  <th className="py-1.5 font-medium border-b border-slate-800">Year</th>
+                  <th className="py-1.5 font-medium border-b border-slate-800">Area</th>
+                  <th className="py-1.5 font-medium border-b border-slate-800">Protected</th>
+                </tr>
+              </thead>
+              <tbody>
+                {worklist.slice(0, 50).map((p, i) => (
+                  <tr key={i} className={i % 2 === 1 ? "bg-slate-900/30" : ""}>
+                    <td className="py-1.5 px-1 text-slate-300">{p.district}</td>
+                    <td className="py-1.5 px-1 text-slate-400">{p.loss_year}</td>
+                    <td className="py-1.5 px-1 text-slate-400">{p.area_km2?.toFixed(2)} km²</td>
+                    <td className="py-1.5 px-1">
+                      {p.in_protected ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400">yes</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Citizen dashboard
 // ---------------------------------------------------------------------------
 
 function CitizenDashboard({ onLogout }) {
   const { heatGrid } = useHeatData();
+  const { citizenCards } = useDeforestationData();
+  const treeCard = useMemo(
+    () => (citizenCards || []).find((c) => c.district === "Chittagong") || null,
+    [citizenCards]
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -728,6 +1350,31 @@ function CitizenDashboard({ onLogout }) {
             ))}
           </div>
         </div>
+
+        {treeCard && (
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
+                <h3 className="text-sm font-medium text-slate-200">Tree cover — {treeCard.district}</h3>
+              </div>
+              <span className="text-lg font-semibold text-slate-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {treeCard.forest_pct}%
+              </span>
+            </div>
+            <div style={{ width: "100%", height: 56 }}>
+              <ResponsiveContainer>
+                <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
+                  <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed mt-2">{treeCard.message}</p>
+            <button className="w-full mt-3 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 text-xs font-medium py-2 rounded-lg transition-colors">
+              {treeCard.call_to_action}
+            </button>
+          </div>
+        )}
 
         <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
           Live where available; demo values used as fallback.
