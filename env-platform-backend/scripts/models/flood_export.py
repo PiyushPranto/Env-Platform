@@ -84,6 +84,14 @@ DISTRICTS_STATIC_PATH = DATA_DIR / "flood_districts_static.csv"
 SEVERITY_STATIC_PATH = DATA_DIR / "flood_severity_static.csv"
 TRAINING_PROVENANCE_PATH = DATA_DIR / "flood_training_provenance.json"
 
+# The currently-LIVE output from the previous run (about to be replaced).
+# Read once, before overwriting, purely to compute an honest "is this
+# district's risk rising or falling since last refresh" signal — never
+# invented, and never blocking if it's missing (very first run, or the
+# file moved) since a trend simply isn't shown in that case.
+LIVE_SEVERITY_PATH = Path(__file__).resolve().parent.parent.parent / "api" / "data" / "flood_national_severity.json"
+TREND_STEADY_THRESHOLD = 0.03  # +/- 3 percentage points of predicted risk counts as "steady", not noise-driven up/down
+
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 BATCH_SIZE = 16          # districts per HTTP request — keeps URLs short, limits blast radius of one bad batch
 LAG_DAYS = 7             # end the window this many days before "today" — ERA5 archive data needs a few days to finalize
@@ -198,6 +206,33 @@ def _normalize(values: list[float]) -> list[float]:
     return [(v - lo) / (hi - lo) for v in values]
 
 
+def _load_previous_avg_risk() -> dict[int, float]:
+    """Best-effort read of the previous run's avg_predicted_risk per
+    district, from the file this run is about to overwrite. Returns {} if
+    it doesn't exist yet (first-ever run) or can't be parsed - a missing
+    trend is honest; a fabricated one is not."""
+    if not LIVE_SEVERITY_PATH.exists():
+        return {}
+    try:
+        rows = json.loads(LIVE_SEVERITY_PATH.read_text())
+        return {
+            int(r["district_id"]): float(r["avg_predicted_risk"])
+            for r in rows
+            if "district_id" in r and r.get("avg_predicted_risk") is not None
+        }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return {}
+
+
+def _risk_trend(current: float, previous: float | None) -> str | None:
+    if previous is None:
+        return None
+    diff = current - previous
+    if abs(diff) < TREND_STEADY_THRESHOLD:
+        return "steady"
+    return "up" if diff > 0 else "down"
+
+
 def _assess_severity(probability: float, historical_magnitude: float) -> str:
     """Identical thresholds to the original notebook's assess_severity()."""
     if probability < 0.4:
@@ -235,6 +270,7 @@ def generate(staging_dir: Path) -> None:
     start_date = end_date - timedelta(days=WINDOW_DAYS + BUFFER_DAYS - 1)
 
     rainfall_by_district = _fetch_all_rainfall(districts, start_date.isoformat(), end_date.isoformat())
+    previous_avg_risk = _load_previous_avg_risk()
 
     severity_rows = []
     priority_rows = []
@@ -280,6 +316,8 @@ def generate(staging_dir: Path) -> None:
                 "historical_magnitude": historical_magnitude,
                 "avg_predicted_risk": avg_predicted_risk,
                 "severity_tier": _assess_severity(avg_predicted_risk, historical_magnitude),
+                "previous_avg_predicted_risk": previous_avg_risk.get(did),
+                "risk_trend": _risk_trend(avg_predicted_risk, previous_avg_risk.get(did)),
             }
         )
 

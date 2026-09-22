@@ -4,9 +4,9 @@ import {
 } from "recharts";
 import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
-  Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp,
+  Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Sun, Building2, Sprout, ArrowLeft,
-  UserPlus, ShieldAlert, Info,
+  UserPlus, ShieldAlert, Info, Send,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -135,6 +135,17 @@ function tierColor(tier) {
   if (tier === "Moderate" || tier === "Medium") return { bg: "bg-amber-950/40", text: "text-amber-400", ring: "ring-amber-500/30", dot: "bg-amber-500" };
   if (tier === "no forest") return { bg: "bg-slate-800/40", text: "text-slate-500", ring: "ring-slate-600/30", dot: "bg-slate-600" };
   return { bg: "bg-teal-950/40", text: "text-teal-400", ring: "ring-teal-500/30", dot: "bg-teal-500" };
+}
+
+// Small "is this district's flood risk rising or falling since the last
+// 3-day refresh" indicator. Reads risk_trend, which the automation script
+// only sets once a previous run's output exists to compare against — so
+// this quietly renders nothing rather than guessing on the very first run.
+function RiskTrendBadge({ trend, size = 12 }) {
+  if (!trend) return null;
+  if (trend === "up") return <TrendingUp size={size} className="text-red-400" />;
+  if (trend === "down") return <TrendingDown size={size} className="text-teal-400" />;
+  return <Minus size={size} className="text-slate-500" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -391,6 +402,44 @@ function useDeforestationData() {
   return { districts, worklist, worklistTotal, restoration, lossByYear, citizenCards, loading, error };
 }
 
+// Citizen-submitted "I saw tree-cutting here" reports (see
+// CitizenReportForm / CITIZEN-REPORTS-SETUP.md). `configured: false` means
+// the backend's Supabase table isn't set up yet — shown as a plain notice
+// rather than an empty list, so it's clear this isn't "zero reports so far".
+function useCitizenReports() {
+  const [reports, setReports] = useState(null);
+  const [configured, setConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/deforestation/citizen-reports`);
+        if (!res.ok) throw new Error(`/deforestation/citizen-reports ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setConfigured(data.configured !== false);
+        setReports(data.reports || []);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load citizen reports:", err);
+          setError(err.message || "Failed to load citizen reports");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { reports, configured, loading, error };
+}
+
 // ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
@@ -605,6 +654,7 @@ function GovtDashboard({ role, onLogout }) {
   const floodDhaka = useFloodDhakaData();
   const floodNational = useNationalFloodData();
   const deforestation = useDeforestationData();
+  const citizenReports = useCitizenReports();
 
   const activeLoading =
     activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
@@ -734,6 +784,7 @@ function GovtDashboard({ role, onLogout }) {
             data={deforestation}
             selectedDistrict={selectedDistrict}
             setSelectedDistrict={setSelectedDistrict}
+            citizenReports={citizenReports}
           />
         ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
@@ -1088,6 +1139,7 @@ function FloodNationalView({ national }) {
                   <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                   <span className="flex-1 text-sm text-slate-300">{d.district_name}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                  <RiskTrendBadge trend={sev?.risk_trend} />
                   <span className="text-xs text-slate-500 tabular-nums w-16 text-right">risk {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
@@ -1133,7 +1185,7 @@ function FloodNationalView({ national }) {
 // core checks.
 // ---------------------------------------------------------------------------
 
-function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict }) {
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports }) {
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
 
   if (loading || error || !districts) {
@@ -1282,6 +1334,49 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
           </div>
         </div>
       )}
+
+      <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <Eyebrow tone="teal">Citizen reports</Eyebrow>
+            <h3 className="text-sm font-medium text-slate-200 mt-0.5">Tree-cutting reported by citizens</h3>
+          </div>
+          {citizenReports?.reports && (
+            <span className="text-[11px] text-slate-500">{citizenReports.reports.length} report(s)</span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mb-3">
+          Unverified — a complementary signal to the satellite model, not confirmed field findings.
+        </p>
+        {citizenReports?.loading ? (
+          <p className="text-xs text-slate-500 py-4">Loading citizen reports…</p>
+        ) : citizenReports?.error ? (
+          <p className="text-xs text-amber-500 py-4">Couldn't load citizen reports.</p>
+        ) : citizenReports?.configured === false ? (
+          <p className="text-xs text-slate-500 py-4">
+            Not set up yet — see CITIZEN-REPORTS-SETUP.md to enable citizen reporting.
+          </p>
+        ) : !citizenReports?.reports || citizenReports.reports.length === 0 ? (
+          <p className="text-xs text-slate-500 py-4">No citizen reports submitted yet.</p>
+        ) : (
+          <div className="space-y-2.5 max-h-64 overflow-y-auto">
+            {citizenReports.reports.map((r) => (
+              <div key={r.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-900/60">
+                <IconBadge icon={AlertTriangle} tone="amber" size={12} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-300">
+                    <span className="font-medium">{r.district}</span> — {r.description}
+                  </p>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    {new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {r.contact ? ` · contact: ${r.contact}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1319,12 +1414,26 @@ const CITIZEN_I18N = {
     floodRiskLive: "Live, rescored every 3 days from real rainfall",
     floodRiskFallback: "Flood data isn't available right now — showing the last known status.",
     floodRiskFallbackNote: "Couldn't load live flood data. Try again shortly.",
+    trendUp: "rising since last update",
+    trendDown: "falling since last update",
+    trendSteady: "steady since last update",
+    safeHours: "Safer hours to be outside: before 7am or after 6pm.",
     whatToDo: "What to do",
     emergencyLine: "National emergency helpline: 999 (fire, flood rescue, ambulance)",
     emergencyLine2: "For your nearest official shelter, contact your local Union Parishad / Ward office.",
     treeCoverTitle: "Tree cover —",
     footer: "Live where available; demo values used as fallback.",
     loading: "Loading…",
+    reportTitle: "Seen tree-cutting nearby?",
+    reportHint: "Satellite data can miss small, local cutting. Your report helps — it's shown to government reviewers, not verified automatically.",
+    reportDescriptionPlaceholder: "What did you see, and roughly where? (e.g. \"several trees cut near the riverbank, Ward 4\")",
+    reportContactPlaceholder: "Phone or email (optional)",
+    reportSubmit: "Submit report",
+    reportSending: "Sending…",
+    reportSuccess: "Thank you — your report was submitted.",
+    reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
+    reportError: "Couldn't submit your report. Please try again shortly.",
+    reportTooShort: "Please add a few more words describing what you saw.",
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -1344,12 +1453,26 @@ const CITIZEN_I18N = {
     floodRiskLive: "লাইভ — প্রতি ৩ দিন পরপর প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে হালনাগাদ",
     floodRiskFallback: "এই মুহূর্তে বন্যার তথ্য পাওয়া যাচ্ছে না — সর্বশেষ জানা অবস্থা দেখানো হচ্ছে।",
     floodRiskFallbackNote: "লাইভ বন্যার তথ্য লোড করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    trendUp: "গত হালনাগাদের তুলনায় বাড়ছে",
+    trendDown: "গত হালনাগাদের তুলনায় কমছে",
+    trendSteady: "গত হালনাগাদের তুলনায় একই আছে",
+    safeHours: "বাইরে থাকার নিরাপদ সময়: সকাল ৭টার আগে অথবা সন্ধ্যা ৬টার পরে।",
     whatToDo: "কী করবেন",
     emergencyLine: "জাতীয় জরুরি সেবা: ৯৯৯ (ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স)",
     emergencyLine2: "নিকটতম সরকারি আশ্রয়কেন্দ্রের জন্য আপনার স্থানীয় ইউনিয়ন পরিষদ / ওয়ার্ড অফিসে যোগাযোগ করুন।",
     treeCoverTitle: "বনভূমি —",
     footer: "যেখানে সম্ভব লাইভ তথ্য; না পেলে ডেমো মান দেখানো হয়।",
     loading: "লোড হচ্ছে…",
+    reportTitle: "আশেপাশে গাছ কাটা দেখেছেন?",
+    reportHint: "স্যাটেলাইট ডেটা ছোট আকারের স্থানীয় গাছ কাটা ধরতে পারে না। আপনার রিপোর্ট সাহায্য করে — এটা সরকারি পর্যালোচকদের দেখানো হয়, স্বয়ংক্রিয়ভাবে যাচাই করা হয় না।",
+    reportDescriptionPlaceholder: "কী দেখেছেন, আনুমানিক কোথায়? (যেমন: \"নদীর ধারে কয়েকটি গাছ কাটা হয়েছে, ওয়ার্ড ৪\")",
+    reportContactPlaceholder: "ফোন বা ইমেইল (ঐচ্ছিক)",
+    reportSubmit: "রিপোর্ট জমা দিন",
+    reportSending: "পাঠানো হচ্ছে…",
+    reportSuccess: "ধন্যবাদ — আপনার রিপোর্ট জমা হয়েছে।",
+    reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
+    reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
   },
 };
 
@@ -1394,6 +1517,93 @@ function floodSafetySteps(tier, lang) {
   };
   const byLang = steps[lang] || steps.en;
   return byLang[tier] || byLang.Moderate;
+}
+
+// A citizen "I saw tree-cutting here" report — genuinely different from
+// the satellite-based deforestation model (which only catches loss large
+// and persistent enough to show up in a 250m MODIS pixel over several
+// years). Posts to /deforestation/citizen-reports; if the backend isn't
+// configured yet (see CITIZEN-REPORTS-SETUP.md) it says so plainly rather
+// than pretending the report was saved.
+function CitizenReportForm({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [description, setDescription] = useState("");
+  const [contact, setContact] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | too_short
+  const [errorDetail, setErrorDetail] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (description.trim().length < 5) {
+      setStatus("too_short");
+      return;
+    }
+    setStatus("sending");
+    setErrorDetail("");
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ district, description: description.trim(), contact: contact.trim() || null }),
+      });
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(body.detail || "");
+        setStatus("error");
+        return;
+      }
+      setStatus("sent");
+      setDescription("");
+      setContact("");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Send} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-slate-200">{t.reportTitle}</h3>
+      </div>
+      <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">{t.reportHint}</p>
+
+      {status === "sent" ? (
+        <p className="text-xs text-teal-300">{t.reportSuccess}</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t.reportDescriptionPlaceholder}
+            rows={2}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/50 resize-none"
+          />
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder={t.reportContactPlaceholder}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/50"
+          />
+          {status === "too_short" && <p className="text-[11px] text-amber-400">{t.reportTooShort}</p>}
+          {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.reportNotConfigured}</p>}
+          {status === "error" && <p className="text-[11px] text-amber-400">{t.reportError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="w-full bg-teal-600/20 hover:bg-teal-600/30 disabled:opacity-60 text-teal-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            {status === "sending" ? t.reportSending : t.reportSubmit}
+          </button>
+        </form>
+      )}
+    </div>
+  );
 }
 
 function CitizenDashboard({ onLogout }) {
@@ -1512,6 +1722,7 @@ function CitizenDashboard({ onLogout }) {
             <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
               <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">{t.healthAdvisoryBody}</p>
+              <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-slate-800">{t.safeHours}</p>
             </div>
 
             <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
@@ -1555,9 +1766,17 @@ function CitizenDashboard({ onLogout }) {
                   </div>
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
                 </div>
-                <p className="text-[11px] text-slate-500 mb-3">
-                  {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
-                  {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                <p className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                    {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                  </span>
+                  {selectedFlood.risk_trend && (
+                    <span className="inline-flex items-center gap-1">
+                      <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                      {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                    </span>
+                  )}
                 </p>
                 <div className="space-y-2 mb-1">
                   {steps.map((s, i) => (
@@ -1602,6 +1821,8 @@ function CitizenDashboard({ onLogout }) {
             </button>
           </div>
         )}
+
+        {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
 
         <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
           {t.footer}

@@ -18,6 +18,7 @@ into /flood/risk + /flood/trend), /deforestation/ndvi, /deforestation/detect
 """
 
 from pathlib import Path
+from typing import Optional
 import json
 
 from fastapi import FastAPI, HTTPException
@@ -28,13 +29,15 @@ try:
     # Normal case when this module is imported as part of the `api` package
     # (e.g. local testing with `import api.index`).
     from . import officers_db
+    from . import citizen_reports_db
 except ImportError:
     # Vercel's Python runtime loads api/index.py directly rather than as a
     # package submodule, which makes the relative import above fail with
     # "attempted relative import with no known parent package". Its own
     # directory is on sys.path in that case, so a plain import resolves
-    # officers_db.py sitting right next to this file either way.
+    # officers_db.py / citizen_reports_db.py sitting right next to this file either way.
     import officers_db
+    import citizen_reports_db
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -174,6 +177,7 @@ def root():
             "/deforestation/districts", "/deforestation/worklist", "/deforestation/citizen-cards",
             "/deforestation/timeseries", "/deforestation/restoration-priority",
             "/deforestation/loss-by-year", "/deforestation/model-metrics",
+            "/deforestation/citizen-reports",
             "/model/refresh-status",
         ],
     }
@@ -335,6 +339,53 @@ def deforestation_model_metrics():
     truth — see the model summary doc for why that distinction matters),
     plus feature importances. For the thesis defense / methodology panel."""
     return _load("deforestation_model_metrics.json")
+
+
+class CitizenReportRequest(BaseModel):
+    district: str = Field(min_length=1, max_length=64)
+    description: str = Field(min_length=5, max_length=1000)
+    contact: Optional[str] = Field(default=None, max_length=128)
+
+
+@app.post("/deforestation/citizen-reports")
+def create_citizen_report(request: CitizenReportRequest):
+    """A citizen-submitted "I saw tree-cutting here" report — a different,
+    complementary signal to the satellite model above, which only sees loss
+    large/persistent enough to show up in a 250m MODIS pixel over multiple
+    years. Needs Supabase configured (same env vars as /auth/register, see
+    CITIZEN-REPORTS-SETUP.md for the one extra table) — until then this
+    returns a clear 503, not a fake success."""
+    if not citizen_reports_db.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Citizen reports aren't set up yet: SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY are not configured on this "
+                "backend. See CITIZEN-REPORTS-SETUP.md for setup steps."
+            ),
+        )
+    try:
+        report = citizen_reports_db.create_report(
+            district=request.district, description=request.description, contact=request.contact,
+        )
+    except citizen_reports_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't save report: {e}")
+    return {"saved": True, "report": report}
+
+
+@app.get("/deforestation/citizen-reports")
+def list_citizen_reports():
+    """Recent citizen reports, most recent first — for the government
+    dashboard's field worklist. Same honest-503-if-not-configured behavior
+    as the POST endpoint above; returns an empty list with a note if
+    Supabase isn't set up yet, rather than a 500."""
+    if not citizen_reports_db.is_configured():
+        return {"configured": False, "reports": []}
+    try:
+        reports = citizen_reports_db.list_reports()
+    except citizen_reports_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't load reports: {e}")
+    return {"configured": True, "reports": reports}
 
 
 # ---------------------------------------------------------------------------
