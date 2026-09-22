@@ -1882,7 +1882,7 @@ function RoleSelect({ onSelect }) {
             Environmental Risk Monitoring Platform
           </span>
           <h1 className="text-3xl sm:text-4xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Chattogram Climate and Hazard Console
+            Bangladesh Climate and Hazard Console
           </h1>
           <p className="text-sm text-slate-500 mt-3.5 max-w-md mx-auto leading-relaxed">
             Satellite-derived heat, flood, air quality and deforestation monitoring
@@ -1914,7 +1914,7 @@ function RoleSelect({ onSelect }) {
             </span>
             <p className="text-slate-100 font-medium">Citizen dashboard</p>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              Heat and flood alerts, air quality, health advisories and nearby shelters.
+              Flood risk and tree cover for your district, plus Chattogram heat alerts, air quality and health advisories.
             </p>
             <span className="text-xs text-teal-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
               Continue <ChevronRight size={13} />
