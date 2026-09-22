@@ -53,6 +53,6 @@
     "end_date": "2026-09-15",
     "window_days": 90
   },
-  "last_refreshed_at": "2026-09-22T00:21:46Z",
+  "last_refreshed_at": "2026-09-22T07:00:07Z",
   "refresh_mode": "frozen_model_scored_on_live_open_meteo_rolling_window"
 }
