@@ -1302,7 +1302,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 
 const CITIZEN_I18N = {
   en: {
-    appName: "Chattogram Heat Watch",
+    appName: "Bangladesh Environmental Watch",
     exit: "Exit",
     yourArea: "Your area",
     yourAreaHint: "Flood risk and tree cover below update for whichever district you pick. Heat monitoring currently only covers Chattogram.",
@@ -1327,7 +1327,7 @@ const CITIZEN_I18N = {
     loading: "Loading…",
   },
   bn: {
-    appName: "চট্টগ্রাম হিট ওয়াচ",
+    appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
     exit: "বের হন",
     yourArea: "আপনার এলাকা",
     yourAreaHint: "নিচের বন্যার ঝুঁকি ও বনভূমি তথ্য আপনার বাছাই করা জেলা অনুযায়ী বদলাবে। তাপ পর্যবেক্ষণ এখন শুধু চট্টগ্রামের জন্য।",
