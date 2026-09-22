@@ -1048,6 +1048,19 @@ function FloodNationalView({ national }) {
         <Kpi label="Top priority district" value={topPriority[0]?.district_name || "—"} sub="highest mitigation priority" icon={AlertTriangle} tone="red" />
       </div>
 
+      {summary.last_refreshed_at && (
+        <div className="flex items-center gap-2 text-[11px] text-teal-400/80">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+          <span>
+            Live — risk rescored every 3 days from real rainfall
+            {summary.live_prediction_window ? ` through ${summary.live_prediction_window.end_date}` : ""}.
+            Last refreshed {new Date(summary.last_refreshed_at).toLocaleString("en-GB", {
+              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+            })}.
+          </span>
+        </div>
+      )}
+
       <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
         <IconBadge icon={Info} tone="amber" size={14} />
         <p className="text-xs text-amber-200/90 leading-relaxed">
@@ -1092,6 +1105,12 @@ function FloodNationalView({ national }) {
             <div><span className="text-slate-300">Date range:</span> {summary.date_range?.[0]} – {summary.date_range?.[1]}</div>
             <div><span className="text-slate-300">Train years:</span> {summary.train_years?.join("–")} (real events only)</div>
             <div><span className="text-slate-300">Test years:</span> {summary.test_years?.join("–")}</div>
+            {summary.live_prediction_window && (
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-slate-300">Live risk window:</span> {summary.live_prediction_window.start_date} – {summary.live_prediction_window.end_date}
+                {" "}({summary.live_prediction_window.window_days} real days, refreshed every 3 days via Open-Meteo)
+              </div>
+            )}
             <div className="pt-2 border-t border-slate-800">
               <span className="text-slate-300">Exposure proxy:</span> district area (population data wasn't in the
               original export — a disclosed limitation, not a hidden one)
