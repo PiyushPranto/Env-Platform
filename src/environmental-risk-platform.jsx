@@ -1305,9 +1305,10 @@ const CITIZEN_I18N = {
     appName: "Chattogram Heat Watch",
     exit: "Exit",
     yourArea: "Your area",
-    yourAreaHint: "Flood risk below updates for whichever district you pick.",
+    yourAreaHint: "Flood risk and tree cover below update for whichever district you pick. Heat monitoring currently only covers Chattogram.",
     heatAlertTitle: "Extreme heat alert — Panchlaish and Kotwali",
     heatAlertBody: "Surface temperatures above 38°C expected through this afternoon. Avoid outdoor work between 12pm–4pm.",
+    heatNotAvailable: "Heat risk monitoring is currently only available for Chattogram's wards. Pick Chattogram above to see it, or check the flood and tree-cover cards below for",
     heatMapTitle: "Heat map — your area",
     currentTemp: "Current, your ward",
     airQuality: "Air quality today",
@@ -1329,9 +1330,10 @@ const CITIZEN_I18N = {
     appName: "চট্টগ্রাম হিট ওয়াচ",
     exit: "বের হন",
     yourArea: "আপনার এলাকা",
-    yourAreaHint: "নিচের বন্যার ঝুঁকি আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
+    yourAreaHint: "নিচের বন্যার ঝুঁকি ও বনভূমি তথ্য আপনার বাছাই করা জেলা অনুযায়ী বদলাবে। তাপ পর্যবেক্ষণ এখন শুধু চট্টগ্রামের জন্য।",
     heatAlertTitle: "তীব্র তাপ সতর্কতা — পাঁচলাইশ ও কোতোয়ালী",
     heatAlertBody: "আজ বিকাল পর্যন্ত ভূপৃষ্ঠের তাপমাত্রা ৩৮°সে-এর বেশি থাকতে পারে। দুপুর ১২টা থেকে বিকাল ৪টার মধ্যে বাইরে কাজ এড়িয়ে চলুন।",
+    heatNotAvailable: "তাপের ঝুঁকি পর্যবেক্ষণ এখন শুধু চট্টগ্রামের ওয়ার্ডগুলোর জন্য পাওয়া যায়। এটা দেখতে উপরে চট্টগ্রাম বাছাই করুন, অথবা নিচে",
     heatMapTitle: "তাপ মানচিত্র — আপনার এলাকা",
     currentTemp: "বর্তমান, আপনার ওয়ার্ড",
     airQuality: "আজকের বায়ুর মান",
@@ -1401,11 +1403,6 @@ function CitizenDashboard({ onLogout }) {
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
 
-  const treeCard = useMemo(
-    () => (citizenCards || []).find((c) => c.district === "Chittagong") || null,
-    [citizenCards]
-  );
-
   const districtOptions = useMemo(
     () => (severity || []).map((s) => s.district_name).sort((a, b) => a.localeCompare(b)),
     [severity]
@@ -1422,6 +1419,19 @@ function CitizenDashboard({ onLogout }) {
     () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
     [severity, selectedDistrict]
   );
+
+  // Tree cover really does exist for all 64 districts (unlike Heat below),
+  // so this one genuinely follows the area picker instead of staying fixed.
+  const treeCard = useMemo(
+    () => (citizenCards || []).find((c) => c.district === selectedDistrict) || null,
+    [citizenCards, selectedDistrict]
+  );
+
+  // The Heat model was only ever built for Chattogram's wards (thesis
+  // scope) — there is no real heat data for any other district, so we
+  // don't fake it. The heat section only shows when the picked area is
+  // Chattogram; otherwise a short honest note replaces it.
+  const isChattogramArea = /chattogram|chittagong/i.test(selectedDistrict || "");
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -1464,43 +1474,67 @@ function CitizenDashboard({ onLogout }) {
           </div>
         )}
 
-        <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
-            <AlertTriangle size={16} className="text-red-400" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-red-300">{t.heatAlertTitle}</p>
-            <p className="text-xs text-red-400/80 mt-1 leading-relaxed">{t.heatAlertBody}</p>
-          </div>
-        </div>
+        {isChattogramArea ? (
+          <>
+            <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
+                <AlertTriangle size={16} className="text-red-400" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-red-300">{t.heatAlertTitle}</p>
+                <p className="text-xs text-red-400/80 mt-1 leading-relaxed">{t.heatAlertBody}</p>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
-            <span className="text-[11px] text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">Panchlaish</span>
-          </div>
-          <div className="flex justify-center">
-            <HeatGrid grid={heatGrid} compact />
-          </div>
-        </div>
+            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
+                <span className="text-[11px] text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">Panchlaish</span>
+              </div>
+              <div className="flex justify-center">
+                <HeatGrid grid={heatGrid} compact />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
-            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>38.6°C</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
-          </div>
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <IconBadge icon={Wind} tone="teal" size={14} className="mb-2.5" />
-            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Moderate</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">{t.airQuality}</div>
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+                <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>38.6°C</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
+              </div>
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                <IconBadge icon={Wind} tone="teal" size={14} className="mb-2.5" />
+                <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Moderate</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{t.airQuality}</div>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">{t.healthAdvisoryBody}</p>
-        </div>
+            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+              <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t.healthAdvisoryBody}</p>
+            </div>
+
+            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+              <h3 className="text-sm font-medium text-slate-200 mb-3">{t.coolingCentersTitle}</h3>
+              <div className="space-y-3">
+                {COOLING_CENTERS.map((c) => (
+                  <div key={c.name} className="flex items-center gap-3">
+                    <IconBadge icon={MapPin} tone="teal" size={13} />
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-300">{c.name}</p>
+                      <p className="text-[11px] text-slate-500">{c.distance} away · capacity {c.capacity}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20 flex items-start gap-3">
+            <IconBadge icon={Info} tone="amber" size={14} />
+            <p className="text-xs text-slate-400 leading-relaxed">{t.heatNotAvailable} {selectedDistrict}.</p>
+          </div>
+        )}
 
         {floodLoading || floodError || !selectedFlood ? (
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
@@ -1543,21 +1577,6 @@ function CitizenDashboard({ onLogout }) {
             );
           })()
         )}
-
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-3">{t.coolingCentersTitle}</h3>
-          <div className="space-y-3">
-            {COOLING_CENTERS.map((c) => (
-              <div key={c.name} className="flex items-center gap-3">
-                <IconBadge icon={MapPin} tone="teal" size={13} />
-                <div className="flex-1">
-                  <p className="text-xs text-slate-300">{c.name}</p>
-                  <p className="text-[11px] text-slate-500">{c.distance} away · capacity {c.capacity}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {treeCard && (
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
