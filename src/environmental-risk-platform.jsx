@@ -1289,13 +1289,138 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 // ---------------------------------------------------------------------------
 // Citizen dashboard
 // ---------------------------------------------------------------------------
+// Real, citizen-facing additions (this revision): a district picker so the
+// page is about the citizen's own area instead of a fixed demo ward; a real
+// flood-risk card sourced from the same live, 3-day-refreshed national flood
+// model the government dashboard uses (flood_national_severity.json — no new
+// model, no invented numbers); tier-based safety guidance instead of just a
+// number; and an English/Bangla toggle for the static text on this page.
+// Nothing here fabricates specific shelter locations for a real district —
+// the flood card points to the real, publicly known national emergency
+// number (999) and local Union Parishad / Upazila office instead, since no
+// real shelter-location dataset exists for this project.
+
+const CITIZEN_I18N = {
+  en: {
+    appName: "Chattogram Heat Watch",
+    exit: "Exit",
+    yourArea: "Your area",
+    yourAreaHint: "Flood risk below updates for whichever district you pick.",
+    heatAlertTitle: "Extreme heat alert — Panchlaish and Kotwali",
+    heatAlertBody: "Surface temperatures above 38°C expected through this afternoon. Avoid outdoor work between 12pm–4pm.",
+    heatMapTitle: "Heat map — your area",
+    currentTemp: "Current, your ward",
+    airQuality: "Air quality today",
+    healthAdvisoryTitle: "Health advisory",
+    healthAdvisoryBody: "Heat risk is extreme in your area today. Drink water regularly even without feeling thirsty, limit direct sun exposure between midday and late afternoon, and check on elderly neighbours and young children.",
+    coolingCentersTitle: "Nearby cooling centers",
+    floodRiskTitle: "Flood risk —",
+    floodRiskLive: "Live, rescored every 3 days from real rainfall",
+    floodRiskFallback: "Flood data isn't available right now — showing the last known status.",
+    floodRiskFallbackNote: "Couldn't load live flood data. Try again shortly.",
+    whatToDo: "What to do",
+    emergencyLine: "National emergency helpline: 999 (fire, flood rescue, ambulance)",
+    emergencyLine2: "For your nearest official shelter, contact your local Union Parishad / Ward office.",
+    treeCoverTitle: "Tree cover —",
+    footer: "Live where available; demo values used as fallback.",
+    loading: "Loading…",
+  },
+  bn: {
+    appName: "চট্টগ্রাম হিট ওয়াচ",
+    exit: "বের হন",
+    yourArea: "আপনার এলাকা",
+    yourAreaHint: "নিচের বন্যার ঝুঁকি আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
+    heatAlertTitle: "তীব্র তাপ সতর্কতা — পাঁচলাইশ ও কোতোয়ালী",
+    heatAlertBody: "আজ বিকাল পর্যন্ত ভূপৃষ্ঠের তাপমাত্রা ৩৮°সে-এর বেশি থাকতে পারে। দুপুর ১২টা থেকে বিকাল ৪টার মধ্যে বাইরে কাজ এড়িয়ে চলুন।",
+    heatMapTitle: "তাপ মানচিত্র — আপনার এলাকা",
+    currentTemp: "বর্তমান, আপনার ওয়ার্ড",
+    airQuality: "আজকের বায়ুর মান",
+    healthAdvisoryTitle: "স্বাস্থ্য পরামর্শ",
+    healthAdvisoryBody: "আজ আপনার এলাকায় তাপের ঝুঁকি তীব্র। তৃষ্ণা না লাগলেও নিয়মিত পানি পান করুন, দুপুর থেকে বিকাল পর্যন্ত সরাসরি রোদ এড়িয়ে চলুন, এবং বয়স্ক প্রতিবেশী ও শিশুদের খোঁজ নিন।",
+    coolingCentersTitle: "কাছাকাছি কুলিং সেন্টার",
+    floodRiskTitle: "বন্যার ঝুঁকি —",
+    floodRiskLive: "লাইভ — প্রতি ৩ দিন পরপর প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে হালনাগাদ",
+    floodRiskFallback: "এই মুহূর্তে বন্যার তথ্য পাওয়া যাচ্ছে না — সর্বশেষ জানা অবস্থা দেখানো হচ্ছে।",
+    floodRiskFallbackNote: "লাইভ বন্যার তথ্য লোড করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    whatToDo: "কী করবেন",
+    emergencyLine: "জাতীয় জরুরি সেবা: ৯৯৯ (ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স)",
+    emergencyLine2: "নিকটতম সরকারি আশ্রয়কেন্দ্রের জন্য আপনার স্থানীয় ইউনিয়ন পরিষদ / ওয়ার্ড অফিসে যোগাযোগ করুন।",
+    treeCoverTitle: "বনভূমি —",
+    footer: "যেখানে সম্ভব লাইভ তথ্য; না পেলে ডেমো মান দেখানো হয়।",
+    loading: "লোড হচ্ছে…",
+  },
+};
+
+function floodSafetySteps(tier, lang) {
+  const steps = {
+    en: {
+      Severe: [
+        "Keep valuables and important documents on a higher floor or shelf.",
+        "Charge your phone and keep a torch or flashlight ready.",
+        "Avoid crossing flooded roads or rivers on foot or by vehicle.",
+        "If local authorities announce evacuation, leave early rather than waiting.",
+      ],
+      High: [
+        "Keep valuables and important documents on a higher floor or shelf.",
+        "Charge your phone and keep a torch or flashlight ready.",
+        "Avoid crossing flooded roads or rivers on foot or by vehicle.",
+      ],
+      Moderate: [
+        "Keep an eye on local news for updates over the next few days.",
+        "Avoid unnecessary travel to low-lying areas near rivers.",
+      ],
+      Low: ["No unusual flood risk right now — normal precautions are enough."],
+    },
+    bn: {
+      Severe: [
+        "মূল্যবান জিনিসপত্র ও গুরুত্বপূর্ণ কাগজপত্র উঁচু জায়গায় সরিয়ে রাখুন।",
+        "মোবাইল চার্জ করে রাখুন এবং টর্চ লাইট প্রস্তুত রাখুন।",
+        "পানিতে ডোবা রাস্তা বা নদী হেঁটে বা গাড়িতে পার হওয়া থেকে বিরত থাকুন।",
+        "স্থানীয় প্রশাসন সরে যেতে বললে দেরি না করে আগেভাগেই সরে যান।",
+      ],
+      High: [
+        "মূল্যবান জিনিসপত্র ও গুরুত্বপূর্ণ কাগজপত্র উঁচু জায়গায় সরিয়ে রাখুন।",
+        "মোবাইল চার্জ করে রাখুন এবং টর্চ লাইট প্রস্তুত রাখুন।",
+        "পানিতে ডোবা রাস্তা বা নদী হেঁটে বা গাড়িতে পার হওয়া থেকে বিরত থাকুন।",
+      ],
+      Moderate: [
+        "আগামী কয়েক দিন স্থানীয় খবরে নজর রাখুন।",
+        "নদীর কাছাকাছি নিচু এলাকায় অপ্রয়োজনীয় যাতায়াত এড়িয়ে চলুন।",
+      ],
+      Low: ["এই মুহূর্তে অস্বাভাবিক বন্যার ঝুঁকি নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।"],
+    },
+  };
+  const byLang = steps[lang] || steps.en;
+  return byLang[tier] || byLang.Moderate;
+}
 
 function CitizenDashboard({ onLogout }) {
   const { heatGrid } = useHeatData();
   const { citizenCards } = useDeforestationData();
+  const { severity, summary, loading: floodLoading, error: floodError } = useNationalFloodData();
+  const [lang, setLang] = useState("en");
+  const t = CITIZEN_I18N[lang];
+
   const treeCard = useMemo(
     () => (citizenCards || []).find((c) => c.district === "Chittagong") || null,
     [citizenCards]
+  );
+
+  const districtOptions = useMemo(
+    () => (severity || []).map((s) => s.district_name).sort((a, b) => a.localeCompare(b)),
+    [severity]
+  );
+
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  useEffect(() => {
+    if (selectedDistrict || !districtOptions.length) return;
+    const chattogram = districtOptions.find((d) => /chattogram|chittagong/i.test(d));
+    setSelectedDistrict(chattogram || districtOptions[0]);
+  }, [districtOptions, selectedDistrict]);
+
+  const selectedFlood = useMemo(
+    () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
+    [severity, selectedDistrict]
   );
 
   return (
@@ -1306,26 +1431,52 @@ function CitizenDashboard({ onLogout }) {
             <Sun size={16} className="text-orange-400" />
           </span>
           <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Chattogram Heat Watch
+            {t.appName}
           </span>
         </div>
-        <button onClick={onLogout} className="text-xs text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors">Exit</button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setLang(lang === "en" ? "bn" : "en")}
+            className="text-xs text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors border border-slate-800"
+          >
+            {lang === "en" ? "বাংলা" : "English"}
+          </button>
+          <button onClick={onLogout} className="text-xs text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors">{t.exit}</button>
+        </div>
       </div>
 
       <div className="max-w-md mx-auto px-4 py-5 space-y-4 animate-fade-in">
+        {districtOptions.length > 0 && (
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+            <div className="flex items-center justify-between mb-1.5">
+              <h3 className="text-sm font-medium text-slate-200">{t.yourArea}</h3>
+              <select
+                value={selectedDistrict || ""}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                className="text-xs bg-slate-800/80 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
+              >
+                {districtOptions.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] text-slate-500">{t.yourAreaHint}</p>
+          </div>
+        )}
+
         <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
             <AlertTriangle size={16} className="text-red-400" />
           </span>
           <div>
-            <p className="text-sm font-medium text-red-300">Extreme heat alert — Panchlaish and Kotwali</p>
-            <p className="text-xs text-red-400/80 mt-1 leading-relaxed">Surface temperatures above 38°C expected through this afternoon. Avoid outdoor work between 12pm–4pm.</p>
+            <p className="text-sm font-medium text-red-300">{t.heatAlertTitle}</p>
+            <p className="text-xs text-red-400/80 mt-1 leading-relaxed">{t.heatAlertBody}</p>
           </div>
         </div>
 
         <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-200">Heat map — your area</h3>
+            <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
             <span className="text-[11px] text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">Panchlaish</span>
           </div>
           <div className="flex justify-center">
@@ -1337,26 +1488,64 @@ function CitizenDashboard({ onLogout }) {
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
             <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
             <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>38.6°C</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Current, your ward</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
           </div>
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
             <IconBadge icon={Wind} tone="teal" size={14} className="mb-2.5" />
             <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Moderate</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Air quality today</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{t.airQuality}</div>
           </div>
         </div>
 
         <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-2">Health advisory</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Heat risk is extreme in your area today. Drink water regularly even without
-            feeling thirsty, limit direct sun exposure between midday and late afternoon,
-            and check on elderly neighbours and young children.
-          </p>
+          <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
+          <p className="text-xs text-slate-400 leading-relaxed">{t.healthAdvisoryBody}</p>
         </div>
 
+        {floodLoading || floodError || !selectedFlood ? (
+          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+            <h3 className="text-sm font-medium text-slate-200 mb-1">{t.floodRiskTitle} {selectedDistrict || ""}</h3>
+            <p className="text-xs text-slate-500">{floodLoading ? t.loading : t.floodRiskFallbackNote}</p>
+          </div>
+        ) : (
+          (() => {
+            const tier = selectedFlood.severity_tier || "Moderate";
+            const c = tierColor(tier);
+            const steps = floodSafetySteps(tier, lang);
+            return (
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2.5">
+                    <IconBadge icon={Droplets} tone="teal" size={14} />
+                    <h3 className="text-sm font-medium text-slate-200">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
+                  </div>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-3">
+                  {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                  {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                </p>
+                <div className="space-y-2 mb-1">
+                  {steps.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
+                      <p className="text-xs text-slate-400 leading-relaxed">{s}</p>
+                    </div>
+                  ))}
+                </div>
+                {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
+                  <div className="mt-3 pt-3 border-t border-slate-800 space-y-1">
+                    <p className="text-[11px] text-slate-500">{t.emergencyLine}</p>
+                    <p className="text-[11px] text-slate-500">{t.emergencyLine2}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()
+        )}
+
         <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-3">Nearby cooling centers</h3>
+          <h3 className="text-sm font-medium text-slate-200 mb-3">{t.coolingCentersTitle}</h3>
           <div className="space-y-3">
             {COOLING_CENTERS.map((c) => (
               <div key={c.name} className="flex items-center gap-3">
@@ -1375,7 +1564,7 @@ function CitizenDashboard({ onLogout }) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
-                <h3 className="text-sm font-medium text-slate-200">Tree cover — {treeCard.district}</h3>
+                <h3 className="text-sm font-medium text-slate-200">{t.treeCoverTitle} {treeCard.district}</h3>
               </div>
               <span className="text-lg font-semibold text-slate-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {treeCard.forest_pct}%
@@ -1396,7 +1585,7 @@ function CitizenDashboard({ onLogout }) {
         )}
 
         <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
-          Live where available; demo values used as fallback.
+          {t.footer}
         </p>
       </div>
     </div>
