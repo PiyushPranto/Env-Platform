@@ -171,7 +171,7 @@ def root():
         "service": "env-platform-api",
         "status": "ok",
         "endpoints": [
-            "/heat/risk", "/heat/hotspots", "/heat/trend",
+            "/heat/risk", "/heat/hotspots", "/heat/trend", "/heat/grid", "/heat/alerts",
             "/flood/risk", "/flood/trend", "/flood/top-risk-areas", "/flood/summary",
             "/flood/national/severity", "/flood/national/priority", "/flood/national/summary",
             "/deforestation/districts", "/deforestation/worklist", "/deforestation/citizen-cards",
@@ -184,36 +184,80 @@ def root():
 
 
 # ---------------------------------------------------------------------------
-# Heat — model not trained yet; every response here is a labeled placeholder.
+# Heat — real, national (64-district) output from heat_model_project.ipynb
+# (Random Forest heat-risk composite + DBSCAN hotspot clusters + per-district
+# SUHI intensity, MODIS LST/NDVI + JRC GHSL built-up fraction, Mar-May 2026).
+# heat_risk.json/heat_grid.json/heat_trend.json/heat_hotspots.geojson are a
+# frozen one-time seasonal composite (same reasoning as Deforestation);
+# heat_alerts.json is the live piece, re-scored every 3 days against a real
+# Open-Meteo forecast for the model's own hotspot sites — see
+# scripts/models/heat_export.py's module docstring for the full picture.
+#
+# Two schema notes vs. the old Chattogram-only placeholder this replaced:
+#   - `built_fraction` replaces `ndbi` (NDBI was abandoned — see
+#     heat-model-summary.md — in favour of JRC GHSL built-up fraction).
+#   - there is no `population` field. The model doesn't produce one, so
+#     the old "population in high-risk areas" KPI has no real data source
+#     and was removed from the frontend rather than served against a
+#     field that will never exist.
 # ---------------------------------------------------------------------------
 
 @app.get("/heat/risk")
 def heat_risk():
-    """Per-ward heat risk score. Replace api/data/heat_risk.json with the real
-    per-district/ward output once the Heat model (Random Forest UHI + composite
-    risk score) is trained. Keep the field names: name, lst_c, ndvi, ndbi,
-    heat_risk, risk_category, population."""
+    """National heat risk score, one record per district (64), in
+    {"wards": [...]}. Fields: name, lst_c, ndvi, built_fraction, heat_risk,
+    risk_category (High/Medium/Low, tertile-based), uhi_intensity_c
+    (null unless this district had enough urban/rural contrast to measure
+    SUHI — see heat-model-summary.md), cells."""
     return _load("heat_risk.json")
 
 
 @app.get("/heat/hotspots")
 def heat_hotspots():
-    """DBSCAN/KMeans hotspot clusters as GeoJSON points."""
+    """DBSCAN hotspot clusters (>=25 cells) as GeoJSON points, with
+    cluster_id, cells, heat_risk, lst_c. These are the sites /heat/alerts
+    monitors."""
     return _load("heat_hotspots.geojson")
 
 
 @app.get("/heat/trend")
 def heat_trend():
-    """12-month temperature trend vs seasonal baseline."""
+    """National annual mean LST, 2015-2026 (field name is `month` for
+    frontend-shape compatibility but holds a year int — see
+    heat_export.py). `excluded: true` marks 2025/2026, dropped from the
+    trend fit due to Terra sensor orbital drift. The fitted trend
+    (+1.25 C/decade, 2015-2024) is NOT statistically significant
+    (p=0.106) — report it as observed, not confirmed."""
     return _load("heat_trend.json")
 
 
 @app.get("/heat/grid")
 def heat_grid():
-    """Raw temperature grid for the heat-map visualization (7x9, matches the
-    frontend's HEAT_GRID shape). Replace with the real LST raster once the
-    Heat model produces one."""
+    """National LST grid (7x9, block-averaged) for the heat-map
+    visualization. Cells with no valid pixels (open water, no data) are
+    null — render them as a distinct 'no data' cell, not 0C."""
     return _load("heat_grid.json")
+
+
+@app.get("/heat/alerts")
+def heat_alerts():
+    """Live heatwave watch: a 7-day Open-Meteo forecast for the model's own
+    hotspot sites, checked against official BMD heatwave thresholds,
+    refreshed every 3 days by the automation. An empty `alerts` list is a
+    normal, honest result (no heatwave forecast right now), not a broken
+    feature. Falls back to a clearly-labeled not-yet-run payload if the
+    automation hasn't produced this file yet."""
+    try:
+        return _load("heat_alerts.json")
+    except HTTPException:
+        return {
+            "generated_at": None,
+            "forecast_days": 7,
+            "sites_monitored": 0,
+            "risk_cut": None,
+            "alerts": [],
+            "note": "Heatwave automation has not run yet.",
+        }
 
 
 # ---------------------------------------------------------------------------

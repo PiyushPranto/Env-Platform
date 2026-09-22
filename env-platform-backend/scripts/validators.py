@@ -41,13 +41,22 @@ def _require(obj: dict, *keys: str, where: str = "") -> None:
 
 
 def _check_heat_risk(data: Any) -> None:
-    if not isinstance(data, list) or len(data) == 0:
-        raise ValidationError("heat_risk.json must be a non-empty list of ward records")
-    for i, row in enumerate(data):
+    # Real schema (national, 64 districts) — updated when the real Heat
+    # model output replaced the Chattogram-only placeholder. built_fraction
+    # replaces ndbi (the notebook abandoned NDBI for JRC GHSL built-up
+    # fraction); there is no population field — the model doesn't produce
+    # one, so the dashboard's old "population in high-risk areas" KPI was
+    # dropped rather than validated against a field that will never exist.
+    if not isinstance(data, dict) or "wards" not in data:
+        raise ValidationError("heat_risk.json must be an object with a 'wards' list")
+    wards = data["wards"]
+    if not isinstance(wards, list) or len(wards) == 0:
+        raise ValidationError("heat_risk.json 'wards' must be a non-empty list")
+    for i, row in enumerate(wards):
         if not isinstance(row, dict):
-            raise ValidationError(f"heat_risk.json[{i}] is not an object")
-        _require(row, "name", "lst_c", "ndvi", "ndbi", "heat_risk", "risk_category",
-                  "population", where=f"heat_risk.json[{i}]: ")
+            raise ValidationError(f"heat_risk.json.wards[{i}] is not an object")
+        _require(row, "name", "lst_c", "ndvi", "built_fraction", "heat_risk", "risk_category",
+                  where=f"heat_risk.json.wards[{i}]: ")
 
 
 def _check_heat_trend(data: Any) -> None:
@@ -209,11 +218,28 @@ def _check_deforestation_model_metrics(data: Any) -> None:
     _require(data, "accuracy", "precision", "recall", "f1", "roc_auc", where="deforestation_model_metrics.json: ")
 
 
+def _check_heat_alerts(data: Any) -> None:
+    # An empty 'alerts' list is a normal, honest result (no heatwave
+    # forecast right now) — unlike the GeoJSON layers above, zero rows
+    # here is NOT treated as suspicious, so this only checks shape.
+    if not isinstance(data, dict):
+        raise ValidationError("heat_alerts.json must be an object")
+    _require(data, "generated_at", "sites_monitored", "alerts", where="heat_alerts.json: ")
+    if not isinstance(data["alerts"], list):
+        raise ValidationError("heat_alerts.json 'alerts' must be a list (can be empty)")
+    for i, row in enumerate(data["alerts"]):
+        if not isinstance(row, dict):
+            raise ValidationError(f"heat_alerts.json.alerts[{i}] is not an object")
+        _require(row, "name", "heatwave_days", "peak_tmax_c", "worst_category", "heat_risk",
+                  where=f"heat_alerts.json.alerts[{i}]: ")
+
+
 REQUIRED_FIELDS = {
     "heat_risk.json": _check_heat_risk,
     "heat_trend.json": _check_heat_trend,
     "heat_grid.json": _check_heat_grid,
     "heat_hotspots.geojson": lambda d: _check_geojson(d, "heat_hotspots.geojson"),
+    "heat_alerts.json": _check_heat_alerts,
     "flood_grid.json": _check_flood_grid,
     "flood_trend.json": _check_flood_trend,
     "flood_top_risk_areas.json": _check_flood_top_risk_areas,

@@ -1,0 +1,8 @@
+{
+  "generated_at": null,
+  "forecast_days": 7,
+  "sites_monitored": 0,
+  "risk_cut": null,
+  "alerts": [],
+  "note": "Automation has not run yet for this file. It will be populated on the next scheduled model-update run."
+}
