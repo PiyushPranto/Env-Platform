@@ -1,0 +1,36 @@
+{
+ "window": "2025-2027",
+ "method": "model",
+ "backtest": {
+  "persistence": {
+   "mae": 24.85000491304264,
+   "r2": -0.9634638669816784
+  },
+  "model": {
+   "mae": 16.8426639249247,
+   "r2": -0.08741514539871087
+  },
+  "blend": {
+   "mae": 17.833194576771177,
+   "r2": -0.08486054676683508
+  }
+ },
+ "mae_pp": 16.843,
+ "lookback_years": 4,
+ "horizon_years": 3,
+ "n_samples": 192,
+ "origins": [
+  2019,
+  2020,
+  2021
+ ],
+ "feature_importance": {
+  "forest_km2": 0.1149,
+  "past_loss_pct": 0.0643,
+  "recent_loss_pct": 0.1244,
+  "accel": 0.13,
+  "edge_ratio": 0.4621,
+  "nbr_loss_pct": 0.1042
+ },
+ "national_projected_loss_km2": 1990.6
+}

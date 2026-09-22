@@ -1,0 +1,298 @@
+{
+ "ready": true,
+ "trend_identifiable": false,
+ "quarantined": [
+  "forecast error passes BOTH the relative and absolute gates",
+  "risk tiers are not degenerate"
+ ],
+ "checks": [
+  {
+   "check": "file present: district_metrics.csv",
+   "panel": "both",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: deforestation_summary.json",
+   "panel": "government",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: deforestation_districts.geojson",
+   "panel": "government (map)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: deforestation_detect.geojson",
+   "panel": "government (map)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: inspection_worklist.csv",
+   "panel": "government (worklist)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: forest_timeseries.json",
+   "panel": "both (charts)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: forest_area_by_district_year.csv",
+   "panel": "both",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: citizen_district_cards.json",
+   "panel": "citizen",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: restoration_priority.csv",
+   "panel": "government",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: loss_by_year.csv",
+   "panel": "government",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: deforestation_risk_forecast.csv",
+   "panel": "both (forecast)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: forecast_metrics.json",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: model_metrics.json",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "file present: loss_year.tif",
+   "panel": "government (map)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "summary has every field the dashboard binds",
+   "panel": "both",
+   "pass": true,
+   "detail": "15 fields present",
+   "scope": "core"
+  },
+  {
+   "check": "all 64 districts present",
+   "panel": "both",
+   "pass": true,
+   "detail": "got 64",
+   "scope": "core"
+  },
+  {
+   "check": "time series covers the full analysis window",
+   "panel": "both (charts)",
+   "pass": true,
+   "detail": "9 years (2016-2024); edge years [2015, 2025] dropped",
+   "scope": "core"
+  },
+  {
+   "check": "every district has a full series",
+   "panel": "both (charts)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "citizen card per district",
+   "panel": "citizen",
+   "pass": true,
+   "detail": "64 cards / 64 districts",
+   "scope": "core"
+  },
+  {
+   "check": "every citizen card carries a sparkline",
+   "panel": "citizen",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "every citizen card has plain-language text",
+   "panel": "citizen",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "threshold calibrated against the label source",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "2020 model vs WorldCover -8.8%  (national now 27.4% of land)",
+   "scope": "core"
+  },
+  {
+   "check": "per-year normalisation applied",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "10 of 10 non-reference stacks corrected",
+   "scope": "core"
+  },
+  {
+   "check": "tree-cover series is stable across years",
+   "panel": "both",
+   "pass": true,
+   "detail": "largest year-over-year move 2.03 pp (limit 3.0)",
+   "scope": "trend"
+  },
+  {
+   "check": "national tree cover is physically plausible",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "27.4% of national land (literature ~31% for forest + trees outside forest)",
+   "scope": "core"
+  },
+  {
+   "check": "loss and gain are not just churn",
+   "panel": "both",
+   "pass": true,
+   "detail": "19,229 km2 lost against a peak cover of 45,197 km2",
+   "scope": "trend"
+  },
+  {
+   "check": "no negative areas",
+   "panel": "both",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "forest_pct_now is a percentage",
+   "panel": "both",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "priority is one of the expected values",
+   "panel": "government",
+   "pass": true,
+   "detail": "['High', 'Low', 'Medium']",
+   "scope": "core"
+  },
+  {
+   "check": "priority actually ranks something",
+   "panel": "government",
+   "pass": true,
+   "detail": "3 distinct value(s) \u2014 one means a dead column",
+   "scope": "core"
+  },
+  {
+   "check": "forecast was backtested against a persistence baseline",
+   "panel": "both (forecast)",
+   "pass": true,
+   "detail": "selected: model, MAE 16.843 pp",
+   "scope": "core"
+  },
+  {
+   "check": "selected forecast is no worse than persistence",
+   "panel": "both (forecast)",
+   "pass": true,
+   "detail": "a model that loses to 'assume it continues' should not be shipped",
+   "scope": "core"
+  },
+  {
+   "check": "forecast error passes BOTH the relative and absolute gates",
+   "panel": "both (forecast)",
+   "pass": false,
+   "detail": "MAE 16.8 pp is 27% of the p10-p90 spread (limit 50%)",
+   "scope": "trend"
+  },
+  {
+   "check": "every district has a projection",
+   "panel": "both (forecast)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "risk tiers are not degenerate",
+   "panel": "government",
+   "pass": false,
+   "detail": "largest tier holds 70%",
+   "scope": "trend"
+  },
+  {
+   "check": "citizen cards carry the outlook",
+   "panel": "citizen",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "model accuracy recorded and >= 0.70",
+   "panel": "thesis",
+   "pass": true,
+   "detail": "accuracy 0.9047",
+   "scope": "core"
+  },
+  {
+   "check": "worklist has coordinates and a year",
+   "panel": "government (worklist)",
+   "pass": true,
+   "detail": "",
+   "scope": "core"
+  },
+  {
+   "check": "worklist rows are locatable",
+   "panel": "government (worklist)",
+   "pass": true,
+   "detail": "10427 patches",
+   "scope": "core"
+  }
+ ],
+ "years": [
+  2015,
+  2016,
+  2017,
+  2018,
+  2019,
+  2020,
+  2021,
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "districts": 64,
+ "generated": "2026-09-22T22:06:45.728515"
+}
