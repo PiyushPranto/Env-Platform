@@ -44,8 +44,15 @@
   "top5_priority_districts": [
     "Jamalpur",
     "Netrakona",
-    "Kishoreganj",
     "Gaibandha",
+    "Rangamati",
     "Dhaka"
-  ]
+  ],
+  "live_prediction_window": {
+    "start_date": "2026-06-04",
+    "end_date": "2026-09-15",
+    "window_days": 90
+  },
+  "last_refreshed_at": "2026-09-22T00:21:46Z",
+  "refresh_mode": "frozen_model_scored_on_live_open_meteo_rolling_window"
 }
