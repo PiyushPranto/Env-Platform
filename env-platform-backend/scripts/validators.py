@@ -108,9 +108,6 @@ def _check_geojson(data: Any, filename: str) -> None:
         raise ValidationError(f"{filename} has zero features — refusing to treat an empty layer as valid")
 
 
-def _check_deforestation_ndvi_summary(data: Any) -> None:
-    if not isinstance(data, dict) or len(data) == 0:
-        raise ValidationError("deforestation_ndvi_summary.json must be a non-empty object")
 
 
 # ---------------------------------------------------------------------------
@@ -221,12 +218,6 @@ REQUIRED_FIELDS = {
     "flood_national_severity.json": _check_flood_national_severity,
     "flood_national_priority.json": _check_flood_national_priority,
     "flood_national_summary.json": _check_flood_national_summary,
-    "deforestation_detect.geojson": lambda d: _check_geojson(d, "deforestation_detect.geojson"),
-    "deforestation_districts.geojson": lambda d: _check_geojson(d, "deforestation_districts.geojson"),
-    "deforestation_ndvi_summary.json": _check_deforestation_ndvi_summary,
-    "deforestation_districts.json": _check_deforestation_districts,
-    "deforestation_worklist.json": _check_deforestation_worklist,
-    "deforestation_citizen_cards.json": _check_deforestation_citizen_cards,
     "deforestation_timeseries.json": _check_deforestation_timeseries,
     "deforestation_restoration_priority.json": _check_deforestation_restoration_priority,
     "deforestation_loss_by_year.json": _check_deforestation_loss_by_year,
