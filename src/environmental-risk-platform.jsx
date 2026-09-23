@@ -500,7 +500,7 @@ function ReportModal({ districts, alerts, onClose }) {
           </h2>
           <p className="text-xs text-slate-500 mt-1">Bangladesh, all 64 districts — generated {now}</p>
 
-          <div className="grid grid-cols-3 gap-3 mt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
             <div className="text-center">
               <div className="text-xl font-semibold text-orange-400">{avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"}</div>
               <div className="text-[11px] text-slate-500 mt-1">National avg. surface temp</div>
@@ -577,6 +577,7 @@ function GovtDashboard({ role, onLogout }) {
   const [selectedFloodArea, setSelectedFloodArea] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
   const floodDhaka = useFloodDhakaData();
@@ -635,23 +636,37 @@ function GovtDashboard({ role, onLogout }) {
     <div className="min-h-screen bg-slate-950 text-slate-200 flex">
       {showReport && <ReportModal districts={heatDistricts || []} alerts={heatAlerts} onClose={() => setShowReport(false)} />}
 
+      {/* Mobile nav backdrop */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setMobileNavOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-60 border-r border-slate-800/80 flex flex-col shrink-0 bg-slate-950/60">
-        <div className="px-5 py-5 border-b border-slate-800/80">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
-              <ShieldCheck size={16} className="text-orange-400" />
-            </span>
-            <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Environmental Console
-            </span>
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 md:w-60 border-r border-slate-800/80 flex flex-col shrink-0 bg-slate-950 md:bg-slate-950/60 transform transition-transform duration-200 ${
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+        <div className="px-5 py-5 border-b border-slate-800/80 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
+                <ShieldCheck size={16} className="text-orange-400" />
+              </span>
+              <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Environmental Console
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-2 pl-0.5">Government dashboard · <span className="text-slate-400">{role}</span></div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-2 pl-0.5">Government dashboard · <span className="text-slate-400">{role}</span></div>
+          <button onClick={() => setMobileNavOpen(false)} className="md:hidden text-slate-500 hover:text-slate-300 p-1">
+            <X size={18} />
+          </button>
         </div>
 
-        <nav className="flex-1 py-3 px-3 space-y-1">
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
           <button
-            onClick={() => setActiveModule("heat")}
+            onClick={() => { setActiveModule("heat"); setMobileNavOpen(false); }}
             className={`relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
               activeModule === "heat"
                 ? "bg-orange-500/10 text-orange-400"
@@ -667,7 +682,7 @@ function GovtDashboard({ role, onLogout }) {
           {OTHER_MODULES.map((m) => (
             <button
               key={m.key}
-              onClick={() => setActiveModule(m.key)}
+              onClick={() => { setActiveModule(m.key); setMobileNavOpen(false); }}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                 activeModule === m.key ? "bg-slate-800/80 text-slate-300" : "text-slate-500 hover:bg-slate-900 hover:text-slate-400"
               }`}
@@ -692,8 +707,13 @@ function GovtDashboard({ role, onLogout }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 py-3.5 flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-3 md:px-6 py-3 md:py-3.5 flex items-center gap-2 md:gap-4 flex-wrap">
+          <button onClick={() => setMobileNavOpen(true)} className="md:hidden text-slate-400 hover:text-slate-200 p-1 shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+          <div className="relative flex-1 min-w-[120px] max-w-sm order-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={search}
@@ -702,14 +722,14 @@ function GovtDashboard({ role, onLogout }) {
               className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10 transition-shadow"
             />
           </div>
-          <div className="flex-1" />
+          <div className="flex-1 hidden md:block" />
           {activeLoading && (
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 order-2">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse" /> Loading live data…
             </span>
           )}
           {activeError && !activeLoading && (
-            <span className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={activeError}>
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full order-2" title={activeError}>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Couldn't load
             </span>
@@ -727,7 +747,7 @@ function GovtDashboard({ role, onLogout }) {
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
+                <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-slate-800 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
                   <div className="px-4 py-3 border-b border-slate-800 text-xs font-medium text-slate-300">
                     Notifications {notifications.length > 0 ? `(${notifications.length})` : ""}
                   </div>
@@ -756,9 +776,9 @@ function GovtDashboard({ role, onLogout }) {
           </div>
           <button
             onClick={() => setShowReport(true)}
-            className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150"
+            className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150 shrink-0"
           >
-            <FileText size={14} /> Generate report
+            <FileText size={14} /> <span className="hidden sm:inline">Generate report</span>
           </button>
         </div>
 
@@ -801,13 +821,13 @@ function GovtDashboard({ role, onLogout }) {
             </div>
           </div>
         ) : loading || error || !heatDistricts ? (
-          <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 animate-fade-in">
             <DataStateNotice loading={loading} error={error} label="heat data" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
             {/* KPIs */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Kpi label="National avg. surface temp" value={avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"} sub="Mar–May 2026 season" icon={Thermometer} tone="orange" />
               <Kpi label="High-risk districts" value={highRiskCount} sub={`of ${heatDistricts.length} nationally`} icon={AlertTriangle} tone="red" />
               <Kpi label="Districts with measurable UHI" value={suhiDistrictCount} sub="urban-vs-rural contrast detected" icon={Users} />
@@ -833,9 +853,9 @@ function GovtDashboard({ role, onLogout }) {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Heat map */}
-              <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+              <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <Eyebrow>Composite season</Eyebrow>
@@ -906,9 +926,9 @@ function GovtDashboard({ role, onLogout }) {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Trend chart */}
-              <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+              <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp size={14} className="text-orange-400/80" />
                   <h3 className="text-sm font-medium text-slate-200">Annual temperature trend, 2015–2026</h3>
@@ -1000,7 +1020,7 @@ function GovtDashboard({ role, onLogout }) {
 
 function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea }) {
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
       <div className="inline-flex items-center gap-1 bg-slate-900/80 border border-slate-800 rounded-lg p-1">
         <button
           onClick={() => setFloodTab("dhaka")}
@@ -1034,15 +1054,15 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Flood-prone area" value={`${summary.floodPronePct}%`} sub={`${summary.floodProneCells} of ${summary.totalCells} grid cells`} icon={Droplets} tone="orange" />
         <Kpi label="Peak area under alert" value={`${summary.peakPctAlerted}%`} sub={summary.peakDate} icon={AlertTriangle} tone="red" />
         <Kpi label="Alert days" value={summary.alertDays} sub={`of ${summary.totalDays} days observed`} />
         <Kpi label="Rainfall vs baseline" value={`${summary.observedRainfall}mm`} sub={`baseline ${summary.historicalRainfall}mm/day`} tone="teal" />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>Real data — 2025 monsoon window</Eyebrow>
           <h3 className="text-sm font-medium text-slate-200 mt-0.5">Flood risk — Dhaka (14 Jul 2025, historical peak)</h3>
           <p className="text-xs text-slate-500 mt-0.5 mb-4">Rule-based composite score: 0.5×terrain susceptibility + 0.5×rainfall factor</p>
@@ -1139,7 +1159,7 @@ function FloodNationalView({ national }) {
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Districts covered" value={summary.districts} sub="All of Bangladesh" icon={MapPin} />
         <Kpi label="Validated recall" value="83%" sub="on real 2018 held-out events" icon={ShieldCheck} tone="teal" />
         <Kpi label="Validated ROC-AUC" value="0.91" sub="real ground-truth test year" tone="teal" />
@@ -1170,8 +1190,8 @@ function FloodNationalView({ national }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>Mitigation priority</Eyebrow>
           <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-1">Top 20 of 64 districts</h3>
           <p className="text-xs text-slate-500 mb-4">Weighted: 50% predicted risk, 30% historical severity, 20% area exposure</p>
@@ -1237,7 +1257,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 
   if (loading || error || !districts) {
     return (
-      <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 animate-fade-in">
         <DataStateNotice loading={loading} error={error} label="deforestation data" />
       </div>
     );
@@ -1250,8 +1270,8 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
   const topRestoration = (restoration || []).filter((r) => r.restoration_tier === "High").slice(0, 10);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
-      <div className="grid grid-cols-4 gap-4">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="National loss, 2017–2024" value={`${Math.round(nationalLossKm2).toLocaleString()} km²`} sub="persistent, 2-year-confirmed loss" icon={TreeDeciduous} tone="red" />
         <Kpi label="Districts accelerating" value={alertCount} sub="recent loss ≥1.5× own baseline" icon={AlertTriangle} tone="orange" />
         <Kpi label="Avg. tree cover" value={`${avgForestPct.toFixed(1)}%`} sub="national average, 2024" tone="teal" />
@@ -1269,8 +1289,8 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>Ranked by loss</Eyebrow>
           <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">District ranking — 64 districts</h3>
           <div className="space-y-1 max-h-80 overflow-y-auto">
@@ -2182,7 +2202,7 @@ function RoleSelect({ onSelect }) {
             for government planning and public awareness.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <button
             onClick={() => onSelect("govt")}
             className="text-left bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-slate-800 hover:border-orange-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-950/20"
