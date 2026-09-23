@@ -39,12 +39,15 @@ const OTHER_MODULES = [
 
 function tempToColor(t) {
   if (t === null || t === undefined) return "rgb(30,41,59)"; // slate-800 — "no data" cell
+  // Calibrated to the real Mar-May 2026 composite's actual range (~23.9-28.1C
+  // across all 64 districts) — the old 29-39C stops were left over from an
+  // earlier placeholder and clamped every real cell to the same flat color.
   const stops = [
-    { t: 29, c: [45, 130, 130] },
-    { t: 32, c: [90, 150, 90] },
-    { t: 34, c: [210, 170, 40] },
-    { t: 36, c: [225, 120, 30] },
-    { t: 39, c: [190, 40, 30] },
+    { t: 25, c: [45, 130, 130] },
+    { t: 26.5, c: [90, 150, 90] },
+    { t: 28, c: [210, 170, 40] },
+    { t: 29, c: [225, 120, 30] },
+    { t: 30, c: [190, 40, 30] },
   ];
   let lo = stops[0], hi = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -835,14 +838,14 @@ function GovtDashboard({ role, onLogout }) {
               <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <Eyebrow>Live layer</Eyebrow>
+                    <Eyebrow>Composite season</Eyebrow>
                     <h3 className="text-sm font-medium text-slate-200 mt-0.5">Surface temperature — nationwide</h3>
                     <p className="text-xs text-slate-500 mt-0.5">MODIS LST composite, Mar–May 2026 (block-averaged)</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span>29°C</span>
+                    <span>25°C</span>
                     <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
-                    <span>39°C</span>
+                    <span>30°C</span>
                   </div>
                 </div>
                 {heatGrid ? (
