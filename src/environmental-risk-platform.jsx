@@ -573,6 +573,7 @@ function GovtDashboard({ role, onLogout }) {
   const [floodTab, setFloodTab] = useState("dhaka"); // "dhaka" | "national"
   const [selectedFloodArea, setSelectedFloodArea] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
   const floodDhaka = useFloodDhakaData();
@@ -605,6 +606,27 @@ function GovtDashboard({ role, onLogout }) {
   const highRiskCount = (heatDistricts || []).filter((d) => d.risk_category === "High").length;
   const suhiDistrictCount = (heatDistricts || []).filter((d) => d.uhi_intensity_c !== null && d.uhi_intensity_c !== undefined).length;
   const activeAlerts = heatAlerts?.alerts || [];
+
+  // Real cross-module alert count for the header notification bell — no
+  // invented "unread" state, just three genuine signals already computed
+  // from live data: active heatwave watches, districts at Severe flood
+  // risk, and districts flagged for accelerating deforestation.
+  const floodSevereDistricts = (floodNational.severity || []).filter((s) => s.severity_tier === "Severe");
+  const deforestAlertDistricts = (deforestation.districts || []).filter((d) => d.alert);
+  const notifications = [
+    ...activeAlerts.map((a) => ({
+      module: "heat",
+      text: `Heatwave watch: ${a.name} — peak ${a.peak_tmax_c.toFixed(1)}°C (${a.worst_category})`,
+    })),
+    ...floodSevereDistricts.map((s) => ({
+      module: "flood",
+      text: `${s.district_name}: Severe flood risk`,
+    })),
+    ...deforestAlertDistricts.map((d) => ({
+      module: "forest",
+      text: `${d.district}: flagged for accelerating deforestation`,
+    })),
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex">
@@ -689,10 +711,46 @@ function GovtDashboard({ role, onLogout }) {
               Couldn't load
             </span>
           )}
-          <button className="relative text-slate-500 hover:text-slate-300 transition-colors">
-            <Bell size={17} />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen((v) => !v)}
+              className="relative text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <Bell size={17} />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
+              )}
+            </button>
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
+                  <div className="px-4 py-3 border-b border-slate-800 text-xs font-medium text-slate-300">
+                    Notifications {notifications.length > 0 ? `(${notifications.length})` : ""}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="px-4 py-6 text-xs text-slate-500 text-center">No active alerts right now.</p>
+                    ) : (
+                      notifications.map((n, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setActiveModule(n.module);
+                            if (n.module === "flood") setFloodTab("national");
+                            setNotifOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/70 border-b border-slate-800/60 last:border-0 transition-colors"
+                        >
+                          {n.text}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150"
@@ -758,6 +816,19 @@ function GovtDashboard({ role, onLogout }) {
                 tone={activeAlerts.length ? "red" : "slate"}
               />
             </div>
+
+            {heatAlerts?.generated_at && (
+              <div className="flex items-center gap-2 text-[11px] text-teal-400/80">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                <span>
+                  Live — heatwave watch rechecked every 3 days against real weather forecasts (satellite heat-risk
+                  layer is a fixed Mar–May 2026 seasonal composite). Last refreshed{" "}
+                  {new Date(heatAlerts.generated_at).toLocaleString("en-GB", {
+                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })}.
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-6">
               {/* Heat map */}
