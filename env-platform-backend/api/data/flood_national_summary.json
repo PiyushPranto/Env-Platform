@@ -49,10 +49,10 @@
     "Dhaka"
   ],
   "live_prediction_window": {
-    "start_date": "2026-06-04",
-    "end_date": "2026-09-15",
+    "start_date": "2026-06-05",
+    "end_date": "2026-09-16",
     "window_days": 90
   },
-  "last_refreshed_at": "2026-09-22T07:00:07Z",
+  "last_refreshed_at": "2026-09-23T19:16:17Z",
   "refresh_mode": "frozen_model_scored_on_live_open_meteo_rolling_window"
 }

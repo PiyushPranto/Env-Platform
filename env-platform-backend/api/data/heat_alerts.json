@@ -1,8 +1,7 @@
 {
-  "generated_at": null,
+  "generated_at": "2026-09-23T19:16:04Z",
   "forecast_days": 7,
-  "sites_monitored": 0,
-  "risk_cut": null,
-  "alerts": [],
-  "note": "Automation has not run yet for this file. It will be populated on the next scheduled model-update run."
+  "sites_monitored": 10,
+  "risk_cut": 0.391,
+  "alerts": []
 }
