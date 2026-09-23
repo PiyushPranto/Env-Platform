@@ -4,9 +4,9 @@ import {
 } from "recharts";
 import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
-  Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp,
+  Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Sun, Building2, Sprout, ArrowLeft,
-  UserPlus, ShieldAlert, Info,
+  UserPlus, ShieldAlert, Info, Send,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -24,57 +24,12 @@ const API_BASE =
 // so the UI never looks broken)
 // ---------------------------------------------------------------------------
 
-const FALLBACK_WARDS = [
-  { name: "Panchlaish", temp: 38.6, risk: "Extreme", ndvi: 0.11, pop: 61000 },
-  { name: "Kotwali", temp: 38.1, risk: "Extreme", ndvi: 0.09, pop: 74000 },
-  { name: "Chandgaon", temp: 36.4, risk: "High", ndvi: 0.18, pop: 58000 },
-  { name: "Bayezid", temp: 36.0, risk: "High", ndvi: 0.21, pop: 49500 },
-  { name: "EPZ", temp: 35.3, risk: "High", ndvi: 0.24, pop: 33200 },
-  { name: "Double Mooring", temp: 34.1, risk: "Moderate", ndvi: 0.29, pop: 41800 },
-  { name: "Halishahar", temp: 33.4, risk: "Moderate", ndvi: 0.33, pop: 52700 },
-  { name: "Patenga", temp: 31.6, risk: "Low", ndvi: 0.44, pop: 27900 },
-];
-
-// 9x7 grid of temperatures approximating an urban-core hotspot with cooler,
-// greener edges — kept as a visual placeholder until /heat/hotspots returns
-// a grid shape (swap this out once you confirm the real response shape).
-const FALLBACK_HEAT_GRID = [
-  [30, 31, 32, 33, 33, 32, 31, 30, 29],
-  [31, 33, 35, 36, 36, 35, 33, 31, 30],
-  [32, 35, 37, 38, 38, 37, 35, 32, 31],
-  [33, 36, 38, 39, 39, 38, 36, 33, 32],
-  [32, 35, 38, 39, 38, 37, 35, 33, 31],
-  [31, 34, 36, 37, 36, 35, 33, 32, 30],
-  [30, 32, 34, 34, 33, 32, 31, 30, 29],
-];
-
-const FALLBACK_TREND = [
-  { month: "Oct", temp: 30.8, baseline: 29.9 },
-  { month: "Nov", temp: 28.4, baseline: 28.1 },
-  { month: "Dec", temp: 25.9, baseline: 25.7 },
-  { month: "Jan", temp: 25.1, baseline: 25.3 },
-  { month: "Feb", temp: 27.6, baseline: 27.0 },
-  { month: "Mar", temp: 31.4, baseline: 29.8 },
-  { month: "Apr", temp: 34.7, baseline: 32.6 },
-  { month: "May", temp: 36.9, baseline: 34.1 },
-  { month: "Jun", temp: 35.2, baseline: 33.5 },
-  { month: "Jul", temp: 33.6, baseline: 32.4 },
-  { month: "Aug", temp: 34.0, baseline: 32.8 },
-  { month: "Sep", temp: 35.5, baseline: 33.0 },
-];
-
-const COOLING_CENTERS = [
-  { name: "Panchlaish Community Hall", distance: "0.6 km", capacity: 120 },
-  { name: "Kotwali Primary School", distance: "1.1 km", capacity: 90 },
-  { name: "CDA Park Shelter", distance: "1.8 km", capacity: 60 },
-  { name: "Chandgaon Union Center", distance: "2.4 km", capacity: 80 },
-];
-
-const RECOMMENDATIONS = [
-  { icon: TreeDeciduous, title: "Priority tree plantation", body: "Panchlaish and Kotwali have canopy cover under 12%. Modelled cooling gain: -1.4C at full canopy target." },
-  { icon: Building2, title: "Cooling infrastructure", body: "Add shaded transit shelters and reflective roofing along Chandgaon's exposed commercial strip." },
-  { icon: Sprout, title: "Green corridor", body: "Connect CDA Park to Double Mooring waterfront to break up the contiguous heat-holding built-up area." },
-];
+// Heat used to be an 8-ward Chattogram-only demo with hand-authored
+// fallback numbers. It's now real, national (64-district) data from
+// heat_model_project.ipynb — see useHeatData() below — so, like Flood
+// and Deforestation, there is no fake fallback dataset: a failed fetch
+// shows an explicit "couldn't load" state instead of quietly reusing old
+// Chattogram demo numbers for the whole country.
 
 const OTHER_MODULES = [
   { key: "flood", label: "Flood monitoring", icon: Droplets, locked: false },
@@ -82,14 +37,8 @@ const OTHER_MODULES = [
   { key: "forest", label: "Deforestation", icon: TreeDeciduous, locked: false },
 ];
 
-function riskColor(risk) {
-  if (risk === "Extreme") return { bg: "bg-red-950/40", text: "text-red-400", ring: "ring-red-500/30", dot: "bg-red-500" };
-  if (risk === "High") return { bg: "bg-orange-950/40", text: "text-orange-400", ring: "ring-orange-500/30", dot: "bg-orange-500" };
-  if (risk === "Moderate") return { bg: "bg-amber-950/40", text: "text-amber-400", ring: "ring-amber-500/30", dot: "bg-amber-500" };
-  return { bg: "bg-teal-950/40", text: "text-teal-400", ring: "ring-teal-500/30", dot: "bg-teal-500" };
-}
-
 function tempToColor(t) {
+  if (t === null || t === undefined) return "rgb(30,41,59)"; // slate-800 — "no data" cell
   const stops = [
     { t: 29, c: [45, 130, 130] },
     { t: 32, c: [90, 150, 90] },
@@ -137,52 +86,37 @@ function tierColor(tier) {
   return { bg: "bg-teal-950/40", text: "text-teal-400", ring: "ring-teal-500/30", dot: "bg-teal-500" };
 }
 
-// ---------------------------------------------------------------------------
-// Backend response mapping
-// ---------------------------------------------------------------------------
-// /heat/hotspots currently returns a GeoJSON FeatureCollection (placeholder
-// clustering output — see backend note). Each feature has properties:
-// { cluster_id, ward, mean_lst_c, size }. It does NOT yet include risk
-// category, NDVI or population, so we derive/backfill those until the
-// backend adds them.
-
-function riskFromTemp(t) {
-  if (t >= 38) return "Extreme";
-  if (t >= 35) return "High";
-  if (t >= 32) return "Moderate";
-  return "Low";
-}
-
-function mapHotspotsGeoJsonToWards(geojson) {
-  if (!geojson || !Array.isArray(geojson.features)) return null;
-  const byName = Object.fromEntries(FALLBACK_WARDS.map((w) => [w.name, w]));
-  return geojson.features.map((f) => {
-    const props = f.properties || {};
-    const name = props.ward || "Unknown";
-    const temp = typeof props.mean_lst_c === "number" ? props.mean_lst_c : 0;
-    const known = byName[name];
-    return {
-      name,
-      temp,
-      risk: riskFromTemp(temp),
-      // ndvi / pop aren't in the placeholder response yet — fall back to
-      // known demo values for that ward, or 0 if it's a ward we don't
-      // otherwise have on file.
-      ndvi: known ? known.ndvi : 0,
-      pop: known ? known.pop : 0,
-      clusterSize: props.size,
-    };
-  });
+// Small "is this district's flood risk rising or falling since the last
+// 3-day refresh" indicator. Reads risk_trend, which the automation script
+// only sets once a previous run's output exists to compare against — so
+// this quietly renders nothing rather than guessing on the very first run.
+function RiskTrendBadge({ trend, size = 12 }) {
+  if (!trend) return null;
+  if (trend === "up") return <TrendingUp size={size} className="text-red-400" />;
+  if (trend === "down") return <TrendingDown size={size} className="text-teal-400" />;
+  return <Minus size={size} className="text-slate-500" />;
 }
 
 // ---------------------------------------------------------------------------
-// Data hook — pulls live data from the backend
+// Heat — real, national (64-district) output from heat_model_project.ipynb:
+// a Random Forest heat-risk composite, DBSCAN hotspot clusters, and
+// per-district SUHI intensity (MODIS LST/NDVI + JRC GHSL built-up
+// fraction, Mar-May 2026). Like Flood and Deforestation, there is no fake
+// fallback dataset — a failed fetch surfaces as an explicit error state.
+//
+// /heat/alerts is the one genuinely live piece: a 7-day heatwave forecast
+// (Open-Meteo + official BMD thresholds) for the model's own hotspot
+// sites, re-checked every 3 days by the same automation that re-scores
+// Flood. An empty alerts list is a normal, honest "no heatwave forecast
+// right now" result, not a broken feature.
 // ---------------------------------------------------------------------------
 
 function useHeatData() {
-  const [wards, setWards] = useState(FALLBACK_WARDS);
-  const [heatGrid, setHeatGrid] = useState(FALLBACK_HEAT_GRID);
-  const [trend, setTrend] = useState(FALLBACK_TREND);
+  const [districts, setDistricts] = useState(null);
+  const [grid, setGrid] = useState(null);
+  const [trend, setTrend] = useState(null);
+  const [hotspots, setHotspots] = useState(null);
+  const [alerts, setAlerts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -193,35 +127,38 @@ function useHeatData() {
       setLoading(true);
       setError(null);
       try {
-        const [hotspotsRes, trendRes] = await Promise.all([
-          fetch(`${API_BASE}/heat/hotspots`),
+        const [riskRes, gridRes, trendRes, hotspotsRes, alertsRes] = await Promise.all([
+          fetch(`${API_BASE}/heat/risk`),
+          fetch(`${API_BASE}/heat/grid`),
           fetch(`${API_BASE}/heat/trend`),
+          fetch(`${API_BASE}/heat/hotspots`),
+          fetch(`${API_BASE}/heat/alerts`),
         ]);
-
-        if (!hotspotsRes.ok) throw new Error(`/heat/hotspots ${hotspotsRes.status}`);
-        if (!trendRes.ok) throw new Error(`/heat/trend ${trendRes.status}`);
-
-        const hotspotsData = await hotspotsRes.json();
-        const trendData = await trendRes.json();
+        if (!riskRes.ok || !gridRes.ok || !trendRes.ok || !hotspotsRes.ok) {
+          throw new Error("One or more /heat endpoints failed");
+        }
+        const [riskData, gridData, trendData, hotspotsData] = await Promise.all([
+          riskRes.json(), gridRes.json(), trendRes.json(), hotspotsRes.json(),
+        ]);
+        // /heat/alerts always resolves (the backend returns a labeled
+        // not-yet-run payload rather than a 404), but treat a network
+        // failure on it as "no alert data" rather than failing the whole
+        // module over the one piece that's allowed to be briefly unready.
+        const alertsData = alertsRes.ok ? await alertsRes.json() : null;
 
         if (cancelled) return;
-
-        // /heat/hotspots: GeoJSON FeatureCollection (placeholder clustering
-        // output). Map it into the ward-list shape the UI expects.
-        const mappedWards = mapHotspotsGeoJsonToWards(hotspotsData);
-        if (mappedWards && mappedWards.length) setWards(mappedWards);
-
-        // The grid visual isn't produced by any current endpoint — the
-        // fallback grid stays in place until the backend exposes one.
-
-        // /heat/trend: { trend: [{ month, temp, baseline }, ...] }
-        if (Array.isArray(trendData?.trend)) setTrend(trendData.trend);
-        else if (Array.isArray(trendData)) setTrend(trendData);
+        setDistricts(riskData.wards || []);
+        setGrid(gridData.grid || null);
+        // heat_trend.json's field is named `month` for shape-compatibility
+        // with the old placeholder, but holds a year (2015-2026) — rename
+        // it here so the rest of the app deals in `year`, not a misleading name.
+        setTrend((trendData.trend || []).map((r) => ({ year: r.month, temp: r.temp, baseline: r.baseline, excluded: r.excluded })));
+        setHotspots(hotspotsData.features || []);
+        setAlerts(alertsData);
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to load heat data:", err);
-          setError(err.message || "Failed to load live data");
-          // fallback/demo data stays in place so the UI still renders
+          setError(err.message || "Failed to load heat data");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -232,7 +169,7 @@ function useHeatData() {
     return () => { cancelled = true; };
   }, []);
 
-  return { wards, heatGrid, trend, loading, error };
+  return { districts, grid, trend, hotspots, alerts, loading, error };
 }
 
 // ---------------------------------------------------------------------------
@@ -391,11 +328,49 @@ function useDeforestationData() {
   return { districts, worklist, worklistTotal, restoration, lossByYear, citizenCards, loading, error };
 }
 
+// Citizen-submitted "I saw tree-cutting here" reports (see
+// CitizenReportForm / CITIZEN-REPORTS-SETUP.md). `configured: false` means
+// the backend's Supabase table isn't set up yet — shown as a plain notice
+// rather than an empty list, so it's clear this isn't "zero reports so far".
+function useCitizenReports() {
+  const [reports, setReports] = useState(null);
+  const [configured, setConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/deforestation/citizen-reports`);
+        if (!res.ok) throw new Error(`/deforestation/citizen-reports ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setConfigured(data.configured !== false);
+        setReports(data.reports || []);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load citizen reports:", err);
+          setError(err.message || "Failed to load citizen reports");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { reports, configured, loading, error };
+}
+
 // ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
 
-function HeatGrid({ grid, compact, colorFn = tempToColor, labelFn = (t) => `${t.toFixed(0)}C` }) {
+function HeatGrid({ grid, compact, colorFn = tempToColor, labelFn = (t) => (t === null || t === undefined ? "No data" : `${t.toFixed(0)}C`) }) {
   const cell = compact ? 26 : 34;
   return (
     <div className="inline-block rounded-xl overflow-hidden border border-slate-800 shadow-lg shadow-black/30 ring-1 ring-black/20">
@@ -497,16 +472,20 @@ function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
 // Report modal (stands in for PDF/Excel export)
 // ---------------------------------------------------------------------------
 
-function ReportModal({ wards, onClose }) {
+function ReportModal({ districts, alerts, onClose }) {
   const printRef = useRef(null);
   const now = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const sorted = [...districts].sort((a, b) => b.heat_risk - a.heat_risk);
+  const avgLst = districts.length ? districts.reduce((s, d) => s + d.lst_c, 0) / districts.length : null;
+  const highRiskCount = districts.filter((d) => d.risk_category === "High").length;
+  const activeAlertCount = alerts?.alerts?.length ?? 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
       <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-2xl shadow-black/50 animate-fade-in-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5 text-slate-300">
             <IconBadge icon={FileText} tone="orange" size={14} />
-            <span className="text-sm font-medium">Heat risk report — Chattogram City</span>
+            <span className="text-sm font-medium">National heat risk report</span>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 hover:bg-slate-900 rounded-lg p-1.5 transition-colors">
             <X size={18} />
@@ -516,57 +495,51 @@ function ReportModal({ wards, onClose }) {
           <h2 className="text-lg font-semibold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Urban Heat Risk Summary
           </h2>
-          <p className="text-xs text-slate-500 mt-1">Chattogram City Corporation — generated {now}</p>
+          <p className="text-xs text-slate-500 mt-1">Bangladesh, all 64 districts — generated {now}</p>
 
           <div className="grid grid-cols-3 gap-3 mt-5">
             <div className="text-center">
-              <div className="text-xl font-semibold text-orange-400">35.4C</div>
-              <div className="text-[11px] text-slate-500 mt-1">City avg. surface temp</div>
+              <div className="text-xl font-semibold text-orange-400">{avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"}</div>
+              <div className="text-[11px] text-slate-500 mt-1">National avg. surface temp</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold text-red-400">2</div>
-              <div className="text-[11px] text-slate-500 mt-1">Extreme-risk wards</div>
+              <div className="text-xl font-semibold text-red-400">{highRiskCount}</div>
+              <div className="text-[11px] text-slate-500 mt-1">High-risk districts</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold text-teal-400">~135k</div>
-              <div className="text-[11px] text-slate-500 mt-1">Population in high+ risk</div>
+              <div className="text-xl font-semibold text-teal-400">{activeAlertCount}</div>
+              <div className="text-[11px] text-slate-500 mt-1">Active heatwave watches</div>
             </div>
           </div>
 
-          <h3 className="text-sm font-medium text-slate-200 mt-6 mb-2">Ward ranking by heat risk</h3>
+          <h3 className="text-sm font-medium text-slate-200 mt-6 mb-2">District ranking by heat risk</h3>
           <table className="w-full text-xs border-separate border-spacing-0">
             <thead>
               <tr className="text-slate-500 text-left">
-                <th className="py-1.5 font-medium border-b border-slate-800">Ward</th>
-                <th className="py-1.5 font-medium border-b border-slate-800">Temp</th>
+                <th className="py-1.5 font-medium border-b border-slate-800">District</th>
+                <th className="py-1.5 font-medium border-b border-slate-800">LST</th>
                 <th className="py-1.5 font-medium border-b border-slate-800">Risk</th>
                 <th className="py-1.5 font-medium border-b border-slate-800">NDVI</th>
               </tr>
             </thead>
             <tbody>
-              {wards.map((w, i) => (
-                <tr key={w.name} className={i % 2 === 1 ? "bg-slate-900/30" : ""}>
-                  <td className="py-1.5 px-1 text-slate-300 rounded-l-md">{w.name}</td>
-                  <td className="py-1.5 px-1 text-slate-400">{w.temp.toFixed(1)}C</td>
-                  <td className="py-1.5 px-1 text-slate-400">{w.risk}</td>
-                  <td className="py-1.5 px-1 text-slate-400 rounded-r-md">{w.ndvi.toFixed(2)}</td>
+              {sorted.map((d, i) => (
+                <tr key={d.name} className={i % 2 === 1 ? "bg-slate-900/30" : ""}>
+                  <td className="py-1.5 px-1 text-slate-300 rounded-l-md">{d.name}</td>
+                  <td className="py-1.5 px-1 text-slate-400">{d.lst_c.toFixed(1)}C</td>
+                  <td className="py-1.5 px-1 text-slate-400">{d.risk_category}</td>
+                  <td className="py-1.5 px-1 text-slate-400 rounded-r-md">{d.ndvi.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <h3 className="text-sm font-medium text-slate-200 mt-6 mb-2">Priority actions</h3>
-          <ul className="text-xs text-slate-400 space-y-1.5 list-disc pl-4">
-            {RECOMMENDATIONS.map((r) => (
-              <li key={r.title}>
-                <span className="text-slate-300">{r.title}.</span> {r.body}
-              </li>
-            ))}
-          </ul>
-
-          <p className="text-[11px] text-slate-600 mt-6">
-            Report data reflects the live backend where available, with demo
-            values as a fallback for anything not yet wired up.
+          <p className="text-[11px] text-slate-600 mt-6 leading-relaxed">
+            Risk score is a composite of surface temperature, vegetation and built-up fraction
+            (MODIS LST/NDVI, JRC GHSL, Mar–May 2026 season). Heatwave watches are re-checked every 3
+            days against a live 7-day forecast for the model's own hotspot sites. The 2015–2024
+            national warming trend shown elsewhere in this dashboard is not statistically significant
+            (p=0.106) — reported as observed, not confirmed.
           </p>
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-800">
@@ -596,15 +569,17 @@ function GovtDashboard({ role, onLogout }) {
   const [activeModule, setActiveModule] = useState("heat");
   const [search, setSearch] = useState("");
   const [showReport, setShowReport] = useState(false);
-  const [selectedWard, setSelectedWard] = useState(null);
+  const [selectedHeatDistrict, setSelectedHeatDistrict] = useState(null);
   const [floodTab, setFloodTab] = useState("dhaka"); // "dhaka" | "national"
   const [selectedFloodArea, setSelectedFloodArea] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
 
-  const { wards, heatGrid, trend, loading, error } = useHeatData();
+  const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
   const floodDhaka = useFloodDhakaData();
   const floodNational = useNationalFloodData();
   const deforestation = useDeforestationData();
+  const citizenReports = useCitizenReports();
 
   const activeLoading =
     activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
@@ -615,19 +590,47 @@ function GovtDashboard({ role, onLogout }) {
     : activeModule === "forest" ? deforestation.error
     : error;
 
-  const filteredWards = useMemo(
-    () => wards.filter((w) => w.name.toLowerCase().includes(search.toLowerCase())),
-    [search, wards]
+  const filteredDistricts = useMemo(
+    () => (heatDistricts || []).filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
+    [search, heatDistricts]
   );
 
   const sortedByRisk = useMemo(
-    () => [...wards].sort((a, b) => b.temp - a.temp),
-    [wards]
+    () => [...(heatDistricts || [])].sort((a, b) => b.heat_risk - a.heat_risk),
+    [heatDistricts]
   );
+
+  const avgLst = heatDistricts?.length
+    ? heatDistricts.reduce((s, d) => s + d.lst_c, 0) / heatDistricts.length
+    : null;
+  const highRiskCount = (heatDistricts || []).filter((d) => d.risk_category === "High").length;
+  const suhiDistrictCount = (heatDistricts || []).filter((d) => d.uhi_intensity_c !== null && d.uhi_intensity_c !== undefined).length;
+  const activeAlerts = heatAlerts?.alerts || [];
+
+  // Real cross-module alert count for the header notification bell — no
+  // invented "unread" state, just three genuine signals already computed
+  // from live data: active heatwave watches, districts at Severe flood
+  // risk, and districts flagged for accelerating deforestation.
+  const floodSevereDistricts = (floodNational.severity || []).filter((s) => s.severity_tier === "Severe");
+  const deforestAlertDistricts = (deforestation.districts || []).filter((d) => d.alert);
+  const notifications = [
+    ...activeAlerts.map((a) => ({
+      module: "heat",
+      text: `Heatwave watch: ${a.name} — peak ${a.peak_tmax_c.toFixed(1)}°C (${a.worst_category})`,
+    })),
+    ...floodSevereDistricts.map((s) => ({
+      module: "flood",
+      text: `${s.district_name}: Severe flood risk`,
+    })),
+    ...deforestAlertDistricts.map((d) => ({
+      module: "forest",
+      text: `${d.district}: flagged for accelerating deforestation`,
+    })),
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex">
-      {showReport && <ReportModal wards={wards} onClose={() => setShowReport(false)} />}
+      {showReport && <ReportModal districts={heatDistricts || []} alerts={heatAlerts} onClose={() => setShowReport(false)} />}
 
       {/* Sidebar */}
       <aside className="w-60 border-r border-slate-800/80 flex flex-col shrink-0 bg-slate-950/60">
@@ -705,13 +708,49 @@ function GovtDashboard({ role, onLogout }) {
           {activeError && !activeLoading && (
             <span className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={activeError}>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              {activeModule === "heat" ? "Demo values shown" : "Couldn't load"}
+              Couldn't load
             </span>
           )}
-          <button className="relative text-slate-500 hover:text-slate-300 transition-colors">
-            <Bell size={17} />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen((v) => !v)}
+              className="relative text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <Bell size={17} />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
+              )}
+            </button>
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
+                  <div className="px-4 py-3 border-b border-slate-800 text-xs font-medium text-slate-300">
+                    Notifications {notifications.length > 0 ? `(${notifications.length})` : ""}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="px-4 py-6 text-xs text-slate-500 text-center">No active alerts right now.</p>
+                    ) : (
+                      notifications.map((n, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setActiveModule(n.module);
+                            if (n.module === "flood") setFloodTab("national");
+                            setNotifOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/70 border-b border-slate-800/60 last:border-0 transition-colors"
+                        >
+                          {n.text}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150"
@@ -734,6 +773,7 @@ function GovtDashboard({ role, onLogout }) {
             data={deforestation}
             selectedDistrict={selectedDistrict}
             setSelectedDistrict={setSelectedDistrict}
+            citizenReports={citizenReports}
           />
         ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
@@ -757,15 +797,38 @@ function GovtDashboard({ role, onLogout }) {
               </button>
             </div>
           </div>
+        ) : loading || error || !heatDistricts ? (
+          <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
+            <DataStateNotice loading={loading} error={error} label="heat data" />
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fade-in">
             {/* KPIs */}
             <div className="grid grid-cols-4 gap-4">
-              <Kpi label="City avg. surface temp" value="35.4C" sub="+2.1C vs seasonal baseline" icon={Thermometer} tone="orange" />
-              <Kpi label="Active hotspots" value="4" sub="Urban core cluster" icon={AlertTriangle} tone="red" />
-              <Kpi label="Population in high+ risk" value="~135,000" sub="Across 4 wards" icon={Users} />
-              <Kpi label="Heatwave alerts" value="1" sub="Panchlaish, issued today" icon={Bell} tone="red" />
+              <Kpi label="National avg. surface temp" value={avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"} sub="Mar–May 2026 season" icon={Thermometer} tone="orange" />
+              <Kpi label="High-risk districts" value={highRiskCount} sub={`of ${heatDistricts.length} nationally`} icon={AlertTriangle} tone="red" />
+              <Kpi label="Districts with measurable UHI" value={suhiDistrictCount} sub="urban-vs-rural contrast detected" icon={Users} />
+              <Kpi
+                label="Heatwave watches"
+                value={activeAlerts.length}
+                sub={heatAlerts?.generated_at ? "live, rechecked every 3 days" : "automation hasn't run yet"}
+                icon={Bell}
+                tone={activeAlerts.length ? "red" : "slate"}
+              />
             </div>
+
+            {heatAlerts?.generated_at && (
+              <div className="flex items-center gap-2 text-[11px] text-teal-400/80">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                <span>
+                  Live — heatwave watch rechecked every 3 days against real weather forecasts (satellite heat-risk
+                  layer is a fixed Mar–May 2026 seasonal composite). Last refreshed{" "}
+                  {new Date(heatAlerts.generated_at).toLocaleString("en-GB", {
+                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })}.
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-6">
               {/* Heat map */}
@@ -773,8 +836,8 @@ function GovtDashboard({ role, onLogout }) {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <Eyebrow>Live layer</Eyebrow>
-                    <h3 className="text-sm font-medium text-slate-200 mt-0.5">Surface temperature — Chattogram City</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Derived from Landsat LST composite, current cycle</p>
+                    <h3 className="text-sm font-medium text-slate-200 mt-0.5">Surface temperature — nationwide</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">MODIS LST composite, Mar–May 2026 (block-averaged)</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                     <span>29°C</span>
@@ -782,32 +845,38 @@ function GovtDashboard({ role, onLogout }) {
                     <span>39°C</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-center py-4">
-                  <HeatGrid grid={heatGrid} />
-                </div>
-                <p className="text-[11px] text-slate-600 text-center">Grid cells approximate 500m resolution over the urban core</p>
+                {heatGrid ? (
+                  <>
+                    <div className="flex items-center justify-center py-4">
+                      <HeatGrid grid={heatGrid} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 text-center">Grid cells block-average the national raster; blank cells have no valid pixels (water/no data)</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-500 py-8 text-center">No grid data available.</p>
+                )}
               </div>
 
-              {/* Hotspot ranking */}
+              {/* District ranking */}
               <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <Eyebrow>Priority ranking</Eyebrow>
                 <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-4">Heat mitigation priority</h3>
-                <div className="space-y-1">
-                  {sortedByRisk.map((w, i) => {
-                    const c = riskColor(w.risk);
-                    const isSelected = selectedWard?.name === w.name;
+                <div className="space-y-1 max-h-[360px] overflow-y-auto">
+                  {sortedByRisk.map((d, i) => {
+                    const c = tierColor(d.risk_category);
+                    const isSelected = selectedHeatDistrict?.name === d.name;
                     return (
                       <button
-                        key={w.name}
-                        onClick={() => setSelectedWard(w)}
+                        key={d.name}
+                        onClick={() => setSelectedHeatDistrict(d)}
                         className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
                           isSelected ? "bg-slate-800/70 ring-1 " + c.ring : "hover:bg-slate-900/80"
                         }`}
                       >
                         <span className="text-[11px] text-slate-600 w-4 tabular-nums">{i + 1}</span>
                         <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                        <span className="flex-1 text-sm text-slate-300">{w.name}</span>
-                        <span className="text-xs text-slate-500 tabular-nums">{w.temp.toFixed(1)}°C</span>
+                        <span className="flex-1 text-sm text-slate-300">{d.name}</span>
+                        <span className="text-xs text-slate-500 tabular-nums">{d.lst_c.toFixed(1)}°C</span>
                         <ChevronRight size={13} className={`text-slate-600 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
                       </button>
                     );
@@ -816,16 +885,19 @@ function GovtDashboard({ role, onLogout }) {
               </div>
             </div>
 
-            {selectedWard && (
-              <div className={`rounded-2xl p-4 border ${riskColor(selectedWard.risk).bg} border-slate-800 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
-                <IconBadge icon={MapPin} tone={selectedWard.risk === "Extreme" ? "red" : selectedWard.risk === "High" ? "orange" : selectedWard.risk === "Moderate" ? "amber" : "teal"} />
+            {selectedHeatDistrict && (
+              <div className={`rounded-2xl p-4 border ${tierColor(selectedHeatDistrict.risk_category).bg} border-slate-800 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+                <IconBadge icon={MapPin} tone={selectedHeatDistrict.risk_category === "High" ? "red" : selectedHeatDistrict.risk_category === "Medium" ? "amber" : "teal"} />
                 <div className="flex-1">
-                  <span className="text-sm text-slate-200 font-medium">{selectedWard.name}</span>
+                  <span className="text-sm text-slate-200 font-medium">{selectedHeatDistrict.name}</span>
                   <span className="text-xs text-slate-500 ml-2">
-                    {selectedWard.temp.toFixed(1)}°C · {selectedWard.risk} risk · NDVI {selectedWard.ndvi.toFixed(2)} · population {selectedWard.pop.toLocaleString()}
+                    {selectedHeatDistrict.lst_c.toFixed(1)}°C · {selectedHeatDistrict.risk_category} risk · NDVI {selectedHeatDistrict.ndvi.toFixed(2)} · built-up fraction {selectedHeatDistrict.built_fraction.toFixed(3)}
+                    {selectedHeatDistrict.uhi_intensity_c !== null && selectedHeatDistrict.uhi_intensity_c !== undefined
+                      ? ` · SUHI intensity ${selectedHeatDistrict.uhi_intensity_c.toFixed(2)}°C`
+                      : ""}
                   </span>
                 </div>
-                <button onClick={() => setSelectedWard(null)} className="text-slate-500 hover:text-slate-300 hover:bg-black/20 rounded-lg p-1 transition-colors">
+                <button onClick={() => setSelectedHeatDistrict(null)} className="text-slate-500 hover:text-slate-300 hover:bg-black/20 rounded-lg p-1 transition-colors">
                   <X size={15} />
                 </button>
               </div>
@@ -836,53 +908,76 @@ function GovtDashboard({ role, onLogout }) {
               <div className="col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp size={14} className="text-orange-400/80" />
-                  <h3 className="text-sm font-medium text-slate-200">12-month temperature trend</h3>
+                  <h3 className="text-sm font-medium text-slate-200">Annual temperature trend, 2015–2026</h3>
                 </div>
-                <p className="text-xs text-slate-500 mb-3">City average vs 10-year seasonal baseline</p>
+                <p className="text-xs text-slate-500 mb-3">
+                  National mean LST vs. pre-drift baseline · 2025–2026 (hollow points) excluded from the
+                  trend fit — Terra sensor orbital drift. Fitted trend +1.25°C/decade is not statistically
+                  significant (p=0.106).
+                </p>
                 <div style={{ width: "100%", height: 200 }}>
                   <ResponsiveContainer>
-                    <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="tempLineGlow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fb923c" stopOpacity={0.25} />
-                          <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
+                    <LineChart data={heatTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[22, 40]} />
+                      <XAxis dataKey="year" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[24, 32]} />
                       <Tooltip
                         contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,0,0,0.5)" }}
                         labelStyle={{ color: "#cbd5e1", marginBottom: 2 }}
                         cursor={{ stroke: "#334155", strokeWidth: 1 }}
                       />
-                      <Line type="monotone" dataKey="baseline" stroke="#475569" strokeWidth={1.5} dot={false} name="Baseline" />
-                      <Line type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={2.5} dot={{ r: 2.5, fill: "#fb923c", strokeWidth: 0 }} activeDot={{ r: 4.5 }} name="Observed" />
+                      <Line type="monotone" dataKey="baseline" stroke="#475569" strokeWidth={1.5} dot={false} name="Pre-drift baseline" />
+                      <Line
+                        type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={2.5} name="Observed"
+                        dot={(props) => {
+                          const { cx, cy, payload, index } = props;
+                          return (
+                            <circle key={`dot-${payload.year ?? index}`} cx={cx} cy={cy} r={2.5}
+                              fill={payload.excluded ? "#0f172a" : "#fb923c"}
+                              stroke="#fb923c" strokeWidth={payload.excluded ? 1.5 : 0} />
+                          );
+                        }}
+                        activeDot={{ r: 4.5 }}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Recommendations */}
+              {/* Heatwave watch */}
               <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
-                <h3 className="text-sm font-medium text-slate-200 mb-3.5">Recommended interventions</h3>
-                <div className="space-y-3.5">
-                  {RECOMMENDATIONS.map((r) => (
-                    <div key={r.title} className="flex gap-3">
-                      <IconBadge icon={r.icon} tone="teal" size={14} />
-                      <div>
-                        <p className="text-xs font-medium text-slate-300">{r.title}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{r.body}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2 mb-1">
+                  <Bell size={14} className="text-orange-400/80" />
+                  <h3 className="text-sm font-medium text-slate-200">Heatwave watch</h3>
                 </div>
+                <p className="text-[11px] text-slate-500 mb-3.5 leading-relaxed">
+                  7-day forecast vs. official BMD thresholds, for the model's own hotspot sites — rechecked every 3 days.
+                </p>
+                {!heatAlerts?.generated_at ? (
+                  <p className="text-xs text-slate-500">Automation hasn't produced a forecast check yet.</p>
+                ) : activeAlerts.length === 0 ? (
+                  <p className="text-xs text-teal-300/90">No heatwave forecast for any monitored hotspot in the next {heatAlerts.forecast_days} days.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeAlerts.map((a) => (
+                      <div key={a.name} className="flex gap-3">
+                        <IconBadge icon={AlertTriangle} tone="red" size={14} />
+                        <div>
+                          <p className="text-xs font-medium text-slate-300">{a.name} · {a.worst_category}</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                            Peak {a.peak_tmax_c.toFixed(1)}°C over {a.heatwave_days} day(s) in the next {heatAlerts.forecast_days}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             {search && (
               <div className="text-xs text-slate-500">
-                {filteredWards.length} ward(s) match "{search}"
+                {filteredDistricts.length} district(s) match "{search}"
               </div>
             )}
           </div>
@@ -1088,6 +1183,7 @@ function FloodNationalView({ national }) {
                   <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                   <span className="flex-1 text-sm text-slate-300">{d.district_name}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                  <RiskTrendBadge trend={sev?.risk_trend} />
                   <span className="text-xs text-slate-500 tabular-nums w-16 text-right">risk {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
@@ -1133,7 +1229,7 @@ function FloodNationalView({ national }) {
 // core checks.
 // ---------------------------------------------------------------------------
 
-function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict }) {
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports }) {
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
 
   if (loading || error || !districts) {
@@ -1282,6 +1378,49 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
           </div>
         </div>
       )}
+
+      <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <Eyebrow tone="teal">Citizen reports</Eyebrow>
+            <h3 className="text-sm font-medium text-slate-200 mt-0.5">Tree-cutting reported by citizens</h3>
+          </div>
+          {citizenReports?.reports && (
+            <span className="text-[11px] text-slate-500">{citizenReports.reports.length} report(s)</span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mb-3">
+          Unverified — a complementary signal to the satellite model, not confirmed field findings.
+        </p>
+        {citizenReports?.loading ? (
+          <p className="text-xs text-slate-500 py-4">Loading citizen reports…</p>
+        ) : citizenReports?.error ? (
+          <p className="text-xs text-amber-500 py-4">Couldn't load citizen reports.</p>
+        ) : citizenReports?.configured === false ? (
+          <p className="text-xs text-slate-500 py-4">
+            Not set up yet — see CITIZEN-REPORTS-SETUP.md to enable citizen reporting.
+          </p>
+        ) : !citizenReports?.reports || citizenReports.reports.length === 0 ? (
+          <p className="text-xs text-slate-500 py-4">No citizen reports submitted yet.</p>
+        ) : (
+          <div className="space-y-2.5 max-h-64 overflow-y-auto">
+            {citizenReports.reports.map((r) => (
+              <div key={r.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-900/60">
+                <IconBadge icon={AlertTriangle} tone="amber" size={12} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-300">
+                    <span className="font-medium">{r.district}</span> — {r.description}
+                  </p>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    {new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {r.contact ? ` · contact: ${r.contact}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1302,52 +1441,72 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 
 const CITIZEN_I18N = {
   en: {
-    appName: "Chattogram Heat Watch",
+    appName: "Bangladesh Environmental Watch",
     exit: "Exit",
     yourArea: "Your area",
-    yourAreaHint: "Flood risk below updates for whichever district you pick.",
-    heatAlertTitle: "Extreme heat alert — Panchlaish and Kotwali",
-    heatAlertBody: "Surface temperatures above 38°C expected through this afternoon. Avoid outdoor work between 12pm–4pm.",
-    heatMapTitle: "Heat map — your area",
-    currentTemp: "Current, your ward",
-    airQuality: "Air quality today",
+    yourAreaHint: "Flood risk, heat risk and tree cover below update for whichever district you pick.",
+    heatwaveWatchOne: "1 location nationally is forecast to see heatwave-level heat in the next 7 days.",
+    heatwaveWatchMany: "locations nationally are forecast to see heatwave-level heat in the next 7 days.",
+    heatMapTitle: "Heat map — nationwide",
+    currentTemp: "Surface temp, your district",
     healthAdvisoryTitle: "Health advisory",
-    healthAdvisoryBody: "Heat risk is extreme in your area today. Drink water regularly even without feeling thirsty, limit direct sun exposure between midday and late afternoon, and check on elderly neighbours and young children.",
-    coolingCentersTitle: "Nearby cooling centers",
     floodRiskTitle: "Flood risk —",
     floodRiskLive: "Live, rescored every 3 days from real rainfall",
     floodRiskFallback: "Flood data isn't available right now — showing the last known status.",
     floodRiskFallbackNote: "Couldn't load live flood data. Try again shortly.",
+    trendUp: "rising since last update",
+    trendDown: "falling since last update",
+    trendSteady: "steady since last update",
     whatToDo: "What to do",
     emergencyLine: "National emergency helpline: 999 (fire, flood rescue, ambulance)",
     emergencyLine2: "For your nearest official shelter, contact your local Union Parishad / Ward office.",
     treeCoverTitle: "Tree cover —",
-    footer: "Live where available; demo values used as fallback.",
+    footer: "Live data from the backend where available.",
     loading: "Loading…",
+    reportTitle: "Seen tree-cutting nearby?",
+    reportHint: "Satellite data can miss small, local cutting. Your report helps — it's shown to government reviewers, not verified automatically.",
+    reportDescriptionPlaceholder: "What did you see, and roughly where? (e.g. \"several trees cut near the riverbank, Ward 4\")",
+    reportContactPlaceholder: "Phone or email (optional)",
+    reportSubmit: "Submit report",
+    reportSending: "Sending…",
+    reportSuccess: "Thank you — your report was submitted.",
+    reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
+    reportError: "Couldn't submit your report. Please try again shortly.",
+    reportTooShort: "Please add a few more words describing what you saw.",
   },
   bn: {
-    appName: "চট্টগ্রাম হিট ওয়াচ",
+    appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
     exit: "বের হন",
     yourArea: "আপনার এলাকা",
-    yourAreaHint: "নিচের বন্যার ঝুঁকি আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
-    heatAlertTitle: "তীব্র তাপ সতর্কতা — পাঁচলাইশ ও কোতোয়ালী",
-    heatAlertBody: "আজ বিকাল পর্যন্ত ভূপৃষ্ঠের তাপমাত্রা ৩৮°সে-এর বেশি থাকতে পারে। দুপুর ১২টা থেকে বিকাল ৪টার মধ্যে বাইরে কাজ এড়িয়ে চলুন।",
-    heatMapTitle: "তাপ মানচিত্র — আপনার এলাকা",
-    currentTemp: "বর্তমান, আপনার ওয়ার্ড",
-    airQuality: "আজকের বায়ুর মান",
+    yourAreaHint: "নিচের বন্যার ঝুঁকি, তাপের ঝুঁকি ও বনভূমি তথ্য আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
+    heatwaveWatchOne: "সারাদেশে ১টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
+    heatwaveWatchMany: "টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
+    heatMapTitle: "তাপ মানচিত্র — সারাদেশ",
+    currentTemp: "ভূপৃষ্ঠের তাপমাত্রা, আপনার জেলা",
     healthAdvisoryTitle: "স্বাস্থ্য পরামর্শ",
-    healthAdvisoryBody: "আজ আপনার এলাকায় তাপের ঝুঁকি তীব্র। তৃষ্ণা না লাগলেও নিয়মিত পানি পান করুন, দুপুর থেকে বিকাল পর্যন্ত সরাসরি রোদ এড়িয়ে চলুন, এবং বয়স্ক প্রতিবেশী ও শিশুদের খোঁজ নিন।",
-    coolingCentersTitle: "কাছাকাছি কুলিং সেন্টার",
     floodRiskTitle: "বন্যার ঝুঁকি —",
     floodRiskLive: "লাইভ — প্রতি ৩ দিন পরপর প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে হালনাগাদ",
     floodRiskFallback: "এই মুহূর্তে বন্যার তথ্য পাওয়া যাচ্ছে না — সর্বশেষ জানা অবস্থা দেখানো হচ্ছে।",
     floodRiskFallbackNote: "লাইভ বন্যার তথ্য লোড করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    trendUp: "গত হালনাগাদের তুলনায় বাড়ছে",
+    trendDown: "গত হালনাগাদের তুলনায় কমছে",
+    trendSteady: "গত হালনাগাদের তুলনায় একই আছে",
     whatToDo: "কী করবেন",
     emergencyLine: "জাতীয় জরুরি সেবা: ৯৯৯ (ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স)",
     emergencyLine2: "নিকটতম সরকারি আশ্রয়কেন্দ্রের জন্য আপনার স্থানীয় ইউনিয়ন পরিষদ / ওয়ার্ড অফিসে যোগাযোগ করুন।",
     treeCoverTitle: "বনভূমি —",
-    footer: "যেখানে সম্ভব লাইভ তথ্য; না পেলে ডেমো মান দেখানো হয়।",
+    footer: "যেখানে সম্ভব ব্যাকএন্ড থেকে লাইভ তথ্য দেখানো হয়।",
     loading: "লোড হচ্ছে…",
+    reportTitle: "আশেপাশে গাছ কাটা দেখেছেন?",
+    reportHint: "স্যাটেলাইট ডেটা ছোট আকারের স্থানীয় গাছ কাটা ধরতে পারে না। আপনার রিপোর্ট সাহায্য করে — এটা সরকারি পর্যালোচকদের দেখানো হয়, স্বয়ংক্রিয়ভাবে যাচাই করা হয় না।",
+    reportDescriptionPlaceholder: "কী দেখেছেন, আনুমানিক কোথায়? (যেমন: \"নদীর ধারে কয়েকটি গাছ কাটা হয়েছে, ওয়ার্ড ৪\")",
+    reportContactPlaceholder: "ফোন বা ইমেইল (ঐচ্ছিক)",
+    reportSubmit: "রিপোর্ট জমা দিন",
+    reportSending: "পাঠানো হচ্ছে…",
+    reportSuccess: "ধন্যবাদ — আপনার রিপোর্ট জমা হয়েছে।",
+    reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
+    reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
   },
 };
 
@@ -1394,17 +1553,140 @@ function floodSafetySteps(tier, lang) {
   return byLang[tier] || byLang.Moderate;
 }
 
+// Heat health guidance, keyed off the real model's risk_category (High /
+// Medium / Low — a tertile split, not the old 4-tier Extreme/High/Moderate/Low
+// placeholder scale). No fabricated ward-specific timing (the old text named
+// "Panchlaish and Kotwali" for every citizen nationwide) — this is generic,
+// defensible public-health guidance scaled to how hot the model actually
+// says a district's season has been.
+function heatAdvisory(category, lang) {
+  const copy = {
+    en: {
+      High: {
+        body: "This district's surface temperatures have run high this season. Drink water regularly even without feeling thirsty, limit direct sun exposure between late morning and late afternoon, and check on elderly neighbours and young children.",
+        safeHours: "Safer hours to be outside: before 8am or after 6pm.",
+      },
+      Medium: {
+        body: "This district's heat risk is moderate. Stay hydrated and take breaks in shade during the hottest part of the day.",
+        safeHours: "Midday sun (roughly 12pm–3pm) is when it's hottest — pace outdoor work accordingly.",
+      },
+      Low: {
+        body: "No unusual heat risk in this district right now — normal precautions are enough.",
+        safeHours: null,
+      },
+    },
+    bn: {
+      High: {
+        body: "এই মৌসুমে এই জেলার ভূপৃষ্ঠের তাপমাত্রা বেশি থেকেছে। তৃষ্ণা না লাগলেও নিয়মিত পানি পান করুন, সকাল শেষ থেকে বিকাল পর্যন্ত সরাসরি রোদ এড়িয়ে চলুন, এবং বয়স্ক প্রতিবেশী ও শিশুদের খোঁজ নিন।",
+        safeHours: "বাইরে থাকার নিরাপদ সময়: সকাল ৮টার আগে অথবা সন্ধ্যা ৬টার পরে।",
+      },
+      Medium: {
+        body: "এই জেলার তাপের ঝুঁকি মাঝারি। পানি পান করতে থাকুন এবং দিনের সবচেয়ে গরম সময়ে ছায়ায় বিরতি নিন।",
+        safeHours: "দুপুর (আনুমানিক ১২টা–৩টা) সবচেয়ে গরম থাকে — সেই অনুযায়ী বাইরের কাজের গতি ঠিক করুন।",
+      },
+      Low: {
+        body: "এই মুহূর্তে এই জেলায় অস্বাভাবিক তাপের ঝুঁকি নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।",
+        safeHours: null,
+      },
+    },
+  };
+  const byLang = copy[lang] || copy.en;
+  return byLang[category] || byLang.Medium;
+}
+
+// A citizen "I saw tree-cutting here" report — genuinely different from
+// the satellite-based deforestation model (which only catches loss large
+// and persistent enough to show up in a 250m MODIS pixel over several
+// years). Posts to /deforestation/citizen-reports; if the backend isn't
+// configured yet (see CITIZEN-REPORTS-SETUP.md) it says so plainly rather
+// than pretending the report was saved.
+function CitizenReportForm({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [description, setDescription] = useState("");
+  const [contact, setContact] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | too_short
+  const [errorDetail, setErrorDetail] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (description.trim().length < 5) {
+      setStatus("too_short");
+      return;
+    }
+    setStatus("sending");
+    setErrorDetail("");
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ district, description: description.trim(), contact: contact.trim() || null }),
+      });
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(body.detail || "");
+        setStatus("error");
+        return;
+      }
+      setStatus("sent");
+      setDescription("");
+      setContact("");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Send} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-slate-200">{t.reportTitle}</h3>
+      </div>
+      <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">{t.reportHint}</p>
+
+      {status === "sent" ? (
+        <p className="text-xs text-teal-300">{t.reportSuccess}</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t.reportDescriptionPlaceholder}
+            rows={2}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/50 resize-none"
+          />
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder={t.reportContactPlaceholder}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/50"
+          />
+          {status === "too_short" && <p className="text-[11px] text-amber-400">{t.reportTooShort}</p>}
+          {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.reportNotConfigured}</p>}
+          {status === "error" && <p className="text-[11px] text-amber-400">{t.reportError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="w-full bg-teal-600/20 hover:bg-teal-600/30 disabled:opacity-60 text-teal-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            {status === "sending" ? t.reportSending : t.reportSubmit}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function CitizenDashboard({ onLogout }) {
-  const { heatGrid } = useHeatData();
+  const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
   const { citizenCards } = useDeforestationData();
   const { severity, summary, loading: floodLoading, error: floodError } = useNationalFloodData();
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
-
-  const treeCard = useMemo(
-    () => (citizenCards || []).find((c) => c.district === "Chittagong") || null,
-    [citizenCards]
-  );
 
   const districtOptions = useMemo(
     () => (severity || []).map((s) => s.district_name).sort((a, b) => a.localeCompare(b)),
@@ -1422,6 +1704,24 @@ function CitizenDashboard({ onLogout }) {
     () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
     [severity, selectedDistrict]
   );
+
+  // Tree cover and heat now both genuinely exist for all 64 districts, so
+  // both follow the area picker instead of one being gated to a single city.
+  const treeCard = useMemo(
+    () => (citizenCards || []).find((c) => c.district === selectedDistrict) || null,
+    [citizenCards, selectedDistrict]
+  );
+
+  const selectedHeat = useMemo(
+    () => (heatDistricts || []).find((d) => d.name === selectedDistrict) || null,
+    [heatDistricts, selectedDistrict]
+  );
+
+  // Heatwave watch is reported at the national level (it's keyed to the
+  // model's own hotspot cluster centroids, not administrative districts —
+  // see heat_export.py) — a short banner naming how many locations
+  // nationally are under watch, not a claim about the citizen's own area.
+  const activeHeatwaveCount = heatAlerts?.alerts?.length || 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -1464,43 +1764,57 @@ function CitizenDashboard({ onLogout }) {
           </div>
         )}
 
-        <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
-            <AlertTriangle size={16} className="text-red-400" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-red-300">{t.heatAlertTitle}</p>
-            <p className="text-xs text-red-400/80 mt-1 leading-relaxed">{t.heatAlertBody}</p>
+        {activeHeatwaveCount > 0 && (
+          <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
+              <AlertTriangle size={16} className="text-red-400" />
+            </span>
+            <p className="text-xs text-red-300 leading-relaxed">
+              {activeHeatwaveCount === 1 ? t.heatwaveWatchOne : `${activeHeatwaveCount} ${t.heatwaveWatchMany}`}
+            </p>
           </div>
-        </div>
+        )}
 
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
-            <span className="text-[11px] text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">Panchlaish</span>
-          </div>
-          <div className="flex justify-center">
-            <HeatGrid grid={heatGrid} compact />
-          </div>
-        </div>
+        {selectedHeat && (
+          <>
+            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
+                <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
+                  {selectedHeat.risk_category} risk
+                </span>
+              </div>
+              {heatGrid ? (
+                <div className="flex justify-center">
+                  <HeatGrid grid={heatGrid} compact />
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 text-center py-4">Loading…</p>
+              )}
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
-            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>38.6°C</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
-          </div>
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <IconBadge icon={Wind} tone="teal" size={14} className="mb-2.5" />
-            <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Moderate</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">{t.airQuality}</div>
-          </div>
-        </div>
+            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+              <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+              <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {selectedHeat.lst_c.toFixed(1)}°C
+              </div>
+              <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
+            </div>
 
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">{t.healthAdvisoryBody}</p>
-        </div>
+            {(() => {
+              const advisory = heatAdvisory(selectedHeat.risk_category, lang);
+              return (
+                <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                  <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">{advisory.body}</p>
+                  {advisory.safeHours && (
+                    <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-slate-800">{advisory.safeHours}</p>
+                  )}
+                </div>
+              );
+            })()}
+          </>
+        )}
 
         {floodLoading || floodError || !selectedFlood ? (
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
@@ -1521,9 +1835,17 @@ function CitizenDashboard({ onLogout }) {
                   </div>
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
                 </div>
-                <p className="text-[11px] text-slate-500 mb-3">
-                  {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
-                  {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                <p className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                    {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                  </span>
+                  {selectedFlood.risk_trend && (
+                    <span className="inline-flex items-center gap-1">
+                      <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                      {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                    </span>
+                  )}
                 </p>
                 <div className="space-y-2 mb-1">
                   {steps.map((s, i) => (
@@ -1543,21 +1865,6 @@ function CitizenDashboard({ onLogout }) {
             );
           })()
         )}
-
-        <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-slate-200 mb-3">{t.coolingCentersTitle}</h3>
-          <div className="space-y-3">
-            {COOLING_CENTERS.map((c) => (
-              <div key={c.name} className="flex items-center gap-3">
-                <IconBadge icon={MapPin} tone="teal" size={13} />
-                <div className="flex-1">
-                  <p className="text-xs text-slate-300">{c.name}</p>
-                  <p className="text-[11px] text-slate-500">{c.distance} away · capacity {c.capacity}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {treeCard && (
           <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
@@ -1583,6 +1890,8 @@ function CitizenDashboard({ onLogout }) {
             </button>
           </div>
         )}
+
+        {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
 
         <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
           {t.footer}
@@ -1863,7 +2172,7 @@ function RoleSelect({ onSelect }) {
             Environmental Risk Monitoring Platform
           </span>
           <h1 className="text-3xl sm:text-4xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Chattogram Climate and Hazard Console
+            Bangladesh Climate and Hazard Console
           </h1>
           <p className="text-sm text-slate-500 mt-3.5 max-w-md mx-auto leading-relaxed">
             Satellite-derived heat, flood, air quality and deforestation monitoring
@@ -1895,7 +2204,7 @@ function RoleSelect({ onSelect }) {
             </span>
             <p className="text-slate-100 font-medium">Citizen dashboard</p>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              Heat and flood alerts, air quality, health advisories and nearby shelters.
+              Flood risk, heat risk and tree cover for your district, plus a national heatwave watch and health advisories.
             </p>
             <span className="text-xs text-teal-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
               Continue <ChevronRight size={13} />
