@@ -1769,15 +1769,22 @@ function CitizenDashboard({ onLogout }) {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            onClick={onLogout}
+            title={t.back}
+            className="shrink-0 text-slate-500 hover:text-slate-300 p-1 -ml-1 rounded-lg hover:bg-slate-900 transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25 shrink-0">
             <Sun size={16} className="text-orange-400" />
           </span>
-          <span className="text-sm font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <span className="text-sm font-semibold text-slate-100 tracking-tight truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {t.appName}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setLang(lang === "en" ? "bn" : "en")}
             className="text-xs text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors border border-slate-800"
