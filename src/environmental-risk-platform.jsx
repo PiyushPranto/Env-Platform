@@ -1256,6 +1256,36 @@ function FloodNationalView({ national }) {
 // core checks.
 // ---------------------------------------------------------------------------
 
+// Client-side CSV export of the worklist rows already fetched — no backend
+// change needed. This is the difference between "a list on screen" and
+// something a field officer can actually take with them (open in a
+// spreadsheet, print, share over WhatsApp) when they're headed out with
+// patchy or no connectivity.
+function downloadWorklistCsv(rows) {
+  const header = ["district", "loss_year", "area_km2", "in_protected", "lat", "lon"];
+  const lines = [header.join(",")];
+  rows.forEach((p) => {
+    const vals = [
+      p.district ?? "",
+      p.loss_year ?? "",
+      p.area_km2 ?? "",
+      p.in_protected ? "yes" : "no",
+      p.lat ?? "",
+      p.lon ?? "",
+    ];
+    lines.push(vals.map((v) => (typeof v === "string" && v.includes(",") ? `"${v}"` : v)).join(","));
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `deforestation_worklist_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports }) {
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
 
@@ -1309,9 +1339,17 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                 >
                   <span className="text-[11px] text-slate-600 w-5 tabular-nums">{i + 1}</span>
                   <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                  <span className="flex-1 text-sm text-slate-300">{d.district}</span>
-                  <span className="text-xs text-slate-500 tabular-nums">{d.forest_pct_now?.toFixed(1)}% cover</span>
-                  <ChevronRight size={13} className={`text-slate-600 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
+                  <span className="flex-1 min-w-0 text-sm text-slate-300 truncate">{d.district}</span>
+                  {d.protected_loss_km2 > 0 && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400 shrink-0"
+                      title="Confirmed loss inside a protected area"
+                    >
+                      {d.protected_loss_km2.toFixed(1)} km² protected
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500 tabular-nums shrink-0">{d.forest_pct_now?.toFixed(1)}% cover</span>
+                  <ChevronRight size={13} className={`text-slate-600 transition-transform shrink-0 ${isSelected ? "translate-x-0.5" : ""}`} />
                 </button>
               );
             })}
@@ -1372,12 +1410,21 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 
       {worklist && worklist.length > 0 && (
         <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
             <div>
               <Eyebrow tone="orange">Field worklist</Eyebrow>
               <h3 className="text-sm font-medium text-slate-200 mt-0.5">Recent loss patches</h3>
             </div>
-            <span className="text-[11px] text-slate-500">showing {Math.min(50, worklist.length)} of {(worklistTotal ?? worklist.length).toLocaleString()}, protected + recent first</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-slate-500">showing {Math.min(50, worklist.length)} of {(worklistTotal ?? worklist.length).toLocaleString()}, protected + recent first</span>
+              <button
+                onClick={() => downloadWorklistCsv(worklist)}
+                className="text-[11px] px-2 py-1 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors shrink-0"
+                title="Download the rows shown below as a CSV file"
+              >
+                Download CSV
+              </button>
+            </div>
           </div>
           <div className="max-h-64 overflow-y-auto">
             <table className="w-full text-xs border-separate border-spacing-0">
@@ -1387,6 +1434,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                   <th className="py-1.5 font-medium border-b border-slate-800">Year</th>
                   <th className="py-1.5 font-medium border-b border-slate-800">Area</th>
                   <th className="py-1.5 font-medium border-b border-slate-800">Protected</th>
+                  <th className="py-1.5 font-medium border-b border-slate-800">Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -1397,6 +1445,21 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                     <td className="py-1.5 px-1 text-slate-400">{p.area_km2?.toFixed(2)} km²</td>
                     <td className="py-1.5 px-1">
                       {p.in_protected ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400">yes</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="py-1.5 px-1">
+                      {p.lat != null && p.lon != null ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-teal-400 hover:text-teal-300 tabular-nums"
+                          title={`${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`}
+                        >
+                          <MapPin size={11} /> Map
+                        </a>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1502,6 +1565,7 @@ const CITIZEN_I18N = {
     reportSubmit: "Submit report",
     reportSending: "Sending…",
     reportSuccess: "Thank you — your report was submitted.",
+    reportReference: "Reference number, if you need to follow up:",
     reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
     reportError: "Couldn't submit your report. Please try again shortly.",
     reportTooShort: "Please add a few more words describing what you saw.",
@@ -1541,6 +1605,7 @@ const CITIZEN_I18N = {
     reportSubmit: "রিপোর্ট জমা দিন",
     reportSending: "পাঠানো হচ্ছে…",
     reportSuccess: "ধন্যবাদ — আপনার রিপোর্ট জমা হয়েছে।",
+    reportReference: "পরে খোঁজ নিতে হলে এই রেফারেন্স নাম্বারটা রাখুন:",
     reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
     reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
     reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
@@ -1643,6 +1708,10 @@ function CitizenReportForm({ district, lang }) {
   const [contact, setContact] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | too_short
   const [errorDetail, setErrorDetail] = useState("");
+  // Real reference number, only shown if the backend actually returns one —
+  // never invented client-side. A citizen who wants to follow up (e.g. by
+  // calling their Union Parishad office) has something concrete to cite.
+  const [reportId, setReportId] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -1668,6 +1737,8 @@ function CitizenReportForm({ district, lang }) {
         setStatus("error");
         return;
       }
+      const body = await res.json().catch(() => ({}));
+      setReportId(body?.id ?? body?.report?.id ?? null);
       setStatus("sent");
       setDescription("");
       setContact("");
@@ -1686,7 +1757,14 @@ function CitizenReportForm({ district, lang }) {
       <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">{t.reportHint}</p>
 
       {status === "sent" ? (
-        <p className="text-xs text-teal-300">{t.reportSuccess}</p>
+        <div>
+          <p className="text-xs text-teal-300">{t.reportSuccess}</p>
+          {reportId != null && (
+            <p className="text-[11px] text-slate-500 mt-1">
+              {t.reportReference} <span className="text-slate-300 tabular-nums">#{reportId}</span>
+            </p>
+          )}
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
           <textarea
