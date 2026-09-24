@@ -1194,20 +1194,24 @@ function FloodNationalView({ national }) {
         <div className="lg:col-span-2 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>Mitigation priority</Eyebrow>
           <h3 className="text-sm font-medium text-slate-200 mt-0.5 mb-1">Top 20 of 64 districts</h3>
-          <p className="text-xs text-slate-500 mb-4">Weighted: 50% predicted risk, 30% historical severity, 20% area exposure</p>
+          <p className="text-xs text-slate-500 mb-1">Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% area exposure</p>
+          <p className="text-[11px] text-slate-600 mb-4">
+            The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A
+            district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.
+          </p>
           <div className="space-y-1">
             {topPriority.map((d) => {
               const sev = severityByDistrict[d.district_id];
               const tier = sev?.severity_tier || "Moderate";
               const c = tierColor(tier);
               return (
-                <div key={d.district_id} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-900/80 transition-colors">
-                  <span className="text-[11px] text-slate-600 w-5 tabular-nums">{d.priority_rank}</span>
-                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                  <span className="flex-1 text-sm text-slate-300">{d.district_name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                <div key={d.district_id} className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-slate-900/80 transition-colors">
+                  <span className="text-[11px] text-slate-600 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
+                  <span className="flex-1 min-w-0 text-sm text-slate-300 truncate">{d.district_name}</span>
+                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tier}</span>
                   <RiskTrendBadge trend={sev?.risk_trend} />
-                  <span className="text-xs text-slate-500 tabular-nums w-16 text-right">risk {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
+                  <span className="shrink-0 text-xs text-slate-500 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">now {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
             })}
@@ -1466,6 +1470,11 @@ const CITIZEN_I18N = {
   en: {
     appName: "Bangladesh Environmental Watch",
     exit: "Exit",
+    back: "Back",
+    hubHint: "Tap a category to see details for your area.",
+    heatModuleLabel: "Heat monitoring",
+    floodModuleLabel: "Flood risk",
+    forestModuleLabel: "Deforestation",
     yourArea: "Your area",
     yourAreaHint: "Flood risk, heat risk and tree cover below update for whichever district you pick.",
     heatwaveWatchOne: "1 location nationally is forecast to see heatwave-level heat in the next 7 days.",
@@ -1500,6 +1509,11 @@ const CITIZEN_I18N = {
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
     exit: "বের হন",
+    back: "ফিরে যান",
+    hubHint: "বিস্তারিত দেখতে যেকোনো একটি বিভাগে ট্যাপ করুন।",
+    heatModuleLabel: "তাপ পর্যবেক্ষণ",
+    floodModuleLabel: "বন্যার ঝুঁকি",
+    forestModuleLabel: "বন উজাড়",
     yourArea: "আপনার এলাকা",
     yourAreaHint: "নিচের বন্যার ঝুঁকি, তাপের ঝুঁকি ও বনভূমি তথ্য আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
     heatwaveWatchOne: "সারাদেশে ১টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
@@ -1711,6 +1725,12 @@ function CitizenDashboard({ onLogout }) {
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
 
+  // Hub-and-detail navigation: the citizen dashboard opens on a hub of three
+  // module cards (Heat / Flood / Deforestation) rather than dumping every
+  // module's cards on one long scroll — tapping a card opens that module's
+  // detail, with a Back button to return to the hub.
+  const [citizenView, setCitizenView] = useState("hub"); // "hub" | "heat" | "flood" | "forest"
+
   const districtOptions = useMemo(
     () => (severity || []).map((s) => s.district_name).sort((a, b) => a.localeCompare(b)),
     [severity]
@@ -1769,152 +1789,224 @@ function CitizenDashboard({ onLogout }) {
       </div>
 
       <div className="max-w-md mx-auto px-4 py-5 space-y-4 animate-fade-in">
-        {districtOptions.length > 0 && (
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <div className="flex items-center justify-between mb-1.5">
-              <h3 className="text-sm font-medium text-slate-200">{t.yourArea}</h3>
-              <select
-                value={selectedDistrict || ""}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="text-xs bg-slate-800/80 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
-              >
-                {districtOptions.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[11px] text-slate-500">{t.yourAreaHint}</p>
-          </div>
-        )}
-
-        {activeHeatwaveCount > 0 && (
-          <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
-              <AlertTriangle size={16} className="text-red-400" />
-            </span>
-            <p className="text-xs text-red-300 leading-relaxed">
-              {activeHeatwaveCount === 1 ? t.heatwaveWatchOne : `${activeHeatwaveCount} ${t.heatwaveWatchMany}`}
-            </p>
-          </div>
-        )}
-
-        {selectedHeat && (
+        {citizenView === "hub" ? (
           <>
-            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
-                <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
-                  {selectedHeat.risk_category} risk
-                </span>
+            {districtOptions.length > 0 && (
+              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-medium text-slate-200">{t.yourArea}</h3>
+                  <select
+                    value={selectedDistrict || ""}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    className="text-xs bg-slate-800/80 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
+                  >
+                    {districtOptions.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[11px] text-slate-500">{t.yourAreaHint}</p>
               </div>
-              {heatGrid ? (
-                <div className="flex justify-center">
-                  <HeatGrid grid={heatGrid} compact />
+            )}
+
+            {activeHeatwaveCount > 0 && (
+              <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
+                  <AlertTriangle size={16} className="text-red-400" />
+                </span>
+                <p className="text-xs text-red-300 leading-relaxed">
+                  {activeHeatwaveCount === 1 ? t.heatwaveWatchOne : `${activeHeatwaveCount} ${t.heatwaveWatchMany}`}
+                </p>
+              </div>
+            )}
+
+            <p className="text-[11px] text-slate-600 -mb-1">{t.hubHint}</p>
+
+            {[
+              {
+                key: "heat",
+                icon: Thermometer,
+                tone: "orange",
+                label: t.heatModuleLabel,
+                tier: selectedHeat?.risk_category || null,
+                sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
+              },
+              {
+                key: "flood",
+                icon: Droplets,
+                tone: "teal",
+                label: t.floodModuleLabel,
+                tier: selectedFlood?.severity_tier || null,
+                sub: selectedFlood
+                  ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
+                  : floodLoading
+                  ? t.loading
+                  : t.floodRiskFallbackNote,
+              },
+              {
+                key: "forest",
+                icon: TreeDeciduous,
+                tone: "teal",
+                label: t.forestModuleLabel,
+                tier: null,
+                sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
+              },
+            ].map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setCitizenView(m.key)}
+                className="w-full flex items-center gap-3 bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+              >
+                <IconBadge icon={m.icon} tone={m.tone} size={16} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-slate-200">{m.label}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">{m.sub}</div>
+                </div>
+                {m.tier && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                    {m.tier}
+                  </span>
+                )}
+                <ChevronRight size={16} className="text-slate-600 shrink-0" />
+              </button>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between -mt-1 mb-1">
+              <button
+                onClick={() => setCitizenView("hub")}
+                className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                <ArrowLeft size={14} /> {t.back}
+              </button>
+              {selectedDistrict && <span className="text-[11px] text-slate-500">{selectedDistrict}</span>}
+            </div>
+
+            {citizenView === "heat" && selectedHeat && (
+              <>
+                <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-slate-200">{t.heatMapTitle}</h3>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
+                      {selectedHeat.risk_category} risk
+                    </span>
+                  </div>
+                  {heatGrid ? (
+                    <div className="flex justify-center">
+                      <HeatGrid grid={heatGrid} compact />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 text-center py-4">Loading…</p>
+                  )}
+                </div>
+
+                <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                  <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+                  <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {selectedHeat.lst_c.toFixed(1)}°C
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
+                </div>
+
+                {(() => {
+                  const advisory = heatAdvisory(selectedHeat.risk_category, lang);
+                  return (
+                    <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">{advisory.body}</p>
+                      {advisory.safeHours && (
+                        <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-slate-800">{advisory.safeHours}</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+
+            {citizenView === "flood" &&
+              (floodLoading || floodError || !selectedFlood ? (
+                <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                  <h3 className="text-sm font-medium text-slate-200 mb-1">{t.floodRiskTitle} {selectedDistrict || ""}</h3>
+                  <p className="text-xs text-slate-500">{floodLoading ? t.loading : t.floodRiskFallbackNote}</p>
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 text-center py-4">Loading…</p>
-              )}
-            </div>
-
-            <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-              <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
-              <div className="text-xl font-semibold text-slate-100 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {selectedHeat.lst_c.toFixed(1)}°C
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">{t.currentTemp}</div>
-            </div>
-
-            {(() => {
-              const advisory = heatAdvisory(selectedHeat.risk_category, lang);
-              return (
-                <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-                  <h3 className="text-sm font-medium text-slate-200 mb-2">{t.healthAdvisoryTitle}</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">{advisory.body}</p>
-                  {advisory.safeHours && (
-                    <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-slate-800">{advisory.safeHours}</p>
-                  )}
-                </div>
-              );
-            })()}
-          </>
-        )}
-
-        {floodLoading || floodError || !selectedFlood ? (
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <h3 className="text-sm font-medium text-slate-200 mb-1">{t.floodRiskTitle} {selectedDistrict || ""}</h3>
-            <p className="text-xs text-slate-500">{floodLoading ? t.loading : t.floodRiskFallbackNote}</p>
-          </div>
-        ) : (
-          (() => {
-            const tier = selectedFlood.severity_tier || "Moderate";
-            const c = tierColor(tier);
-            const steps = floodSafetySteps(tier, lang);
-            return (
-              <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2.5">
-                    <IconBadge icon={Droplets} tone="teal" size={14} />
-                    <h3 className="text-sm font-medium text-slate-200">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
-                  </div>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 flex-wrap">
-                  <span>
-                    {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
-                    {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
-                  </span>
-                  {selectedFlood.risk_trend && (
-                    <span className="inline-flex items-center gap-1">
-                      <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
-                      {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
-                    </span>
-                  )}
-                </p>
-                <div className="space-y-2 mb-1">
-                  {steps.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
-                      <p className="text-xs text-slate-400 leading-relaxed">{s}</p>
+                (() => {
+                  const tier = selectedFlood.severity_tier || "Moderate";
+                  const c = tierColor(tier);
+                  const steps = floodSafetySteps(tier, lang);
+                  return (
+                    <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2.5">
+                          <IconBadge icon={Droplets} tone="teal" size={14} />
+                          <h3 className="text-sm font-medium text-slate-200">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
+                        </div>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 flex-wrap">
+                        <span>
+                          {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                          {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                        </span>
+                        {selectedFlood.risk_trend && (
+                          <span className="inline-flex items-center gap-1">
+                            <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                            {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                          </span>
+                        )}
+                      </p>
+                      <div className="space-y-2 mb-1">
+                        {steps.map((s, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
+                            <p className="text-xs text-slate-400 leading-relaxed">{s}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
+                        <div className="mt-3 pt-3 border-t border-slate-800 space-y-1">
+                          <p className="text-[11px] text-slate-500">{t.emergencyLine}</p>
+                          <p className="text-[11px] text-slate-500">{t.emergencyLine2}</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-                {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
-                  <div className="mt-3 pt-3 border-t border-slate-800 space-y-1">
-                    <p className="text-[11px] text-slate-500">{t.emergencyLine}</p>
-                    <p className="text-[11px] text-slate-500">{t.emergencyLine2}</p>
+                  );
+                })()
+              ))}
+
+            {citizenView === "forest" && (
+              <>
+                {treeCard && (
+                  <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
+                        <h3 className="text-sm font-medium text-slate-200">{t.treeCoverTitle} {treeCard.district}</h3>
+                      </div>
+                      <span className="text-lg font-semibold text-slate-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {treeCard.forest_pct}%
+                      </span>
+                    </div>
+                    <div style={{ width: "100%", height: 56 }}>
+                      <ResponsiveContainer>
+                        <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
+                          <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed mt-2">{treeCard.message}</p>
+                    <button className="w-full mt-3 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 text-xs font-medium py-2 rounded-lg transition-colors">
+                      {treeCard.call_to_action}
+                    </button>
                   </div>
                 )}
-              </div>
-            );
-          })()
-        )}
 
-        {treeCard && (
-          <div className="bg-gradient-to-b from-slate-900/70 to-slate-900/30 border border-slate-800 rounded-2xl p-4 shadow-sm shadow-black/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
-                <h3 className="text-sm font-medium text-slate-200">{t.treeCoverTitle} {treeCard.district}</h3>
-              </div>
-              <span className="text-lg font-semibold text-slate-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {treeCard.forest_pct}%
-              </span>
-            </div>
-            <div style={{ width: "100%", height: 56 }}>
-              <ResponsiveContainer>
-                <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
-                  <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed mt-2">{treeCard.message}</p>
-            <button className="w-full mt-3 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 text-xs font-medium py-2 rounded-lg transition-colors">
-              {treeCard.call_to_action}
-            </button>
-          </div>
+                {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
+              </>
+            )}
+          </>
         )}
-
-        {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
 
         <p className="text-[11px] text-slate-600 text-center pt-1 pb-2">
           {t.footer}
