@@ -749,6 +749,13 @@ const GOVT_I18N = {
     rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% area exposure",
     badgeVsPercent: "The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.",
     moreDistricts: (n) => `+${n} more districts, ranked, in the full export.`,
+    scoreDeltaTooltip: (prev, curr) =>
+      `Raw model score: ${prev} → ${curr} since the last automated refresh — the exact number the % on the right is rounded from.`,
+    scoreDeltaLegend: "Δ = exact change in the raw model score since the last real refresh, to 4 decimals — so it's visible even when the rounded % looks the same.",
+    avgMovementTitle: "Proof this is live, not frozen",
+    avgMovementBody: (avg, min, max, n) =>
+      `Average change in raw predicted risk since the last automated refresh, across all ${n} districts: ${avg}. Smallest movement: ${min}. Largest: ${max}. These are real numbers from the last scheduled run — not visible in the rounded percentages above, but recomputed from live rainfall every time the pipeline runs.`,
+    noDeltaYet: "First refresh recorded — nothing to compare against yet.",
     fieldNoticeFlood: "Trained on real flood-event records for the years shown. A district-day is genuinely a flood only about 3–5% of the time, so the model is deliberately tuned to catch more real floods even at the cost of some false alarms — the right tradeoff for early warning.",
     forDefensePanel: "For the defense panel",
     modelProvenance: "Model provenance",
@@ -877,6 +884,13 @@ const GOVT_I18N = {
     rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% এলাকার সংস্পর্শ",
     badgeVsPercent: "ব্যাজটি ঐতিহাসিক তীব্রতা (অতীতের বন্যার মাত্রা) দেখায় — % হলো এই সপ্তাহের লাইভ পূর্বাভাসিত ঝুঁকি। একটি জেলার ইতিহাসে মারাত্মক বন্যা থাকতে পারে কিন্তু এই সপ্তাহ শান্ত, অথবা উল্টোটাও হতে পারে — তাই দুটো ভিন্ন হতে পারে।",
     moreDistricts: (n) => `সম্পূর্ণ এক্সপোর্টে আরও ${n} টি জেলা, ক্রমানুসারে।`,
+    scoreDeltaTooltip: (prev, curr) =>
+      `আসল মডেল স্কোর: ${prev} → ${curr}, সর্বশেষ স্বয়ংক্রিয় refresh থেকে — ডানপাশের %-টি এই সংখ্যা থেকেই round করা।`,
+    scoreDeltaLegend: "Δ = সর্বশেষ real refresh-এর পর আসল মডেল স্কোরের সঠিক পরিবর্তন, ৪ decimal পর্যন্ত — round করা % একই দেখালেও এটা দেখা যায়।",
+    avgMovementTitle: "এটা সত্যিই live, frozen না — তার প্রমাণ",
+    avgMovementBody: (avg, min, max, n) =>
+      `সর্বশেষ স্বয়ংক্রিয় refresh-এর পর আসল predicted risk-এর গড় পরিবর্তন, সবগুলো ${n} জেলা মিলিয়ে: ${avg}। সবচেয়ে কম পরিবর্তন: ${min}। সবচেয়ে বেশি: ${max}। এগুলো সর্বশেষ scheduled run-এর প্রকৃত সংখ্যা — উপরের round করা percentage-এ বোঝা না গেলেও, pipeline প্রতিবার run হওয়ার সময় live বৃষ্টিপাতের তথ্য থেকে এই পরিবর্তন সত্যিই recompute হচ্ছে।`,
+    noDeltaYet: "প্রথম refresh রেকর্ড হয়েছে — তুলনা করার মতো আগের কিছু এখনো নেই।",
     fieldNoticeFlood: "প্রদর্শিত বছরগুলোর প্রকৃত বন্যার ঘটনার তথ্য দিয়ে প্রশিক্ষিত। একটি জেলা-দিন প্রকৃতপক্ষে বন্যা হয় মাত্র ৩–৫% সময়ে, তাই মডেলটি ইচ্ছাকৃতভাবে বেশি প্রকৃত বন্যা ধরার জন্য তৈরি, এমনকি কিছু ভুল সতর্কতার বিনিময়েও — আগাম সতর্কতার জন্য এটাই সঠিক পন্থা।",
     forDefensePanel: "থিসিস ডিফেন্স প্যানেলের জন্য",
     modelProvenance: "মডেলের বিস্তারিত তথ্য",
@@ -1459,7 +1473,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
                 >
                   <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
                   <span className={`w-1.5 h-1.5 rounded-full ${a.category === "High" ? "bg-red-500" : a.category === "Medium" ? "bg-amber-500" : "bg-emerald-500"}`} />
-                  <span className="flex-1 text-xs text-stone-200 truncate">{a.area}</span>
+                  <span className="flex-1 min-w-0 text-xs text-stone-200 truncate" title={a.name ? a.area : undefined}>{a.name || a.area}</span>
                   <span className="text-xs text-stone-400 tabular-nums">{(a.risk * 100).toFixed(0)}%</span>
                 </button>
               );
@@ -1471,11 +1485,14 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
       {selectedArea && (
         <div className="rounded-2xl p-4 border bg-stone-800/40 border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20">
           <IconBadge icon={MapPin} tone={selectedArea.category === "High" ? "red" : "amber"} />
-          <div className="flex-1">
-            <span className="text-sm text-stone-100 font-medium">{selectedArea.area}</span>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-stone-100 font-medium">{selectedArea.name || selectedArea.area}</span>
             <span className="text-xs text-stone-400 ml-2">
               {(selectedArea.risk * 100).toFixed(0)}% · {tierLabel(selectedArea.category, lang)} · {selectedArea.elevation}m · {selectedArea.riverDist}m
             </span>
+            {selectedArea.name && (
+              <div className="text-[11px] text-stone-500 mt-0.5">{selectedArea.area}</div>
+            )}
           </div>
           <button onClick={() => setSelectedArea(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
             <X size={15} />
@@ -1523,6 +1540,21 @@ function FloodNationalView({ national, lang }) {
     return m;
   }, [severity]);
 
+  // Real, un-rounded evidence that the pipeline recomputes every run, even
+  // on days the rounded percentages above don't visibly move: every
+  // district's current avg_predicted_risk against the previous_avg_predicted_risk
+  // the automation script itself recorded (scripts/models/flood_export.py),
+  // before it overwrote that file on the last run. Never invented — a
+  // district with no previous value yet (first-ever run) is simply excluded.
+  const movementStats = useMemo(() => {
+    const deltas = (severity || [])
+      .filter((s) => typeof s.previous_avg_predicted_risk === "number" && typeof s.avg_predicted_risk === "number")
+      .map((s) => Math.abs(s.avg_predicted_risk - s.previous_avg_predicted_risk));
+    if (deltas.length === 0) return null;
+    const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    return { avg, min: Math.min(...deltas), max: Math.max(...deltas), n: deltas.length };
+  }, [severity]);
+
   if (loading || error || !summary) {
     return <DataStateNotice loading={loading} error={error} label="nationwide flood data" />;
   }
@@ -1566,12 +1598,16 @@ function FloodNationalView({ national, lang }) {
           <Eyebrow>{gt.mitigationPriority}</Eyebrow>
           <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">{gt.top20of64}</h3>
           <p className="text-xs text-stone-400 mb-1">{gt.rankedByScore}</p>
-          <p className="text-[11px] text-stone-500 mb-4">{gt.badgeVsPercent}</p>
+          <p className="text-[11px] text-stone-500 mb-1">{gt.badgeVsPercent}</p>
+          <p className="text-[11px] text-stone-500 mb-4">{gt.scoreDeltaLegend}</p>
           <div className="space-y-1">
             {topPriority.map((d) => {
               const sev = severityByDistrict[d.district_id];
               const tier = sev?.severity_tier || "Moderate";
               const c = tierColor(tier);
+              const prevRisk = sev?.previous_avg_predicted_risk;
+              const hasDelta = typeof prevRisk === "number";
+              const delta = hasDelta ? d.avg_predicted_risk - prevRisk : null;
               return (
                 <div key={d.district_id} className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-stone-800/80 transition-colors">
                   <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
@@ -1579,6 +1615,16 @@ function FloodNationalView({ national, lang }) {
                   <span className="flex-1 min-w-0 text-sm text-stone-200 truncate">{d.district_name}</span>
                   <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
                   <RiskTrendBadge trend={sev?.risk_trend} />
+                  {hasDelta ? (
+                    <span
+                      className={`shrink-0 text-[10px] tabular-nums w-16 text-right ${delta > 0 ? "text-amber-400" : delta < 0 ? "text-emerald-400" : "text-stone-500"}`}
+                      title={gt.scoreDeltaTooltip(prevRisk.toFixed(4), d.avg_predicted_risk.toFixed(4))}
+                    >
+                      Δ{delta >= 0 ? "+" : ""}{delta.toFixed(4)}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] text-stone-600 w-16 text-right" title={gt.noDeltaYet}>—</span>
+                  )}
                   <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">{(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
@@ -1606,6 +1652,19 @@ function FloodNationalView({ national, lang }) {
               <span className="text-stone-200">Exposure proxy:</span> district area (population data wasn't in the
               original export — a disclosed limitation, not a hidden one)
             </div>
+            {movementStats && (
+              <div className="pt-2 border-t border-stone-700">
+                <div className="text-stone-200 mb-1">{gt.avgMovementTitle}</div>
+                <div className="text-stone-400">
+                  {gt.avgMovementBody(
+                    movementStats.avg.toFixed(4),
+                    movementStats.min.toFixed(4),
+                    movementStats.max.toFixed(4),
+                    movementStats.n
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
