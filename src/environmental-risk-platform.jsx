@@ -6,7 +6,7 @@ import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Radar, Building2, Sprout, ArrowLeft,
-  UserPlus, ShieldAlert, Info, Send, Volume2, Languages,
+  UserPlus, ShieldAlert, Info, Send, Volume2, Languages, Share2, Phone, Type,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -164,25 +164,138 @@ function SpeakButton({ text, lang, label }) {
   );
 }
 
+// One-tap "warn someone else" — the actual point of an early-warning system
+// isn't just showing a number, it's getting that number to the people who
+// need it. navigator.share() opens the phone's own share sheet (WhatsApp,
+// SMS, Messenger — whatever the person already uses) on the mobile browsers
+// most citizens here will actually be using; wa.me is a plain, no-API-key
+// WhatsApp deep link used as the fallback on desktop browsers that don't
+// support the Web Share API. Never fails loudly — if both are unavailable
+// this quietly does nothing rather than showing a broken button.
+function shareRiskText(text) {
+  if (!text) return;
+  if (typeof navigator !== "undefined" && navigator.share) {
+    navigator.share({ text }).catch(() => {});
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  }
+}
+
+function ShareButton({ text, label }) {
+  if (!text) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => shareRiskText(text)}
+      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+    >
+      <Share2 size={13} /> {label}
+    </button>
+  );
+}
+
+// Save-for-offline — during an actual flood or heatwave, mobile signal is
+// exactly what tends to drop. A plain downloaded .txt file (no library,
+// works even with zero connectivity the moment after it's saved) lets
+// someone keep the safety steps and helpline numbers on their phone's
+// storage rather than needing to reload this page later.
+function downloadTextFile(filename, content) {
+  if (typeof window === "undefined" || !content) return;
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function SaveCardButton({ content, filename, label }) {
+  if (!content) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => downloadTextFile(filename, content)}
+      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+    >
+      <Download size={13} /> {label}
+    </button>
+  );
+}
+
+// Real, published national helplines (verified against the U.S. Embassy
+// Dhaka emergency-assistance page and Bangladesh government helpline
+// listings — not invented): 999 is the toll-free combined police/fire/
+// ambulance line reachable from any phone; 1098 and 109 are the standing
+// child and women's-affairs helplines; 333 is the general government
+// information/assistance line; 16123 is the Agriculture Information
+// Service, relevant when flood or heat has damaged crops or livestock.
+// tel: links dial directly on a phone browser — no app, no data needed.
+const EMERGENCY_HELPLINES = [
+  { number: "999", labelKey: "emergencyNational" },
+  { number: "1098", labelKey: "emergencyChild" },
+  { number: "109", labelKey: "emergencyWomenChild" },
+  { number: "333", labelKey: "emergencyGovtInfo" },
+  { number: "16123", labelKey: "emergencyAgri" },
+];
+
+function EmergencyHelplineCard({ t }) {
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2 mb-1">
+        <IconBadge icon={Phone} tone="red" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.emergencyHelplinesTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-3">{t.emergencyHint}</p>
+      <div className="space-y-1.5">
+        {EMERGENCY_HELPLINES.map((h) => (
+          <a
+            key={h.number}
+            href={`tel:${h.number}`}
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-800/80 active:scale-[0.99] transition-all"
+          >
+            <span className="shrink-0 text-sm font-semibold text-stone-100 tabular-nums w-14">{h.number}</span>
+            <span className="flex-1 min-w-0 text-xs text-stone-400 leading-snug">{t[h.labelKey]}</span>
+            <Phone size={13} className="text-emerald-400 shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // A big icon + color "status at a glance" block for the top of each citizen
 // detail page — the color is the primary signal (red/amber/green, same
 // scale everywhere in the app), the icon says which module it is, and the
 // tier word and a Listen button are secondary support for whoever wants
 // them. Everything below this block (maps, charts, exact numbers) is
 // unchanged — this is a plain-language summary placed in front of it.
-function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel }) {
+function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel, shareLabel, saveLabel, saveFilename }) {
   const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(tier)] || "slate";
   const bg = tier ? tierColor(tier).bg : "bg-stone-800/40";
+  const hasActions = speak || shareLabel || saveLabel;
   return (
-    <div className={`rounded-2xl p-4 border border-stone-700 flex items-center gap-3.5 shadow-sm shadow-black/20 ${bg}`}>
-      <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
-        <Icon size={26} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="text-base font-semibold text-stone-50 truncate">{title}</div>
-        {sub && <div className="text-xs text-stone-300 mt-0.5 truncate">{sub}</div>}
+    <div className={`rounded-2xl p-4 border border-stone-700 shadow-sm shadow-black/20 ${bg}`}>
+      <div className="flex items-center gap-3.5">
+        <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+          <Icon size={26} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-semibold text-stone-50 truncate">{title}</div>
+          {sub && <div className="text-xs text-stone-300 mt-0.5 truncate">{sub}</div>}
+        </div>
+        {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} />}
       </div>
-      {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} />}
+      {hasActions && (shareLabel || saveLabel) && (
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-700/60 flex-wrap">
+          {shareLabel && <ShareButton text={speak} label={shareLabel} />}
+          {saveLabel && <SaveCardButton content={speak} filename={saveFilename || "safety-info.txt"} label={saveLabel} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -2021,6 +2134,17 @@ const CITIZEN_I18N = {
     legendCaution: "Caution",
     legendHigh: "High risk",
     listen: "Listen",
+    share: "Share",
+    saveCard: "Save",
+    emergencyHelplinesTitle: "Emergency helplines",
+    emergencyHint: "Tap any number to call directly — works even without a data connection.",
+    emergencyNational: "National emergency — police, fire, flood rescue, ambulance (24/7, free)",
+    emergencyChild: "Child helpline — for a child in danger or distress",
+    emergencyWomenChild: "Women & children affairs — abuse or safety concerns",
+    emergencyGovtInfo: "Government information & assistance",
+    emergencyAgri: "Agriculture helpline — crop or livestock damage advice",
+    largeTextOn: "Larger text",
+    largeTextOff: "Normal text",
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -2065,6 +2189,17 @@ const CITIZEN_I18N = {
     legendCaution: "সতর্কতা",
     legendHigh: "উচ্চ ঝুঁকি",
     listen: "শুনুন",
+    share: "শেয়ার করুন",
+    saveCard: "সংরক্ষণ করুন",
+    emergencyHelplinesTitle: "জরুরি হেল্পলাইন",
+    emergencyHint: "সরাসরি কল করতে যেকোনো নম্বরে ট্যাপ করুন — ইন্টারনেট ছাড়াও কাজ করে।",
+    emergencyNational: "জাতীয় জরুরি সেবা — পুলিশ, ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স (২৪/৭, বিনামূল্যে)",
+    emergencyChild: "শিশু সহায়তা হেল্পলাইন — বিপদে বা কষ্টে থাকা শিশুর জন্য",
+    emergencyWomenChild: "নারী ও শিশু বিষয়ক — নির্যাতন বা নিরাপত্তা সংক্রান্ত উদ্বেগ",
+    emergencyGovtInfo: "সরকারি তথ্য ও সহায়তা",
+    emergencyAgri: "কৃষি হেল্পলাইন — ফসল বা গবাদি পশুর ক্ষতি সংক্রান্ত পরামর্শ",
+    largeTextOn: "বড় লেখা",
+    largeTextOff: "স্বাভাবিক লেখা",
   },
 };
 
@@ -2259,6 +2394,35 @@ function CitizenDashboard({ onLogout }) {
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
 
+  // Larger-text mode for elderly or low-vision users — the same "even a
+  // brand-new, non-technical or vision-impaired person should understand
+  // this instantly" goal the supervisor raised, extended to font size.
+  // Scaling the document root's font-size (rather than one wrapper's) is
+  // what actually grows Tailwind's rem-based text/spacing utilities
+  // consistently across the whole page, including tap-target sizes — not
+  // just the words. Reset on unmount so leaving citizen view never leaves
+  // the rest of the app scaled.
+  const [largeText, setLargeText] = useState(() => {
+    try {
+      return localStorage.getItem("citizen_large_text") === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.style.fontSize = largeText ? "118%" : "";
+    try {
+      localStorage.setItem("citizen_large_text", largeText ? "1" : "0");
+    } catch {
+      // Private browsing / blocked storage — the toggle still works for
+      // this visit, it just won't be remembered next time.
+    }
+    return () => {
+      document.documentElement.style.fontSize = "";
+    };
+  }, [largeText]);
+
   // Hub-and-detail navigation: the citizen dashboard opens on a hub of three
   // module cards (Heat / Flood / Deforestation) rather than dumping every
   // module's cards on one long scroll — tapping a card opens that module's
@@ -2328,6 +2492,17 @@ function CitizenDashboard({ onLogout }) {
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setLargeText((v) => !v)}
+            title={largeText ? t.largeTextOff : t.largeTextOn}
+            className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors border ${
+              largeText
+                ? "text-emerald-300 border-emerald-700/60 bg-emerald-900/20"
+                : "text-stone-400 hover:text-stone-200 border-stone-700 hover:bg-stone-800"
+            }`}
+          >
+            <Type size={13} />
+          </button>
           <button
             onClick={() => setLang(lang === "en" ? "bn" : "en")}
             className="text-xs text-stone-400 hover:text-stone-200 px-2.5 py-1 rounded-lg hover:bg-stone-800 transition-colors border border-stone-700"
@@ -2441,6 +2616,8 @@ function CitizenDashboard({ onLogout }) {
                 </button>
               );
             })}
+
+            <EmergencyHelplineCard t={t} />
           </>
         ) : (
           <>
@@ -2467,6 +2644,9 @@ function CitizenDashboard({ onLogout }) {
                     lang={lang}
                     speak={heroSpeak}
                     listenLabel={t.listen}
+                    shareLabel={t.share}
+                    saveLabel={t.saveCard}
+                    saveFilename={`heat-risk-${selectedDistrict || "area"}.txt`}
                   />
 
                   <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
@@ -2500,6 +2680,8 @@ function CitizenDashboard({ onLogout }) {
                       <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
                     )}
                   </div>
+
+                  {selectedHeat.risk_category === "High" && <EmergencyHelplineCard t={t} />}
                 </>
               );
             })()}
@@ -2526,6 +2708,9 @@ function CitizenDashboard({ onLogout }) {
                         lang={lang}
                         speak={heroSpeak}
                         listenLabel={t.listen}
+                        shareLabel={t.share}
+                        saveLabel={t.saveCard}
+                        saveFilename={`flood-risk-${selectedFlood.district_name}.txt`}
                       />
                       <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
                         <div className="flex items-center justify-between mb-1">
@@ -2556,12 +2741,10 @@ function CitizenDashboard({ onLogout }) {
                           ))}
                         </div>
                         {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
-                          <div className="mt-3 pt-3 border-t border-stone-700 space-y-1">
-                            <p className="text-[11px] text-stone-400">{t.emergencyLine}</p>
-                            <p className="text-[11px] text-stone-400">{t.emergencyLine2}</p>
-                          </div>
+                          <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-700">{t.emergencyLine2}</p>
                         )}
                       </div>
+                      {(tier === "Severe" || tier === "High" || tier === "Moderate") && <EmergencyHelplineCard t={t} />}
                     </>
                   );
                 })()
@@ -2578,6 +2761,9 @@ function CitizenDashboard({ onLogout }) {
                     lang={lang}
                     speak={`${treeCard.district}: ${treeCard.forest_pct}%. ${treeCard.message || ""}`}
                     listenLabel={t.listen}
+                    shareLabel={t.share}
+                    saveLabel={t.saveCard}
+                    saveFilename={`forest-cover-${treeCard.district}.txt`}
                   />
                 )}
                 {treeCard && (
