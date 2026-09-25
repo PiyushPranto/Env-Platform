@@ -7,6 +7,7 @@ import {
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Radar, Building2, Sprout, ArrowLeft,
   UserPlus, ShieldAlert, Info, Send, Volume2, Languages, Share2, Phone, Type,
+  CloudRain, Sun, Cloud,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -296,6 +297,182 @@ function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel, shar
           {saveLabel && <SaveCardButton content={speak} filename={saveFilename || "safety-info.txt"} label={saveLabel} />}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Live, per-district 7-day weather forecast — fetched directly from
+// Open-Meteo's free, keyless forecast API in the browser, for the exact
+// district centroid the citizen has selected. This is deliberately separate
+// from the trained models: heat_risk.json and the flood classifier score a
+// FROZEN satellite/historical composite, refreshed only every 3 days by the
+// backend automation, at district-average resolution. This is today's
+// actual short-range weather forecast for one real point on the map, live
+// every time the page loads — genuinely new information the models don't
+// carry, not a restatement of them. Centroid coordinates are the same real
+// per-district values scripts/models/data/flood_districts_static.csv
+// already uses to run the flood model itself, not invented for this.
+// ---------------------------------------------------------------------------
+
+const DISTRICT_CENTROIDS = {
+  "Barisal": [22.8199, 90.3685],
+  "Bhola": [22.437, 90.7319],
+  "Jhalokati": [22.5736, 90.1841],
+  "Patuakhali": [22.2124, 90.3995],
+  "Pirojpur": [22.5344, 89.9936],
+  "Bandarban": [21.8042, 92.3638],
+  "Brahamanbaria": [23.953, 91.0826],
+  "Chandpur": [23.2622, 90.7509],
+  "Chittagong": [22.4368, 91.8469],
+  "Comilla": [23.4371, 91.032],
+  "Cox's Bazar": [21.486, 92.0679],
+  "Feni": [23.0012, 91.4095],
+  "Khagrachhari": [23.1634, 91.9523],
+  "Lakshmipur": [22.8566, 90.8589],
+  "Noakhali": [22.7264, 91.1239],
+  "Rangamati": [22.8263, 92.2789],
+  "Dhaka": [23.7879, 90.2516],
+  "Faridpur": [23.4774, 89.8369],
+  "Gazipur": [24.1059, 90.4432],
+  "Gopalganj": [23.1043, 89.8989],
+  "Jamalpur": [24.9724, 89.8468],
+  "Kishoreganj": [24.3768, 90.9428],
+  "Madaripur": [23.2207, 90.1627],
+  "Manikganj": [23.8416, 89.9504],
+  "Munshiganj": [23.5265, 90.4188],
+  "Mymensingh": [24.6978, 90.428],
+  "Narayanganj": [23.7401, 90.5746],
+  "Narsingdi": [24.0037, 90.7746],
+  "Netrakona": [24.8683, 90.8445],
+  "Rajbari": [23.7284, 89.563],
+  "Shariatpur": [23.2436, 90.4166],
+  "Sherpur": [25.081, 90.0739],
+  "Tangail": [24.3561, 89.9987],
+  "Bagerhat": [22.3744, 89.739],
+  "Chuadanga": [23.6079, 88.8482],
+  "Jessore": [23.09, 89.1784],
+  "Jhenaidah": [23.4899, 89.0889],
+  "Khulna": [22.4701, 89.4461],
+  "Kushtia": [23.9258, 89.0156],
+  "Magura": [23.443, 89.4343],
+  "Meherpur": [23.7939, 88.7132],
+  "Narail": [23.1306, 89.579],
+  "Satkhira": [22.3786, 89.139],
+  "Habiganj": [24.368, 91.4297],
+  "Maulvibazar": [24.4727, 91.8965],
+  "Sunamganj": [24.9375, 91.3449],
+  "Sylhet": [24.9175, 91.9933],
+  "Bogra": [24.8246, 89.3791],
+  "Joypurhat": [25.0937, 89.0822],
+  "Naogaon": [24.9021, 88.7505],
+  "Natore": [24.3808, 89.0864],
+  "Nawabganj": [24.7229, 88.2687],
+  "Pabna": [24.0533, 89.3842],
+  "Rajshahi": [24.4676, 88.6545],
+  "Sirajganj": [24.392, 89.5999],
+  "Dinajpur": [25.6313, 88.7859],
+  "Gaibandha": [25.2997, 89.5068],
+  "Kurigram": [25.794, 89.6921],
+  "Lalmonirhat": [26.0622, 89.2391],
+  "Nilphamari": [26.0211, 88.9367],
+  "Panchagarh": [26.2858, 88.5761],
+  "Rangpur": [25.6437, 89.2392],
+  "Thakurgaon": [25.9901, 88.3454],
+  "Barguna": [22.143, 90.1191],
+};
+
+const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+
+function useLocalForecast(lat, lon) {
+  const [days, setDays] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (lat == null || lon == null) {
+      setDays(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          latitude: lat,
+          longitude: lon,
+          daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+          timezone: "Asia/Dhaka",
+          forecast_days: "7",
+        });
+        const res = await fetch(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+        if (!res.ok) throw new Error("Open-Meteo forecast request failed");
+        const data = await res.json();
+        const d = data.daily || {};
+        const rows = (d.time || []).map((date, i) => ({
+          date,
+          tmax: d.temperature_2m_max?.[i] ?? null,
+          tmin: d.temperature_2m_min?.[i] ?? null,
+          rain: d.precipitation_sum?.[i] ?? null,
+          code: d.weathercode?.[i] ?? null,
+        }));
+        if (!cancelled) setDays(rows);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Couldn't load the forecast");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [lat, lon]);
+
+  return { days, loading, error };
+}
+
+// WMO weather codes (the same scheme Open-Meteo returns) collapsed to 3
+// icons — precise enough for "will it rain" at a glance without a full
+// icon set.
+function forecastIcon(code, rainMm) {
+  if ((rainMm || 0) >= 1 || (code >= 51 && code <= 99)) return CloudRain;
+  if (code >= 1 && code <= 3) return Cloud;
+  return Sun;
+}
+
+function LiveForecastStrip({ forecast, lang, title, hint }) {
+  const { days, loading, error } = forecast;
+  if (loading) return null;
+  if (error || !days || days.length === 0) return null;
+  const dayName = (dateStr, idx) => {
+    if (idx === 0) return lang === "bn" ? "আজ" : "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { weekday: "short" });
+  };
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={CloudRain} tone="teal" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{title}</h3>
+      </div>
+      {hint && <p className="text-[11px] text-stone-500 mb-3">{hint}</p>}
+      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
+        {days.map((d, i) => {
+          const Icon = forecastIcon(d.code, d.rain);
+          return (
+            <div key={d.date} className="flex flex-col items-center gap-1 shrink-0 w-[13%] min-w-[46px] py-2 rounded-xl bg-stone-800/60">
+              <span className="text-[10px] text-stone-400">{dayName(d.date, i)}</span>
+              <Icon size={16} className={Icon === CloudRain ? "text-teal-400" : Icon === Cloud ? "text-stone-400" : "text-amber-400"} />
+              <span className="text-[11px] text-stone-100 font-medium tabular-nums">{d.tmax != null ? Math.round(d.tmax) : "—"}°</span>
+              <span className="text-[9px] text-stone-500 tabular-nums">{d.tmin != null ? Math.round(d.tmin) : "—"}°</span>
+              {d.rain != null && d.rain >= 1 && (
+                <span className="text-[9px] text-teal-400 tabular-nums">{Math.round(d.rain)}mm</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2145,6 +2322,9 @@ const CITIZEN_I18N = {
     emergencyAgri: "Agriculture helpline — crop or livestock damage advice",
     largeTextOn: "Larger text",
     largeTextOff: "Normal text",
+    forecastTitle: "Live 7-day weather — your area",
+    forecastHint: "Real forecast for your district's location, fetched live from Open-Meteo — separate from the risk score above, which comes from the trained model.",
+    trendDetail: (prevPct, currPct) => `Was ${prevPct}% at the last check, now ${currPct}%.`,
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -2200,6 +2380,9 @@ const CITIZEN_I18N = {
     emergencyAgri: "কৃষি হেল্পলাইন — ফসল বা গবাদি পশুর ক্ষতি সংক্রান্ত পরামর্শ",
     largeTextOn: "বড় লেখা",
     largeTextOff: "স্বাভাবিক লেখা",
+    forecastTitle: "লাইভ ৭ দিনের আবহাওয়া — আপনার এলাকা",
+    forecastHint: "আপনার জেলার অবস্থানের জন্য Open-Meteo থেকে সরাসরি নেওয়া real পূর্বাভাস — উপরের ঝুঁকির স্কোর থেকে আলাদা, যেটা trained model থেকে আসে।",
+    trendDetail: (prevPct, currPct) => `সর্বশেষ চেক-এ ছিল ${prevPct}%, এখন ${currPct}%।`,
   },
 };
 
@@ -2473,6 +2656,14 @@ function CitizenDashboard({ onLogout }) {
   // nationally are under watch, not a claim about the citizen's own area.
   const activeHeatwaveCount = heatAlerts?.alerts?.length || 0;
 
+  // Live 7-day forecast for exactly the selected district's real centroid —
+  // fetched straight from Open-Meteo, independent of the 3-day model
+  // refresh cycle. See the DISTRICT_CENTROIDS/useLocalForecast comment
+  // above for why this is a deliberately separate, complementary signal
+  // rather than a restatement of the trained models.
+  const centroid = DISTRICT_CENTROIDS[selectedDistrict];
+  const localForecast = useLocalForecast(centroid?.[0], centroid?.[1]);
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-100">
       <div className="sticky top-0 z-10 border-b border-stone-700/80 bg-stone-900/80 backdrop-blur-md px-5 py-4 flex items-center justify-between">
@@ -2681,6 +2872,8 @@ function CitizenDashboard({ onLogout }) {
                     )}
                   </div>
 
+                  <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+
                   {selectedHeat.risk_category === "High" && <EmergencyHelplineCard t={t} />}
                 </>
               );
@@ -2732,6 +2925,14 @@ function CitizenDashboard({ onLogout }) {
                             </span>
                           )}
                         </p>
+                        {typeof selectedFlood.previous_avg_predicted_risk === "number" && (
+                          <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                            {t.trendDetail(
+                              (selectedFlood.previous_avg_predicted_risk * 100).toFixed(0),
+                              (selectedFlood.avg_predicted_risk * 100).toFixed(0)
+                            )}
+                          </p>
+                        )}
                         <div className="space-y-2 mb-1">
                           {steps.map((s, i) => (
                             <div key={i} className="flex items-start gap-2">
@@ -2744,6 +2945,9 @@ function CitizenDashboard({ onLogout }) {
                           <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-700">{t.emergencyLine2}</p>
                         )}
                       </div>
+
+                      <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+
                       {(tier === "Severe" || tier === "High" || tier === "Moderate") && <EmergencyHelplineCard t={t} />}
                     </>
                   );
