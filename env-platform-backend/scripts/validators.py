@@ -117,6 +117,9 @@ def _check_geojson(data: Any, filename: str) -> None:
         raise ValidationError(f"{filename} has zero features — refusing to treat an empty layer as valid")
 
 
+def _check_deforestation_ndvi_summary(data: Any) -> None:
+    if not isinstance(data, dict) or len(data) == 0:
+        raise ValidationError("deforestation_ndvi_summary.json must be a non-empty object")
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +155,33 @@ def _check_flood_national_summary(data: Any) -> None:
         raise ValidationError("flood_national_summary.json must be an object")
     _require(data, "districts", "rows_total", "date_range", "train_years", "test_years",
               "observed_years", "proxy_years", "top5_priority_districts", where="flood_national_summary.json: ")
+
+
+def _check_flood_risk_projection(data: Any) -> None:
+    # 7-day forward flood risk PROJECTION (scripts/models/flood_projection_export.py):
+    # the same frozen classifier flood_national_priority.json's avg_predicted_risk
+    # uses, scored day-by-day against Open-Meteo's real forecast instead of the
+    # 90-day historical average. Field names taken directly from that script's
+    # own payload, not invented.
+    if not isinstance(data, dict):
+        raise ValidationError("flood_risk_projection.json must be an object")
+    _require(data, "generated_at", "forecast_days", "seed_days_used", "methodology", "districts",
+              where="flood_risk_projection.json: ")
+    districts = data["districts"]
+    if not isinstance(districts, list) or len(districts) == 0:
+        raise ValidationError("flood_risk_projection.json 'districts' must be a non-empty list")
+    for i, row in enumerate(districts):
+        if not isinstance(row, dict):
+            raise ValidationError(f"flood_risk_projection.json.districts[{i}] is not an object")
+        _require(row, "district_id", "district_name", "daily", "risk_in_7_days", "peak_day", "projection_trend",
+                  where=f"flood_risk_projection.json.districts[{i}]: ")
+        if not isinstance(row["daily"], list) or len(row["daily"]) == 0:
+            raise ValidationError(f"flood_risk_projection.json.districts[{i}] 'daily' must be a non-empty list")
+        for j, day in enumerate(row["daily"]):
+            if not isinstance(day, dict):
+                raise ValidationError(f"flood_risk_projection.json.districts[{i}].daily[{j}] is not an object")
+            _require(day, "date", "predicted_risk", "rainfall_mm",
+                      where=f"flood_risk_projection.json.districts[{i}].daily[{j}]: ")
 
 
 def _check_deforestation_districts(data: Any) -> None:
@@ -244,6 +274,10 @@ REQUIRED_FIELDS = {
     "flood_national_severity.json": _check_flood_national_severity,
     "flood_national_priority.json": _check_flood_national_priority,
     "flood_national_summary.json": _check_flood_national_summary,
+    "flood_risk_projection.json": _check_flood_risk_projection,
+    "deforestation_detect.geojson": lambda d: _check_geojson(d, "deforestation_detect.geojson"),
+    "deforestation_districts.geojson": lambda d: _check_geojson(d, "deforestation_districts.geojson"),
+    "deforestation_ndvi_summary.json": _check_deforestation_ndvi_summary,
     "deforestation_districts.json": _check_deforestation_districts,
     "deforestation_worklist.json": _check_deforestation_worklist,
     "deforestation_citizen_cards.json": _check_deforestation_citizen_cards,

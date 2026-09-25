@@ -174,6 +174,7 @@ def root():
             "/heat/risk", "/heat/hotspots", "/heat/trend", "/heat/grid", "/heat/alerts",
             "/flood/risk", "/flood/trend", "/flood/top-risk-areas", "/flood/summary",
             "/flood/national/severity", "/flood/national/priority", "/flood/national/summary",
+            "/flood/national/projection",
             "/deforestation/districts", "/deforestation/worklist", "/deforestation/citizen-cards",
             "/deforestation/timeseries", "/deforestation/restoration-priority",
             "/deforestation/loss-by-year", "/deforestation/model-metrics",
@@ -481,6 +482,18 @@ def flood_national_summary():
     real ground truth vs. a disclosed rainfall-extremity proxy, train/test
     split years, and the feature list. For the thesis methodology panel."""
     return _load("flood_national_summary.json")
+
+
+@app.get("/flood/national/projection")
+def flood_national_projection():
+    """All 64 districts: a forward-looking 7-day flood-risk PROJECTION —
+    the same frozen classifier /flood/national/priority's avg_predicted_risk
+    uses, but scored day-by-day against Open-Meteo's real published forecast
+    instead of a 90-day historical average. Answers "is this district's risk
+    rising over the next week", not "what has it averaged recently". See
+    this payload's own "methodology" field for the full disclosure,
+    including how forecast uncertainty grows with lead time."""
+    return _load("flood_risk_projection.json")
 
 
 # ---------------------------------------------------------------------------

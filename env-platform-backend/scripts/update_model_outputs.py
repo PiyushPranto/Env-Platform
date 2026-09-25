@@ -55,6 +55,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # allow `script
 from scripts.runners import ModelRunFailed, ModelUnavailable  # noqa: E402
 from scripts.runners import heat as heat_runner  # noqa: E402
 from scripts.runners import flood as flood_runner  # noqa: E402
+from scripts.runners import flood_projection as flood_projection_runner  # noqa: E402
 from scripts.runners import deforestation as deforestation_runner  # noqa: E402
 from scripts.validators import validate_file  # noqa: E402
 
@@ -65,6 +66,7 @@ REFRESH_STATUS_PATH = DATA_DIR / "refresh_status.json"
 MODELS = {
     "heat": (heat_runner.run, heat_runner.OUTPUT_FILES),
     "flood": (flood_runner.run, flood_runner.OUTPUT_FILES),
+    "flood_projection": (flood_projection_runner.run, flood_projection_runner.OUTPUT_FILES),
     "deforestation": (deforestation_runner.run, deforestation_runner.OUTPUT_FILES),
 }
 

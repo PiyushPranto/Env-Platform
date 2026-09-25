@@ -477,6 +477,70 @@ function LiveForecastStrip({ forecast, lang, title, hint }) {
   );
 }
 
+// 7-day FORWARD flood risk projection — the same frozen classifier behind
+// avg_predicted_risk, scored day-by-day against Open-Meteo's real published
+// forecast (scripts/models/flood_projection_export.py / GET
+// /flood/national/projection) instead of a 90-day historical average. This
+// answers "which specific day this week looks worst", which the nowcast
+// deliberately can't (it's averaged over 90 days on purpose). Renders
+// nothing when the automation hasn't produced a projection yet — this is a
+// separate, newer model from the always-on nowcast above it, and its
+// absence is never treated as an error.
+function projectionRiskTone(risk) {
+  if (risk >= 0.6) return { bar: "bg-red-500", text: "text-red-400" };
+  if (risk >= 0.4) return { bar: "bg-orange-500", text: "text-orange-400" };
+  if (risk >= 0.2) return { bar: "bg-amber-500", text: "text-amber-400" };
+  return { bar: "bg-emerald-500", text: "text-emerald-400" };
+}
+
+function FloodProjectionStrip({ projection, lang, t }) {
+  if (!projection || !Array.isArray(projection.daily) || projection.daily.length === 0) return null;
+  const { daily, peak_day, projection_trend } = projection;
+  const dayName = (dateStr, idx) => {
+    if (idx === 0) return lang === "bn" ? "আজ" : "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { weekday: "short" });
+  };
+  const trendHeadline =
+    projection_trend === "rising"
+      ? t.projectionRising(peak_day?.date ? dayName(peak_day.date, daily.findIndex((d) => d.date === peak_day.date)) : "", Math.round((peak_day?.predicted_risk || 0) * 100))
+      : projection_trend === "falling"
+      ? t.projectionFalling
+      : t.projectionSteady;
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={TrendingUp} tone="red" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.projectionTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-1">{t.projectionHint}</p>
+      <p className={`text-xs font-medium mb-3 ${projection_trend === "rising" ? "text-red-400" : projection_trend === "falling" ? "text-emerald-400" : "text-stone-400"}`}>
+        {trendHeadline}
+      </p>
+      <div className="flex items-end gap-1.5 overflow-x-auto -mx-1 px-1 h-24">
+        {daily.map((d, i) => {
+          const tone = projectionRiskTone(d.predicted_risk);
+          const isPeak = peak_day && d.date === peak_day.date;
+          const pct = Math.round(d.predicted_risk * 100);
+          return (
+            <div key={d.date} className="flex flex-col items-center justify-end gap-1 shrink-0 w-[13%] min-w-[42px] h-full">
+              {isPeak && <AlertTriangle size={10} className="text-red-400" />}
+              <div className="flex-1 w-full flex items-end">
+                <div
+                  className={`w-full rounded-t-md ${tone.bar} ${isPeak ? "ring-2 ring-red-400/60" : ""}`}
+                  style={{ height: `${Math.max(6, pct)}%` }}
+                />
+              </div>
+              <span className={`text-[11px] font-medium tabular-nums ${tone.text}`}>{pct}%</span>
+              <span className="text-[9px] text-stone-500">{dayName(d.date, i)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Heat — real, national (64-district) output from heat_model_project.ipynb:
 // a Random Forest heat-risk composite, DBSCAN hotspot clusters, and
@@ -612,6 +676,7 @@ function useNationalFloodData() {
   const [severity, setSeverity] = useState(null);
   const [priority, setPriority] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [projection, setProjection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -642,12 +707,28 @@ function useNationalFloodData() {
       } finally {
         if (!cancelled) setLoading(false);
       }
+
+      // The 7-day forward projection is a separate, newer model — fetched
+      // independently and never allowed to fail the three endpoints above.
+      // Until it has run at least once in production it 404s, which is an
+      // honest "not available yet" (null), not an error for this dashboard.
+      try {
+        const projRes = await fetch(`${API_BASE}/flood/national/projection`);
+        if (!cancelled) {
+          setProjection(projRes.ok ? await projRes.json() : null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn("Flood risk projection unavailable:", err);
+          setProjection(null);
+        }
+      }
     }
     load();
     return () => { cancelled = true; };
   }, []);
 
-  return { severity, priority, summary, loading, error };
+  return { severity, priority, summary, projection, loading, error };
 }
 
 // ---------------------------------------------------------------------------
@@ -1047,6 +1128,10 @@ const GOVT_I18N = {
     colTrend: "Trend",
     colDelta: "Δ change",
     colLiveRisk: "Live risk",
+    earlyWarningTitle: "Early warning — rising over the next 7 days",
+    earlyWarningHint: "Same trained classifier, scored day-by-day against the real published weather forecast (not the 90-day average used for the ranking below). A district here has its worst predicted day still ahead of it this week.",
+    earlyWarningEmpty: "No district is currently projected to trend upward over the next 7 days.",
+    earlyWarningPeak: (pct) => `peaks around ${pct}% this week`,
     avgMovementTitle: "Proof this is live, not frozen",
     avgMovementBody: (avg, min, max, n) =>
       `Average change in raw predicted risk since the last automated refresh, across all ${n} districts: ${avg}. Smallest movement: ${min}. Largest: ${max}. These are real numbers from the last scheduled run — not visible in the rounded percentages above, but recomputed from live rainfall every time the pipeline runs.`,
@@ -1187,6 +1272,10 @@ const GOVT_I18N = {
     colTrend: "প্রবণতা",
     colDelta: "Δ পরিবর্তন",
     colLiveRisk: "লাইভ ঝুঁকি",
+    earlyWarningTitle: "আগাম সতর্কতা — পরের ৭ দিনে বাড়ছে",
+    earlyWarningHint: "একই trained classifier, কিন্তু real আবহাওয়া পূর্বাভাসের উপর day-by-day চালানো (নিচের র‍্যাংকিং-এ ব্যবহৃত ৯০ দিনের average নয়)। এখানে থাকা জেলার সবচেয়ে খারাপ predicted দিনটি এখনো এই সপ্তাহে আসেনি।",
+    earlyWarningEmpty: "আপাতত পরের ৭ দিনে কোনো জেলার ঝুঁকি বাড়ার প্রক্ষেপণ নেই।",
+    earlyWarningPeak: (pct) => `এই সপ্তাহে প্রায় ${pct}% এ চূড়ায় উঠবে`,
     avgMovementTitle: "এটা সত্যিই live, frozen না — তার প্রমাণ",
     avgMovementBody: (avg, min, max, n) =>
       `সর্বশেষ স্বয়ংক্রিয় refresh-এর পর আসল predicted risk-এর গড় পরিবর্তন, সবগুলো ${n} জেলা মিলিয়ে: ${avg}। সবচেয়ে কম পরিবর্তন: ${min}। সবচেয়ে বেশি: ${max}। এগুলো সর্বশেষ scheduled run-এর প্রকৃত সংখ্যা — উপরের round করা percentage-এ বোঝা না গেলেও, pipeline প্রতিবার run হওয়ার সময় live বৃষ্টিপাতের তথ্য থেকে এই পরিবর্তন সত্যিই recompute হচ্ছে।`,
@@ -1832,7 +1921,21 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
 
 function FloodNationalView({ national, lang }) {
   const gt = GOVT_I18N[lang];
-  const { severity, priority, summary, loading, error } = national;
+  const { severity, priority, summary, projection, loading, error } = national;
+
+  // Early-warning list: districts whose 7-day FORWARD projection (the same
+  // frozen classifier, scored against Open-Meteo's real forecast rather
+  // than the 90-day historical average above) is trending up — i.e. their
+  // worst day this week is still ahead, not behind them. This is the one
+  // place the government view surfaces the projection model; it's additive
+  // to the priority ranking, never a replacement for it, and renders
+  // nothing until the automation has produced at least one projection run.
+  const risingDistricts = useMemo(() => {
+    return (projection?.districts || [])
+      .filter((d) => d.projection_trend === "rising")
+      .sort((a, b) => b.risk_in_7_days - a.risk_in_7_days)
+      .slice(0, 8);
+  }, [projection]);
 
   const severityByDistrict = useMemo(() => {
     const m = {};
@@ -1892,6 +1995,33 @@ function FloodNationalView({ national, lang }) {
           {gt.fieldNoticeFlood}
         </p>
       </div>
+
+      {projection && (
+        <div className="bg-gradient-to-b from-red-950/30 to-stone-800/30 border border-red-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
+          <div className="flex items-center gap-2.5 mb-1">
+            <IconBadge icon={TrendingUp} tone="red" size={14} />
+            <h3 className="text-sm font-medium text-stone-100">{gt.earlyWarningTitle}</h3>
+          </div>
+          <p className="text-[11px] text-stone-500 mb-3">{gt.earlyWarningHint}</p>
+          {risingDistricts.length === 0 ? (
+            <p className="text-xs text-stone-400">{gt.earlyWarningEmpty}</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {risingDistricts.map((d) => (
+                <div key={d.district_id} className="flex items-center gap-2 bg-stone-900/50 border border-stone-700/60 rounded-xl px-3 py-2">
+                  <TrendingUp size={13} className="text-red-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-stone-200 font-medium truncate">{d.district_name}</p>
+                    <p className="text-[10px] text-stone-500 tabular-nums">
+                      {gt.earlyWarningPeak(Math.round((d.peak_day?.predicted_risk || 0) * 100))}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
@@ -2325,6 +2455,11 @@ const CITIZEN_I18N = {
     forecastTitle: "Live 7-day weather — your area",
     forecastHint: "Real forecast for your district's location, fetched live from Open-Meteo — separate from the risk score above, which comes from the trained model.",
     trendDetail: (prevPct, currPct) => `Was ${prevPct}% at the last check, now ${currPct}%.`,
+    projectionTitle: "7-day forward risk projection",
+    projectionHint: "Same trained model, run against the real published weather forecast for each of the next 7 days — not a historical average. Later days are less certain than tomorrow.",
+    projectionRising: (day, pct) => `Rising — ${day || "later this week"} looks worst, around ${pct}% predicted risk.`,
+    projectionFalling: "Falling — this week's forecast rain eases up, risk trends down.",
+    projectionSteady: "Steady — no sharp change expected over the next 7 days.",
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -2383,6 +2518,11 @@ const CITIZEN_I18N = {
     forecastTitle: "লাইভ ৭ দিনের আবহাওয়া — আপনার এলাকা",
     forecastHint: "আপনার জেলার অবস্থানের জন্য Open-Meteo থেকে সরাসরি নেওয়া real পূর্বাভাস — উপরের ঝুঁকির স্কোর থেকে আলাদা, যেটা trained model থেকে আসে।",
     trendDetail: (prevPct, currPct) => `সর্বশেষ চেক-এ ছিল ${prevPct}%, এখন ${currPct}%।`,
+    projectionTitle: "৭-দিনের forward ঝুঁকি প্রক্ষেপণ",
+    projectionHint: "একই trained model, কিন্তু পরের ৭ দিনের real আবহাওয়া পূর্বাভাসের উপর চালানো — historical average নয়। যত দূরের দিন, তত কম নিশ্চিত।",
+    projectionRising: (day, pct) => `বাড়ছে — ${day || "এই সপ্তাহের পরের দিকে"} সবচেয়ে খারাপ, প্রায় ${pct}% predicted risk।`,
+    projectionFalling: "কমছে — এই সপ্তাহের পূর্বাভাসে বৃষ্টি কমছে, ঝুঁকি নিম্নমুখী।",
+    projectionSteady: "স্থিতিশীল — পরের ৭ দিনে বড় কোনো পরিবর্তনের আশঙ্কা নেই।",
   },
 };
 
@@ -2573,7 +2713,7 @@ function CitizenReportForm({ district, lang }) {
 function CitizenDashboard({ onLogout }) {
   const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
   const { citizenCards, districts: forestDistricts } = useDeforestationData();
-  const { severity, summary, loading: floodLoading, error: floodError } = useNationalFloodData();
+  const { severity, summary, projection, loading: floodLoading, error: floodError } = useNationalFloodData();
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
 
@@ -2627,6 +2767,14 @@ function CitizenDashboard({ onLogout }) {
   const selectedFlood = useMemo(
     () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
     [severity, selectedDistrict]
+  );
+
+  // 7-day forward flood risk projection for the selected district, when the
+  // automation has produced one yet (see useNationalFloodData — this is a
+  // separate, newer model and legitimately absent until its first run).
+  const selectedProjection = useMemo(
+    () => (projection?.districts || []).find((d) => d.district_name === selectedDistrict) || null,
+    [projection, selectedDistrict]
   );
 
   // Tree cover and heat now both genuinely exist for all 64 districts, so
@@ -2947,6 +3095,8 @@ function CitizenDashboard({ onLogout }) {
                       </div>
 
                       <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+
+                      <FloodProjectionStrip projection={selectedProjection} lang={lang} t={t} />
 
                       {(tier === "Severe" || tier === "High" || tier === "Moderate") && <EmergencyHelplineCard t={t} />}
                     </>

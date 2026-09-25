@@ -1,14 +1,70 @@
 {
   "placeholder": false,
-  "note": "Real data, copied from the frontend's hardcoded FLOOD_TOP_AREAS (top-risk locations from the real Dhaka flood grid, labeled by coordinates since no ward boundaries exist for Dhaka in this dataset).",
+  "note": "Real data, copied from the frontend's hardcoded FLOOD_TOP_AREAS (top-risk locations from the real Dhaka flood grid). 'name' is a real OpenStreetMap reverse-geocode of the grid point's coordinates (approximate locality, not an official ward boundary - none exist for this dataset); 'area' keeps the exact coordinates the risk score is actually computed for.",
   "areas": [
-    { "area": "23.577N, 90.063E", "elevation": 1.0, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.577N, 90.054E", "elevation": 1.0, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.542N, 90.152E", "elevation": 1.0, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.569N, 90.072E", "elevation": 1.0, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.595N, 90.045E", "elevation": 1.0, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.533N, 90.161E", "elevation": 0.7, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.586N, 90.063E", "elevation": 1.8, "riverDist": 0, "risk": 0.94, "category": "High" },
-    { "area": "23.604N, 90.045E", "elevation": 2.3, "riverDist": 0, "risk": 0.94, "category": "High" }
+    {
+      "area": "23.577N, 90.063E",
+      "elevation": 1.0,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    },
+    {
+      "area": "23.577N, 90.054E",
+      "elevation": 1.0,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    },
+    {
+      "area": "23.542N, 90.152E",
+      "elevation": 1.0,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "মুকসেদপুর"
+    },
+    {
+      "area": "23.569N, 90.072E",
+      "elevation": 1.0,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    },
+    {
+      "area": "23.595N, 90.045E",
+      "elevation": 1.0,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    },
+    {
+      "area": "23.533N, 90.161E",
+      "elevation": 0.7,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "ফুলতলা"
+    },
+    {
+      "area": "23.586N, 90.063E",
+      "elevation": 1.8,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    },
+    {
+      "area": "23.604N, 90.045E",
+      "elevation": 2.3,
+      "riverDist": 0,
+      "risk": 0.94,
+      "category": "High",
+      "name": "চরভদ্রাসন উপজেলা, ফরিদপুর জেলা, ঢাকা বিভাগ, বাংলাদেশ"
+    }
   ]
 }
