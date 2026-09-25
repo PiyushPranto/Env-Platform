@@ -752,6 +752,11 @@ const GOVT_I18N = {
     scoreDeltaTooltip: (prev, curr) =>
       `Raw model score: ${prev} → ${curr} since the last automated refresh — the exact number the % on the right is rounded from.`,
     scoreDeltaLegend: "Δ = exact change in the raw model score since the last real refresh, to 4 decimals — so it's visible even when the rounded % looks the same.",
+    colRank: "#",
+    colSeverityTier: "Severity",
+    colTrend: "Trend",
+    colDelta: "Δ change",
+    colLiveRisk: "Live risk",
     avgMovementTitle: "Proof this is live, not frozen",
     avgMovementBody: (avg, min, max, n) =>
       `Average change in raw predicted risk since the last automated refresh, across all ${n} districts: ${avg}. Smallest movement: ${min}. Largest: ${max}. These are real numbers from the last scheduled run — not visible in the rounded percentages above, but recomputed from live rainfall every time the pipeline runs.`,
@@ -887,6 +892,11 @@ const GOVT_I18N = {
     scoreDeltaTooltip: (prev, curr) =>
       `আসল মডেল স্কোর: ${prev} → ${curr}, সর্বশেষ স্বয়ংক্রিয় refresh থেকে — ডানপাশের %-টি এই সংখ্যা থেকেই round করা।`,
     scoreDeltaLegend: "Δ = সর্বশেষ real refresh-এর পর আসল মডেল স্কোরের সঠিক পরিবর্তন, ৪ decimal পর্যন্ত — round করা % একই দেখালেও এটা দেখা যায়।",
+    colRank: "#",
+    colSeverityTier: "তীব্রতা",
+    colTrend: "প্রবণতা",
+    colDelta: "Δ পরিবর্তন",
+    colLiveRisk: "লাইভ ঝুঁকি",
     avgMovementTitle: "এটা সত্যিই live, frozen না — তার প্রমাণ",
     avgMovementBody: (avg, min, max, n) =>
       `সর্বশেষ স্বয়ংক্রিয় refresh-এর পর আসল predicted risk-এর গড় পরিবর্তন, সবগুলো ${n} জেলা মিলিয়ে: ${avg}। সবচেয়ে কম পরিবর্তন: ${min}। সবচেয়ে বেশি: ${max}। এগুলো সর্বশেষ scheduled run-এর প্রকৃত সংখ্যা — উপরের round করা percentage-এ বোঝা না গেলেও, pipeline প্রতিবার run হওয়ার সময় live বৃষ্টিপাতের তথ্য থেকে এই পরিবর্তন সত্যিই recompute হচ্ছে।`,
@@ -1599,7 +1609,23 @@ function FloodNationalView({ national, lang }) {
           <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">{gt.top20of64}</h3>
           <p className="text-xs text-stone-400 mb-1">{gt.rankedByScore}</p>
           <p className="text-[11px] text-stone-500 mb-1">{gt.badgeVsPercent}</p>
-          <p className="text-[11px] text-stone-500 mb-4">{gt.scoreDeltaLegend}</p>
+          <p className="text-[11px] text-stone-500 mb-3">{gt.scoreDeltaLegend}</p>
+
+          {/* Explicit column headers — per supervisor feedback that a value-only
+              row (a name next to a stack of unlabeled numbers/icons) isn't
+              self-explanatory to someone seeing this for the first time.
+              Widths mirror the data row below so each header sits directly
+              above the value it describes. */}
+          <div className="flex items-center gap-2 sm:gap-3 px-2 pb-1.5 mb-1 border-b border-stone-700/60 text-[9px] sm:text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+            <span className="w-5 shrink-0">{gt.colRank}</span>
+            <span className="w-1.5 shrink-0" />
+            <span className="flex-1 min-w-0">{gt.colDistrict}</span>
+            <span className="shrink-0 w-16 text-center" title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{gt.colSeverityTier}</span>
+            <span className="shrink-0 w-9 text-center" title="Direction the live predicted risk has moved since the last refresh">{gt.colTrend}</span>
+            <span className="shrink-0 w-16 text-right" title={gt.scoreDeltaLegend}>{gt.colDelta}</span>
+            <span className="shrink-0 w-20 text-right" title="This week's live predicted flood risk from real rainfall">{gt.colLiveRisk}</span>
+          </div>
+
           <div className="space-y-1">
             {topPriority.map((d) => {
               const sev = severityByDistrict[d.district_id];
@@ -1613,8 +1639,12 @@ function FloodNationalView({ national, lang }) {
                   <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
                   <span className="flex-1 min-w-0 text-sm text-stone-200 truncate">{d.district_name}</span>
-                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
-                  <RiskTrendBadge trend={sev?.risk_trend} />
+                  <span className="shrink-0 w-16 flex justify-center">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
+                  </span>
+                  <span className="shrink-0 w-9 flex justify-center">
+                    <RiskTrendBadge trend={sev?.risk_trend} />
+                  </span>
                   {hasDelta ? (
                     <span
                       className={`shrink-0 text-[10px] tabular-nums w-16 text-right ${delta > 0 ? "text-amber-400" : delta < 0 ? "text-emerald-400" : "text-stone-500"}`}
