@@ -6,7 +6,7 @@ import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Radar, Building2, Sprout, ArrowLeft,
-  UserPlus, ShieldAlert, Info, Send,
+  UserPlus, ShieldAlert, Info, Send, Volume2, Languages,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -32,9 +32,9 @@ const API_BASE =
 // Chattogram demo numbers for the whole country.
 
 const OTHER_MODULES = [
-  { key: "flood", label: "Flood monitoring", icon: Droplets, locked: false },
-  { key: "air", label: "Air pollution (coming soon)", icon: Wind, locked: true },
-  { key: "forest", label: "Deforestation", icon: TreeDeciduous, locked: false },
+  { key: "flood", labelKey: "navFlood", icon: Droplets, locked: false },
+  { key: "air", labelKey: "navAir", icon: Wind, locked: true },
+  { key: "forest", labelKey: "navForest", icon: TreeDeciduous, locked: false },
 ];
 
 function tempToColor(t) {
@@ -98,6 +98,93 @@ function RiskTrendBadge({ trend, size = 12 }) {
   if (trend === "up") return <TrendingUp size={size} className="text-red-400" />;
   if (trend === "down") return <TrendingDown size={size} className="text-emerald-400" />;
   return <Minus size={size} className="text-stone-400" />;
+}
+
+// ---------------------------------------------------------------------------
+// Plain-language risk level: collapses every tier vocabulary this app uses
+// (heat's High/Medium/Low, flood's Severe/Moderate/Mild, deforestation's
+// High/Medium/Low priority) onto one 3-step scale — high/caution/safe — so
+// color alone tells a citizen the story without needing to read the tier
+// word itself. This is additive: the real tier word is still shown next to
+// it for anyone who can read it.
+// ---------------------------------------------------------------------------
+function riskLevel(tier) {
+  if (!tier) return null;
+  if (tier === "Severe" || tier === "High") return "high";
+  if (tier === "Moderate" || tier === "Medium") return "caution";
+  if (tier === "no forest") return "none";
+  return "safe"; // Low, Mild, or any other "good" tier
+}
+
+const RISK_LEVEL_BADGE_TONE = { high: "red", caution: "amber", safe: "teal", none: "slate" };
+
+// Bangla labels for the raw tier words the backend returns (always in
+// English) — used only for display when the citizen dashboard is set to
+// Bangla; the underlying data/logic is untouched.
+const TIER_BN = {
+  High: "উচ্চ", Medium: "মাঝারি", Low: "কম",
+  Severe: "মারাত্মক", Moderate: "মাঝারি", Mild: "মৃদু",
+  "no forest": "বন নেই",
+};
+function tierLabel(tier, lang) {
+  if (!tier) return tier;
+  return lang === "bn" ? TIER_BN[tier] || tier : tier;
+}
+
+// Reads a short plain-language sentence aloud with the browser's own
+// text-to-speech — no backend, no API key, and a real accessibility aid for
+// a citizen who can't read, not a cosmetic icon. Bangla voice availability
+// varies by device/browser, so this quietly no-ops rather than pretending
+// to work everywhere.
+function speakText(text, lang) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang === "bn" ? "bn-BD" : "en-US";
+    utter.rate = 0.95;
+    window.speechSynthesis.speak(utter);
+  } catch {
+    // Some embedded/webview browsers throw on speech synthesis — fail
+    // silently rather than breaking the page over a nice-to-have.
+  }
+}
+
+function SpeakButton({ text, lang, label }) {
+  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+  if (!supported || !text) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => speakText(text, lang)}
+      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+    >
+      <Volume2 size={13} /> {label}
+    </button>
+  );
+}
+
+// A big icon + color "status at a glance" block for the top of each citizen
+// detail page — the color is the primary signal (red/amber/green, same
+// scale everywhere in the app), the icon says which module it is, and the
+// tier word and a Listen button are secondary support for whoever wants
+// them. Everything below this block (maps, charts, exact numbers) is
+// unchanged — this is a plain-language summary placed in front of it.
+function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel }) {
+  const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(tier)] || "slate";
+  const bg = tier ? tierColor(tier).bg : "bg-stone-800/40";
+  return (
+    <div className={`rounded-2xl p-4 border border-stone-700 flex items-center gap-3.5 shadow-sm shadow-black/20 ${bg}`}>
+      <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+        <Icon size={26} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-base font-semibold text-stone-50 truncate">{title}</div>
+        {sub && <div className="text-xs text-stone-300 mt-0.5 truncate">{sub}</div>}
+      </div>
+      {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} />}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -567,8 +654,278 @@ function ReportModal({ districts, alerts, onClose }) {
 // ---------------------------------------------------------------------------
 // Government dashboard
 // ---------------------------------------------------------------------------
+// A Bangla/English toggle for every day-to-day label, header, subtitle,
+// button and status message a new officer sees while using the dashboard —
+// so it reads clearly at a glance in either language. The handful of dense,
+// statistics-heavy passages written for the thesis defense panel (model
+// methodology, validation numbers, disclosed limitations) stay English-only
+// by design: they're reference material for evaluators, not something a
+// field officer needs translated to use the dashboard day to day, and a
+// machine-style translation of technical statistical caveats risks
+// misstating them.
+
+const GOVT_I18N = {
+  en: {
+    consoleName: "Environmental Console",
+    govtDashboard: "Government dashboard",
+    navHeat: "Heat monitoring",
+    navFlood: "Flood monitoring",
+    navAir: "Air pollution (coming soon)",
+    navForest: "Deforestation",
+    signOut: "Sign out",
+    searchPlaceholder: "Search by district, upazila or ward",
+    loadingLiveData: "Loading live data…",
+    couldntLoad: "Couldn't load",
+    notifications: "Notifications",
+    noActiveAlerts: "No active alerts right now.",
+    generateReport: "Generate report",
+    moduleInDevelopment: "Module in development",
+    moduleInDevelopmentBody: (label) =>
+      `This demo prototype implements Heat, Flood and Deforestation monitoring end-to-end. The ${label.toLowerCase()} module follows the same architecture and is scoped for the next build phase.`,
+    backToHeat: "Back to heat monitoring",
+    legend: "Colors on this dashboard always mean the same thing:",
+    legendSafe: "Low / good",
+    legendCaution: "Moderate — watch",
+    legendHigh: "High / severe — act",
+    kpiAvgTemp: "National avg. surface temp",
+    kpiAvgTempSub: "Mar–May 2026 season",
+    kpiHighRisk: "High-risk districts",
+    kpiHighRiskSub: (n) => `of ${n} nationally`,
+    kpiUhi: "Districts with measurable UHI",
+    kpiUhiSub: "urban-vs-rural contrast detected",
+    kpiUhiGloss: "UHI = urban heat island: how much hotter a city is than the countryside around it.",
+    kpiHeatwaveWatches: "Heatwave watches",
+    kpiHeatwaveLive: "live, rechecked every 3 days",
+    kpiHeatwaveNotRun: "automation hasn't run yet",
+    liveHeatBanner: (dateStr) =>
+      `Live — heatwave watch rechecked every 3 days against real weather forecasts (satellite heat-risk layer is a fixed Mar–May 2026 seasonal composite). Last refreshed ${dateStr}.`,
+    compositeSeason: "Composite season",
+    surfaceTempTitle: "Surface temperature — nationwide",
+    surfaceTempSub: "Satellite-measured ground temperature (MODIS LST composite), Mar–May 2026",
+    gridNote: "Each square is the average for that area; blank squares simply have no data (usually water).",
+    priorityRanking: "Priority ranking",
+    heatMitigationTitle: "Heat mitigation priority",
+    heatMitigationSub: "Districts most in need of cooling measures, highest first.",
+    noGridData: "No grid data available.",
+    trendTitle: "Annual temperature trend, 2015–2026",
+    trendSub: "Nationwide average ground temperature by year, compared against the long-term baseline. The 2025–2026 points (hollow) are excluded from the trend line because of a known satellite sensor drift, not because the data is wrong. The upward trend is not yet statistically certain (p=0.106).",
+    heatwaveWatch: "Heatwave watch",
+    heatwaveWatchSub: "7-day forecast against official weather-service heatwave thresholds, rechecked every 3 days.",
+    noForecastYet: "Automation hasn't produced a forecast check yet.",
+    noHeatwaveForecast: (days) => `No heatwave forecast for any monitored hotspot in the next ${days} days.`,
+    heatwavePeak: (a, forecastDays) => `Peak ${a.peak_tmax_c.toFixed(1)}°C over ${a.heatwave_days} day(s) in the next ${forecastDays}`,
+    searchMatch: (n, q) => `${n} district(s) match "${q}"`,
+    ndviGloss: "NDVI = vegetation greenness (higher = more plant cover)",
+    builtGloss: "built-up fraction = share of the area covered by buildings/roads",
+    suhiGloss: "SUHI = how much hotter this district is than similar rural land nearby",
+    floodTabDhaka: "Dhaka (detailed)",
+    floodTabNational: "Nationwide overview (64 districts)",
+    kpiFloodProne: "Flood-prone area",
+    kpiPeakAlerted: "Peak area under alert",
+    kpiAlertDays: "Alert days",
+    kpiAlertDaysSub: (n) => `of ${n} days observed`,
+    kpiRainfall: "Rainfall vs baseline",
+    kpiRainfallSub: (n) => `baseline ${n}mm/day`,
+    realData2025: "Real data — 2025 monsoon window",
+    dhakaFloodTitle: "Flood risk — Dhaka (14 Jul 2025, historical peak)",
+    dhakaFloodSub: "Combined score of land shape and rainfall — 50% each",
+    dhakaGridNote: "Averaged from the real 1,650-point Dhaka survey grid",
+    highestRisk: "Highest risk",
+    topLocations: "Top locations",
+    rainfallVsAlert: "62-day rainfall vs. % of Dhaka under alert",
+    rainfallVsAlertSub: "8 Jun – 8 Aug 2025, real observed rainfall",
+    kpiDistrictsCovered: "Districts covered",
+    allBangladesh: "All of Bangladesh",
+    kpiValidatedRecall: "Validated recall",
+    kpiValidatedRecallSub: "on real 2018 held-out events",
+    kpiValidatedAuc: "Validated ROC-AUC",
+    kpiValidatedAucSub: "real ground-truth test year",
+    kpiTopPriority: "Top priority district",
+    kpiTopPrioritySub: "highest mitigation priority",
+    liveFloodBanner: (window, dateStr) =>
+      `Live — risk rescored every 3 days from real rainfall${window ? ` through ${window}` : ""}. Last refreshed ${dateStr}.`,
+    mitigationPriority: "Mitigation priority",
+    top20of64: "Top 20 of 64 districts",
+    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% area exposure",
+    badgeVsPercent: "The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.",
+    moreDistricts: (n) => `+${n} more districts, ranked, in the full export.`,
+    fieldNoticeFlood: "Trained on real flood-event records for the years shown. A district-day is genuinely a flood only about 3–5% of the time, so the model is deliberately tuned to catch more real floods even at the cost of some false alarms — the right tradeoff for early warning.",
+    forDefensePanel: "For the defense panel",
+    modelProvenance: "Model provenance",
+    citizenReportsEyebrow: "Citizen reports",
+    citizenReportsTitle: "Tree-cutting reported by citizens",
+    reportCount: (n) => `${n} report${n === 1 ? "" : "s"}`,
+    contactLabel: "contact",
+    citizenReportsSub: "Unverified — a helpful extra signal alongside the satellite model, not a confirmed field finding.",
+    loadingCitizenReports: "Loading citizen reports…",
+    couldntLoadCitizenReports: "Couldn't load citizen reports.",
+    reportsNotSetUp: "Citizen reporting isn't set up yet on the backend.",
+    noCitizenReports: "No citizen reports submitted yet.",
+    kpiNationalLoss: "National loss, 2017–2024",
+    kpiNationalLossSub: "confirmed, lasting loss (not a one-season dip)",
+    kpiAccelerating: "Districts accelerating",
+    kpiAcceleratingSub: "recent loss ≥1.5× own baseline",
+    kpiAvgTreeCover: "Avg. tree cover",
+    kpiAvgTreeCoverSub: "national average, 2024",
+    kpiLossPatches: "Loss patches mapped",
+    kpiLossPatchesSub: "≥0.25 km², 2017–2023",
+    forestNotice: "This counts all tree cover — including home gardens and plantations, not only official forest land — so don't compare it to the Forest Department's own 11–15% figure. The nationwide year-by-year trend and a loss forecast are deliberately left off this dashboard: the underlying data disagreed with itself too much to trust a forecast built on it. The district ranking and loss map below did pass every check.",
+    rankedByLoss: "Ranked by loss",
+    districtRanking64: "District ranking — 64 districts",
+    restorationPriority: "Restoration priority",
+    topReplanting: "Top replanting targets",
+    protectedLoss: "Confirmed loss inside a protected area",
+    protectedShort: "protected",
+    coverSuffix: "cover",
+    nationalLossByYear: "National loss by year",
+    km2PerYear: "km² of confirmed, lasting loss per year",
+    fieldWorklist: "Field worklist",
+    recentLossPatches: "Recent loss patches",
+    showingOf: (shown, total) => `showing ${shown} of ${total}, protected + recent first`,
+    downloadCsv: "Download CSV",
+    downloadCsvHint: "Download the rows shown below as a spreadsheet file",
+    colDistrict: "District",
+    colYear: "Year",
+    colArea: "Area",
+    colProtected: "Protected",
+    colLocation: "Location",
+    map: "Map",
+    yes: "yes",
+    close: "Close",
+  },
+  bn: {
+    consoleName: "পরিবেশ কনসোল",
+    govtDashboard: "সরকারি ড্যাশবোর্ড",
+    navHeat: "তাপ পর্যবেক্ষণ",
+    navFlood: "বন্যা পর্যবেক্ষণ",
+    navAir: "বায়ু দূষণ (শীঘ্রই আসছে)",
+    navForest: "বন উজাড়",
+    signOut: "সাইন আউট",
+    searchPlaceholder: "জেলা, উপজেলা বা ওয়ার্ড দিয়ে খুঁজুন",
+    loadingLiveData: "লাইভ তথ্য লোড হচ্ছে…",
+    couldntLoad: "লোড করা যায়নি",
+    notifications: "বিজ্ঞপ্তি",
+    noActiveAlerts: "এই মুহূর্তে কোনো সক্রিয় সতর্কতা নেই।",
+    generateReport: "রিপোর্ট তৈরি করুন",
+    moduleInDevelopment: "এই মডিউলটি এখনো তৈরি হচ্ছে",
+    moduleInDevelopmentBody: (label) =>
+      `এই ডেমো প্রোটোটাইপে তাপ, বন্যা ও বন উজাড় পর্যবেক্ষণ সম্পূর্ণভাবে তৈরি করা হয়েছে। ${label} মডিউলটি একই কাঠামোতে পরবর্তী ধাপে তৈরি হবে।`,
+    backToHeat: "তাপ পর্যবেক্ষণে ফিরে যান",
+    legend: "এই ড্যাশবোর্ডে রঙের অর্থ সবসময় একই থাকে:",
+    legendSafe: "কম / ভালো",
+    legendCaution: "মাঝারি — নজর রাখুন",
+    legendHigh: "উচ্চ / মারাত্মক — ব্যবস্থা নিন",
+    kpiAvgTemp: "জাতীয় গড় ভূপৃষ্ঠ তাপমাত্রা",
+    kpiAvgTempSub: "মার্চ–মে ২০২৬ মৌসুম",
+    kpiHighRisk: "উচ্চ-ঝুঁকির জেলা",
+    kpiHighRiskSub: (n) => `মোট ${n} টির মধ্যে`,
+    kpiUhi: "পরিমাপযোগ্য UHI-সহ জেলা",
+    kpiUhiSub: "শহর-বনাম-গ্রাম তাপ পার্থক্য শনাক্ত হয়েছে",
+    kpiUhiGloss: "UHI = আরবান হিট আইল্যান্ড: আশেপাশের গ্রামাঞ্চলের তুলনায় শহর কতটা বেশি গরম।",
+    kpiHeatwaveWatches: "তাপপ্রবাহ সতর্কতা",
+    kpiHeatwaveLive: "লাইভ, প্রতি ৩ দিন পরপর হালনাগাদ",
+    kpiHeatwaveNotRun: "অটোমেশন এখনো চলেনি",
+    liveHeatBanner: (dateStr) =>
+      `লাইভ — প্রকৃত আবহাওয়া পূর্বাভাসের ভিত্তিতে প্রতি ৩ দিন পরপর তাপপ্রবাহ সতর্কতা হালনাগাদ করা হয় (স্যাটেলাইট তাপ-ঝুঁকি স্তরটি মার্চ–মে ২০২৬ মৌসুমের একটি নির্দিষ্ট সমন্বয়)। সর্বশেষ হালনাগাদ ${dateStr}।`,
+    compositeSeason: "সমন্বিত মৌসুম",
+    surfaceTempTitle: "ভূপৃষ্ঠের তাপমাত্রা — সারাদেশ",
+    surfaceTempSub: "স্যাটেলাইট থেকে পরিমাপ করা ভূপৃষ্ঠের তাপমাত্রা (MODIS LST), মার্চ–মে ২০২৬",
+    gridNote: "প্রতিটি বর্গ ওই এলাকার গড় মান দেখায়; ফাঁকা বর্গে কোনো তথ্য নেই (সাধারণত পানি)।",
+    priorityRanking: "অগ্রাধিকার তালিকা",
+    heatMitigationTitle: "তাপ প্রশমন অগ্রাধিকার",
+    heatMitigationSub: "যেসব জেলায় শীতলীকরণ ব্যবস্থা সবচেয়ে বেশি প্রয়োজন, উপরে সবচেয়ে জরুরিটা।",
+    noGridData: "কোনো গ্রিড তথ্য পাওয়া যায়নি।",
+    trendTitle: "বার্ষিক তাপমাত্রার প্রবণতা, ২০১৫–২০২৬",
+    trendSub: "প্রতি বছরের সারাদেশের গড় ভূপৃষ্ঠ তাপমাত্রা, দীর্ঘমেয়াদি ভিত্তির সাথে তুলনা করে দেখানো। ২০২৫–২০২৬-এর পয়েন্টগুলো (ফাঁকা বৃত্ত) প্রবণতা রেখা থেকে বাদ দেওয়া হয়েছে — কারণ এটি স্যাটেলাইট সেন্সরের একটি পরিচিত ত্রুটি, ভুল তথ্য নয়। বাড়ার প্রবণতাটি এখনো পরিসংখ্যানগতভাবে নিশ্চিত নয় (p=0.106)।",
+    heatwaveWatch: "তাপপ্রবাহ পর্যবেক্ষণ",
+    heatwaveWatchSub: "সরকারি আবহাওয়া দপ্তরের তাপপ্রবাহ মানদণ্ড অনুযায়ী ৭ দিনের পূর্বাভাস, প্রতি ৩ দিন পরপর হালনাগাদ।",
+    noForecastYet: "অটোমেশন এখনো কোনো পূর্বাভাস তৈরি করেনি।",
+    noHeatwaveForecast: (days) => `আগামী ${days} দিনে কোনো পর্যবেক্ষণ এলাকায় তাপপ্রবাহের পূর্বাভাস নেই।`,
+    heatwavePeak: (a, forecastDays) => `সর্বোচ্চ ${a.peak_tmax_c.toFixed(1)}°সে, আগামী ${forecastDays} দিনের মধ্যে ${a.heatwave_days} দিন ধরে`,
+    searchMatch: (n, q) => `"${q}" এর সাথে ${n} টি জেলা মিলেছে`,
+    ndviGloss: "NDVI = গাছপালার সবুজতা (বেশি মানে বেশি গাছপালা)",
+    builtGloss: "built-up fraction = এলাকার কতটুকু ভবন/রাস্তায় ঢাকা",
+    suhiGloss: "SUHI = আশেপাশের গ্রামাঞ্চলের তুলনায় এই জেলা কতটা বেশি গরম",
+    floodTabDhaka: "ঢাকা (বিস্তারিত)",
+    floodTabNational: "সারাদেশের সারসংক্ষেপ (৬৪ জেলা)",
+    kpiFloodProne: "বন্যাপ্রবণ এলাকা",
+    kpiPeakAlerted: "সর্বোচ্চ সতর্কতার আওতাধীন এলাকা",
+    kpiAlertDays: "সতর্কতার দিন",
+    kpiAlertDaysSub: (n) => `মোট ${n} দিনের মধ্যে`,
+    kpiRainfall: "বৃষ্টিপাত বনাম স্বাভাবিক মাত্রা",
+    kpiRainfallSub: (n) => `স্বাভাবিক মাত্রা ${n}মিমি/দিন`,
+    realData2025: "প্রকৃত তথ্য — ২০২৫ বর্ষা মৌসুম",
+    dhakaFloodTitle: "বন্যার ঝুঁকি — ঢাকা (১৪ জুলাই ২০২৫, ঐতিহাসিক সর্বোচ্চ)",
+    dhakaFloodSub: "ভূমির গঠন ও বৃষ্টিপাতের সম্মিলিত স্কোর — প্রতিটি ৫০%",
+    dhakaGridNote: "ঢাকার প্রকৃত ১,৬৫০-পয়েন্ট জরিপ গ্রিড থেকে গড় করা",
+    highestRisk: "সর্বোচ্চ ঝুঁকি",
+    topLocations: "শীর্ষ এলাকাসমূহ",
+    rainfallVsAlert: "৬২ দিনের বৃষ্টিপাত বনাম ঢাকার কত % সতর্কতার আওতায়",
+    rainfallVsAlertSub: "৮ জুন – ৮ আগস্ট ২০২৫, প্রকৃত পর্যবেক্ষণকৃত বৃষ্টিপাত",
+    kpiDistrictsCovered: "অন্তর্ভুক্ত জেলা",
+    allBangladesh: "সমগ্র বাংলাদেশ",
+    kpiValidatedRecall: "যাচাইকৃত রিকল",
+    kpiValidatedRecallSub: "প্রকৃত ২০১৮ পরীক্ষার তথ্যের ভিত্তিতে",
+    kpiValidatedAuc: "যাচাইকৃত ROC-AUC",
+    kpiValidatedAucSub: "প্রকৃত গ্রাউন্ড-ট্রুথ পরীক্ষার বছর",
+    kpiTopPriority: "শীর্ষ অগ্রাধিকার জেলা",
+    kpiTopPrioritySub: "সর্বোচ্চ প্রশমন অগ্রাধিকার",
+    liveFloodBanner: (window, dateStr) =>
+      `লাইভ — প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে প্রতি ৩ দিন পরপর ঝুঁকি পুনর্মূল্যায়ন করা হয়${window ? ` — ${window} পর্যন্ত` : ""}। সর্বশেষ হালনাগাদ ${dateStr}।`,
+    mitigationPriority: "প্রশমন অগ্রাধিকার",
+    top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
+    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% এলাকার সংস্পর্শ",
+    badgeVsPercent: "ব্যাজটি ঐতিহাসিক তীব্রতা (অতীতের বন্যার মাত্রা) দেখায় — % হলো এই সপ্তাহের লাইভ পূর্বাভাসিত ঝুঁকি। একটি জেলার ইতিহাসে মারাত্মক বন্যা থাকতে পারে কিন্তু এই সপ্তাহ শান্ত, অথবা উল্টোটাও হতে পারে — তাই দুটো ভিন্ন হতে পারে।",
+    moreDistricts: (n) => `সম্পূর্ণ এক্সপোর্টে আরও ${n} টি জেলা, ক্রমানুসারে।`,
+    fieldNoticeFlood: "প্রদর্শিত বছরগুলোর প্রকৃত বন্যার ঘটনার তথ্য দিয়ে প্রশিক্ষিত। একটি জেলা-দিন প্রকৃতপক্ষে বন্যা হয় মাত্র ৩–৫% সময়ে, তাই মডেলটি ইচ্ছাকৃতভাবে বেশি প্রকৃত বন্যা ধরার জন্য তৈরি, এমনকি কিছু ভুল সতর্কতার বিনিময়েও — আগাম সতর্কতার জন্য এটাই সঠিক পন্থা।",
+    forDefensePanel: "থিসিস ডিফেন্স প্যানেলের জন্য",
+    modelProvenance: "মডেলের বিস্তারিত তথ্য",
+    citizenReportsEyebrow: "নাগরিক রিপোর্ট",
+    citizenReportsTitle: "নাগরিকদের রিপোর্ট করা গাছ কাটা",
+    reportCount: (n) => `${n} টি রিপোর্ট`,
+    contactLabel: "যোগাযোগ",
+    citizenReportsSub: "যাচাই করা হয়নি — স্যাটেলাইট মডেলের পাশাপাশি একটি সহায়ক অতিরিক্ত তথ্য, নিশ্চিত মাঠ পর্যায়ের তথ্য নয়।",
+    loadingCitizenReports: "নাগরিকদের রিপোর্ট লোড হচ্ছে…",
+    couldntLoadCitizenReports: "নাগরিকদের রিপোর্ট লোড করা যায়নি।",
+    reportsNotSetUp: "নাগরিক রিপোর্টিং এখনো ব্যাকএন্ডে সেট আপ করা হয়নি।",
+    noCitizenReports: "এখনো কোনো নাগরিক রিপোর্ট জমা পড়েনি।",
+    kpiNationalLoss: "জাতীয় ক্ষতি, ২০১৭–২০২৪",
+    kpiNationalLossSub: "নিশ্চিত, স্থায়ী ক্ষতি (এক-মৌসুমের সাময়িক হ্রাস নয়)",
+    kpiAccelerating: "ত্বরান্বিত ক্ষতির জেলা",
+    kpiAcceleratingSub: "নিজের ভিত্তির চেয়ে ≥১.৫ গুণ সাম্প্রতিক ক্ষতি",
+    kpiAvgTreeCover: "গড় গাছপালার আচ্ছাদন",
+    kpiAvgTreeCoverSub: "জাতীয় গড়, ২০২৪",
+    kpiLossPatches: "চিহ্নিত ক্ষতিগ্রস্ত এলাকা",
+    kpiLossPatchesSub: "≥০.২৫ বর্গ কিমি, ২০১৭–২০২৩",
+    forestNotice: "এখানে সব ধরনের গাছপালার আচ্ছাদন গণনা করা হয়েছে — বাড়ির বাগান ও বাগান-বনসহ, শুধু সরকারি বনভূমি নয় — তাই এটিকে বন অধিদপ্তরের ১১–১৫% হিসাবের সাথে তুলনা করবেন না। সারাদেশের বছরভিত্তিক প্রবণতা ও ক্ষতির পূর্বাভাস ইচ্ছাকৃতভাবে এই ড্যাশবোর্ডে দেখানো হয়নি — মূল তথ্যের মধ্যেই যথেষ্ট অসামঞ্জস্য ছিল বলে তার উপর ভিত্তি করে পূর্বাভাসকে নির্ভরযোগ্য মনে করা যায়নি। নিচের জেলা তালিকা ও ক্ষতির মানচিত্র সব যাচাই পার হয়েছে।",
+    rankedByLoss: "ক্ষতির ভিত্তিতে সাজানো",
+    districtRanking64: "জেলা তালিকা — ৬৪ জেলা",
+    restorationPriority: "পুনরুদ্ধার অগ্রাধিকার",
+    topReplanting: "শীর্ষ পুনঃবনায়ন লক্ষ্য",
+    protectedLoss: "সংরক্ষিত এলাকার ভেতরে নিশ্চিত ক্ষতি",
+    protectedShort: "সংরক্ষিত",
+    coverSuffix: "আচ্ছাদন",
+    nationalLossByYear: "বছরভিত্তিক জাতীয় ক্ষতি",
+    km2PerYear: "প্রতি বছর নিশ্চিত, স্থায়ী ক্ষতির বর্গ কিমি",
+    fieldWorklist: "মাঠ কর্ম তালিকা",
+    recentLossPatches: "সাম্প্রতিক ক্ষতিগ্রস্ত এলাকা",
+    showingOf: (shown, total) => `${total} টির মধ্যে ${shown} টি দেখানো হচ্ছে, সংরক্ষিত + সাম্প্রতিক আগে`,
+    downloadCsv: "CSV ডাউনলোড করুন",
+    downloadCsvHint: "নিচের সারিগুলো একটি স্প্রেডশিট ফাইল হিসেবে ডাউনলোড করুন",
+    colDistrict: "জেলা",
+    colYear: "বছর",
+    colArea: "এলাকা",
+    colProtected: "সংরক্ষিত",
+    colLocation: "অবস্থান",
+    map: "মানচিত্র",
+    yes: "হ্যাঁ",
+    close: "বন্ধ করুন",
+  },
+};
 
 function GovtDashboard({ role, onLogout }) {
+  const [lang, setLang] = useState("en");
+  const gt = GOVT_I18N[lang];
   const [activeModule, setActiveModule] = useState("heat");
   const [search, setSearch] = useState("");
   const [showReport, setShowReport] = useState(false);
@@ -654,14 +1011,26 @@ function GovtDashboard({ role, onLogout }) {
                 <ShieldCheck size={16} className="text-orange-400" />
               </span>
               <span className="text-sm font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Environmental Console
+                {gt.consoleName}
               </span>
             </div>
-            <div className="text-[11px] text-stone-400 mt-2 pl-0.5">Government dashboard · <span className="text-stone-300">{role}</span></div>
+            <div className="text-[11px] text-stone-400 mt-2 pl-0.5">{gt.govtDashboard} · <span className="text-stone-300">{role}</span></div>
           </div>
           <button onClick={() => setMobileNavOpen(false)} className="md:hidden text-stone-400 hover:text-stone-200 p-1">
             <X size={18} />
           </button>
+        </div>
+
+        {/* Color legend — always visible, no click/hover needed, so a
+            brand-new officer knows what red/amber/green mean before they've
+            read a single tier label anywhere in the app. */}
+        <div className="px-4 py-3 border-b border-stone-700/80">
+          <p className="text-[10px] text-stone-500 mb-1.5 leading-snug">{gt.legend}</p>
+          <div className="space-y-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> {gt.legendSafe}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" /> {gt.legendCaution}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> {gt.legendHigh}</span>
+          </div>
         </div>
 
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
@@ -677,7 +1046,7 @@ function GovtDashboard({ role, onLogout }) {
               <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-orange-500" />
             )}
             <Thermometer size={16} />
-            Heat monitoring
+            {gt.navHeat}
           </button>
           {OTHER_MODULES.map((m) => (
             <button
@@ -688,18 +1057,25 @@ function GovtDashboard({ role, onLogout }) {
               }`}
             >
               <m.icon size={16} />
-              <span className="flex-1 text-left">{m.label}</span>
+              <span className="flex-1 text-left">{gt[m.labelKey]}</span>
               {m.locked && <Lock size={12} className="text-stone-500" />}
             </button>
           ))}
         </nav>
 
-        <div className="p-3 border-t border-stone-700/80">
+        <div className="p-3 border-t border-stone-700/80 space-y-1">
+          <button
+            onClick={() => setLang(lang === "en" ? "bn" : "en")}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+          >
+            <Languages size={15} />
+            {lang === "en" ? "বাংলা" : "English"}
+          </button>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
           >
-            <LogOut size={15} /> Sign out
+            <LogOut size={15} /> {gt.signOut}
           </button>
         </div>
       </aside>
@@ -718,20 +1094,20 @@ function GovtDashboard({ role, onLogout }) {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by district, upazila or ward"
+              placeholder={gt.searchPlaceholder}
               className="w-full bg-stone-800/80 border border-stone-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10 transition-shadow"
             />
           </div>
           <div className="flex-1 hidden md:block" />
           {activeLoading && (
             <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-stone-400 order-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-pulse" /> Loading live data…
+              <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-pulse" /> {gt.loadingLiveData}
             </span>
           )}
           {activeError && !activeLoading && (
             <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full order-2" title={activeError}>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Couldn't load
+              {gt.couldntLoad}
             </span>
           )}
           <div className="relative">
@@ -749,11 +1125,11 @@ function GovtDashboard({ role, onLogout }) {
                 <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
                 <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
                   <div className="px-4 py-3 border-b border-stone-700 text-xs font-medium text-stone-200">
-                    Notifications {notifications.length > 0 ? `(${notifications.length})` : ""}
+                    {gt.notifications} {notifications.length > 0 ? `(${notifications.length})` : ""}
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <p className="px-4 py-6 text-xs text-stone-400 text-center">No active alerts right now.</p>
+                      <p className="px-4 py-6 text-xs text-stone-400 text-center">{gt.noActiveAlerts}</p>
                     ) : (
                       notifications.map((n, i) => (
                         <button
@@ -778,7 +1154,7 @@ function GovtDashboard({ role, onLogout }) {
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150 shrink-0"
           >
-            <FileText size={14} /> <span className="hidden sm:inline">Generate report</span>
+            <FileText size={14} /> <span className="hidden sm:inline">{gt.generateReport}</span>
           </button>
         </div>
 
@@ -790,6 +1166,7 @@ function GovtDashboard({ role, onLogout }) {
             national={floodNational}
             selectedArea={selectedFloodArea}
             setSelectedArea={setSelectedFloodArea}
+            lang={lang}
           />
         ) : activeModule === "forest" ? (
           <DeforestationModuleContent
@@ -797,6 +1174,7 @@ function GovtDashboard({ role, onLogout }) {
             selectedDistrict={selectedDistrict}
             setSelectedDistrict={setSelectedDistrict}
             citizenReports={citizenReports}
+            lang={lang}
           />
         ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
@@ -804,19 +1182,15 @@ function GovtDashboard({ role, onLogout }) {
               <div className="w-14 h-14 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center mx-auto mb-4">
                 <Lock size={22} className="text-stone-500" />
               </div>
-              <p className="text-stone-100 font-medium">Module in development</p>
+              <p className="text-stone-100 font-medium">{gt.moduleInDevelopment}</p>
               <p className="text-sm text-stone-400 mt-1.5 leading-relaxed">
-                This demo prototype implements Heat, Flood and Deforestation
-                monitoring end-to-end. The
-                {" "}{OTHER_MODULES.find((m) => m.key === activeModule)?.label.toLowerCase()}
-                {" "}module follows the same architecture and is scoped for the next
-                build phase.
+                {gt.moduleInDevelopmentBody(gt[OTHER_MODULES.find((m) => m.key === activeModule)?.labelKey] || "")}
               </p>
               <button
                 onClick={() => setActiveModule("heat")}
                 className="mt-5 text-sm text-orange-400 hover:text-orange-300 inline-flex items-center gap-1.5 transition-colors"
               >
-                <ArrowLeft size={14} /> Back to heat monitoring
+                <ArrowLeft size={14} /> {gt.backToHeat}
               </button>
             </div>
           </div>
@@ -828,27 +1202,28 @@ function GovtDashboard({ role, onLogout }) {
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
             {/* KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Kpi label="National avg. surface temp" value={avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"} sub="Mar–May 2026 season" icon={Thermometer} tone="orange" />
-              <Kpi label="High-risk districts" value={highRiskCount} sub={`of ${heatDistricts.length} nationally`} icon={AlertTriangle} tone="red" />
-              <Kpi label="Districts with measurable UHI" value={suhiDistrictCount} sub="urban-vs-rural contrast detected" icon={Users} />
+              <Kpi label={gt.kpiAvgTemp} value={avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"} sub={gt.kpiAvgTempSub} icon={Thermometer} tone="orange" />
+              <Kpi label={gt.kpiHighRisk} value={highRiskCount} sub={gt.kpiHighRiskSub(heatDistricts.length)} icon={AlertTriangle} tone="red" />
+              <Kpi label={gt.kpiUhi} value={suhiDistrictCount} sub={gt.kpiUhiSub} icon={Users} />
               <Kpi
-                label="Heatwave watches"
+                label={gt.kpiHeatwaveWatches}
                 value={activeAlerts.length}
-                sub={heatAlerts?.generated_at ? "live, rechecked every 3 days" : "automation hasn't run yet"}
+                sub={heatAlerts?.generated_at ? gt.kpiHeatwaveLive : gt.kpiHeatwaveNotRun}
                 icon={Bell}
                 tone={activeAlerts.length ? "red" : "slate"}
               />
             </div>
+            <p className="text-[10px] text-stone-500 -mt-4">{gt.kpiUhiGloss}</p>
 
             {heatAlerts?.generated_at && (
               <div className="flex items-center gap-2 text-[11px] text-emerald-400/80">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span>
-                  Live — heatwave watch rechecked every 3 days against real weather forecasts (satellite heat-risk
-                  layer is a fixed Mar–May 2026 seasonal composite). Last refreshed{" "}
-                  {new Date(heatAlerts.generated_at).toLocaleString("en-GB", {
-                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                  })}.
+                  {gt.liveHeatBanner(
+                    new Date(heatAlerts.generated_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })
+                  )}
                 </span>
               </div>
             )}
@@ -858,9 +1233,9 @@ function GovtDashboard({ role, onLogout }) {
               <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <Eyebrow>Composite season</Eyebrow>
-                    <h3 className="text-sm font-medium text-stone-100 mt-0.5">Surface temperature — nationwide</h3>
-                    <p className="text-xs text-stone-400 mt-0.5">MODIS LST composite, Mar–May 2026 (block-averaged)</p>
+                    <Eyebrow>{gt.compositeSeason}</Eyebrow>
+                    <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.surfaceTempTitle}</h3>
+                    <p className="text-xs text-stone-400 mt-0.5">{gt.surfaceTempSub}</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
                     <span>25°C</span>
@@ -873,17 +1248,18 @@ function GovtDashboard({ role, onLogout }) {
                     <div className="flex items-center justify-center py-4">
                       <HeatGrid grid={heatGrid} />
                     </div>
-                    <p className="text-[11px] text-stone-500 text-center">Grid cells block-average the national raster; blank cells have no valid pixels (water/no data)</p>
+                    <p className="text-[11px] text-stone-500 text-center">{gt.gridNote}</p>
                   </>
                 ) : (
-                  <p className="text-xs text-stone-400 py-8 text-center">No grid data available.</p>
+                  <p className="text-xs text-stone-400 py-8 text-center">{gt.noGridData}</p>
                 )}
               </div>
 
               {/* District ranking */}
               <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-                <Eyebrow>Priority ranking</Eyebrow>
-                <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">Heat mitigation priority</h3>
+                <Eyebrow>{gt.priorityRanking}</Eyebrow>
+                <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.heatMitigationTitle}</h3>
+                <p className="text-[11px] text-stone-500 mb-3">{gt.heatMitigationSub}</p>
                 <div className="space-y-1 max-h-[360px] overflow-y-auto">
                   {sortedByRisk.map((d, i) => {
                     const c = tierColor(d.risk_category);
@@ -914,11 +1290,12 @@ function GovtDashboard({ role, onLogout }) {
                 <div className="flex-1">
                   <span className="text-sm text-stone-100 font-medium">{selectedHeatDistrict.name}</span>
                   <span className="text-xs text-stone-400 ml-2">
-                    {selectedHeatDistrict.lst_c.toFixed(1)}°C · {selectedHeatDistrict.risk_category} risk · NDVI {selectedHeatDistrict.ndvi.toFixed(2)} · built-up fraction {selectedHeatDistrict.built_fraction.toFixed(3)}
+                    {selectedHeatDistrict.lst_c.toFixed(1)}°C · {tierLabel(selectedHeatDistrict.risk_category, lang)} · NDVI {selectedHeatDistrict.ndvi.toFixed(2)} · {gt.builtGloss.split(" = ")[0]} {selectedHeatDistrict.built_fraction.toFixed(3)}
                     {selectedHeatDistrict.uhi_intensity_c !== null && selectedHeatDistrict.uhi_intensity_c !== undefined
-                      ? ` · SUHI intensity ${selectedHeatDistrict.uhi_intensity_c.toFixed(2)}°C`
+                      ? ` · SUHI ${selectedHeatDistrict.uhi_intensity_c.toFixed(2)}°C`
                       : ""}
                   </span>
+                  <div className="text-[10px] text-stone-500 mt-1">{gt.ndviGloss} · {gt.suhiGloss}</div>
                 </div>
                 <button onClick={() => setSelectedHeatDistrict(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
                   <X size={15} />
@@ -931,13 +1308,9 @@ function GovtDashboard({ role, onLogout }) {
               <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp size={14} className="text-orange-400/80" />
-                  <h3 className="text-sm font-medium text-stone-100">Annual temperature trend, 2015–2026</h3>
+                  <h3 className="text-sm font-medium text-stone-100">{gt.trendTitle}</h3>
                 </div>
-                <p className="text-xs text-stone-400 mb-3">
-                  National mean LST vs. pre-drift baseline · 2025–2026 (hollow points) excluded from the
-                  trend fit — Terra sensor orbital drift. Fitted trend +1.25°C/decade is not statistically
-                  significant (p=0.106).
-                </p>
+                <p className="text-xs text-stone-400 mb-3">{gt.trendSub}</p>
                 <div style={{ width: "100%", height: 200 }}>
                   <ResponsiveContainer>
                     <LineChart data={heatTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -971,15 +1344,13 @@ function GovtDashboard({ role, onLogout }) {
               <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
                   <Bell size={14} className="text-orange-400/80" />
-                  <h3 className="text-sm font-medium text-stone-100">Heatwave watch</h3>
+                  <h3 className="text-sm font-medium text-stone-100">{gt.heatwaveWatch}</h3>
                 </div>
-                <p className="text-[11px] text-stone-400 mb-3.5 leading-relaxed">
-                  7-day forecast vs. official BMD thresholds, for the model's own hotspot sites — rechecked every 3 days.
-                </p>
+                <p className="text-[11px] text-stone-400 mb-3.5 leading-relaxed">{gt.heatwaveWatchSub}</p>
                 {!heatAlerts?.generated_at ? (
-                  <p className="text-xs text-stone-400">Automation hasn't produced a forecast check yet.</p>
+                  <p className="text-xs text-stone-400">{gt.noForecastYet}</p>
                 ) : activeAlerts.length === 0 ? (
-                  <p className="text-xs text-emerald-300/90">No heatwave forecast for any monitored hotspot in the next {heatAlerts.forecast_days} days.</p>
+                  <p className="text-xs text-emerald-300/90">{gt.noHeatwaveForecast(heatAlerts.forecast_days)}</p>
                 ) : (
                   <div className="space-y-3">
                     {activeAlerts.map((a) => (
@@ -988,7 +1359,7 @@ function GovtDashboard({ role, onLogout }) {
                         <div>
                           <p className="text-xs font-medium text-stone-200">{a.name} · {a.worst_category}</p>
                           <p className="text-[11px] text-stone-400 mt-0.5 leading-relaxed">
-                            Peak {a.peak_tmax_c.toFixed(1)}°C over {a.heatwave_days} day(s) in the next {heatAlerts.forecast_days}
+                            {gt.heatwavePeak(a, heatAlerts.forecast_days)}
                           </p>
                         </div>
                       </div>
@@ -1000,7 +1371,7 @@ function GovtDashboard({ role, onLogout }) {
 
             {search && (
               <div className="text-xs text-stone-400">
-                {filteredDistricts.length} district(s) match "{search}"
+                {gt.searchMatch(filteredDistricts.length, search)}
               </div>
             )}
           </div>
@@ -1018,7 +1389,8 @@ function GovtDashboard({ role, onLogout }) {
 // merging them would blur that distinction rather than clarify it.
 // ---------------------------------------------------------------------------
 
-function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea }) {
+function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea, lang }) {
+  const gt = GOVT_I18N[lang];
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
       <div className="inline-flex items-center gap-1 bg-stone-800/80 border border-stone-700 rounded-lg p-1">
@@ -1026,26 +1398,27 @@ function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedAr
           onClick={() => setFloodTab("dhaka")}
           className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "dhaka" ? "bg-stone-700 text-stone-50" : "text-stone-400 hover:text-stone-200"}`}
         >
-          Dhaka (detailed)
+          {gt.floodTabDhaka}
         </button>
         <button
           onClick={() => setFloodTab("national")}
           className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "national" ? "bg-stone-700 text-stone-50" : "text-stone-400 hover:text-stone-200"}`}
         >
-          Nationwide overview (64 districts)
+          {gt.floodTabNational}
         </button>
       </div>
 
       {floodTab === "dhaka" ? (
-        <FloodDhakaView dhaka={dhaka} selectedArea={selectedArea} setSelectedArea={setSelectedArea} />
+        <FloodDhakaView dhaka={dhaka} selectedArea={selectedArea} setSelectedArea={setSelectedArea} lang={lang} />
       ) : (
-        <FloodNationalView national={national} />
+        <FloodNationalView national={national} lang={lang} />
       )}
     </div>
   );
 }
 
-function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
+function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
+  const gt = GOVT_I18N[lang];
   const { grid, trend, areas, summary, loading, error } = dhaka;
 
   if (loading || error || !summary) {
@@ -1055,26 +1428,26 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
   return (
     <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="Flood-prone area" value={`${summary.floodPronePct}%`} sub={`${summary.floodProneCells} of ${summary.totalCells} grid cells`} icon={Droplets} tone="orange" />
-        <Kpi label="Peak area under alert" value={`${summary.peakPctAlerted}%`} sub={summary.peakDate} icon={AlertTriangle} tone="red" />
-        <Kpi label="Alert days" value={summary.alertDays} sub={`of ${summary.totalDays} days observed`} />
-        <Kpi label="Rainfall vs baseline" value={`${summary.observedRainfall}mm`} sub={`baseline ${summary.historicalRainfall}mm/day`} tone="teal" />
+        <Kpi label={gt.kpiFloodProne} value={`${summary.floodPronePct}%`} sub={`${summary.floodProneCells} / ${summary.totalCells}`} icon={Droplets} tone="orange" />
+        <Kpi label={gt.kpiPeakAlerted} value={`${summary.peakPctAlerted}%`} sub={summary.peakDate} icon={AlertTriangle} tone="red" />
+        <Kpi label={gt.kpiAlertDays} value={summary.alertDays} sub={gt.kpiAlertDaysSub(summary.totalDays)} />
+        <Kpi label={gt.kpiRainfall} value={`${summary.observedRainfall}mm`} sub={gt.kpiRainfallSub(summary.historicalRainfall)} tone="teal" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow>Real data — 2025 monsoon window</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5">Flood risk — Dhaka (14 Jul 2025, historical peak)</h3>
-          <p className="text-xs text-stone-400 mt-0.5 mb-4">Rule-based composite score: 0.5×terrain susceptibility + 0.5×rainfall factor</p>
+          <Eyebrow>{gt.realData2025}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.dhakaFloodTitle}</h3>
+          <p className="text-xs text-stone-400 mt-0.5 mb-4">{gt.dhakaFloodSub}</p>
           <div className="flex items-center justify-center py-4">
-            {grid && <HeatGrid grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `risk ${(v * 100).toFixed(0)}%`} />}
+            {grid && <HeatGrid grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `${(v * 100).toFixed(0)}%`} />}
           </div>
-          <p className="text-[11px] text-stone-500 text-center">Block-averaged from the real 1,650-cell Dhaka analysis grid</p>
+          <p className="text-[11px] text-stone-500 text-center">{gt.dhakaGridNote}</p>
         </div>
 
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow>Highest risk</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">Top locations</h3>
+          <Eyebrow>{gt.highestRisk}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.topLocations}</h3>
           <div className="space-y-1 max-h-72 overflow-y-auto">
             {(areas || []).map((a, i) => {
               const isSelected = selectedArea?.area === a.area;
@@ -1101,7 +1474,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
           <div className="flex-1">
             <span className="text-sm text-stone-100 font-medium">{selectedArea.area}</span>
             <span className="text-xs text-stone-400 ml-2">
-              risk {(selectedArea.risk * 100).toFixed(0)}% · {selectedArea.category} · elevation {selectedArea.elevation}m · {selectedArea.riverDist}m from river
+              {(selectedArea.risk * 100).toFixed(0)}% · {tierLabel(selectedArea.category, lang)} · {selectedArea.elevation}m · {selectedArea.riverDist}m
             </span>
           </div>
           <button onClick={() => setSelectedArea(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
@@ -1114,9 +1487,9 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp size={14} className="text-orange-400/80" />
-            <h3 className="text-sm font-medium text-stone-100">62-day rainfall vs. % of Dhaka under alert</h3>
+            <h3 className="text-sm font-medium text-stone-100">{gt.rainfallVsAlert}</h3>
           </div>
-          <p className="text-xs text-stone-400 mb-3">8 Jun – 8 Aug 2025, real observed rainfall</p>
+          <p className="text-xs text-stone-400 mb-3">{gt.rainfallVsAlertSub}</p>
           <div style={{ width: "100%", height: 200 }}>
             <ResponsiveContainer>
               <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -1140,7 +1513,8 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea }) {
   );
 }
 
-function FloodNationalView({ national }) {
+function FloodNationalView({ national, lang }) {
+  const gt = GOVT_I18N[lang];
   const { severity, priority, summary, loading, error } = national;
 
   const severityByDistrict = useMemo(() => {
@@ -1160,21 +1534,22 @@ function FloodNationalView({ national }) {
   return (
     <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="Districts covered" value={summary.districts} sub="All of Bangladesh" icon={MapPin} />
-        <Kpi label="Validated recall" value="83%" sub="on real 2018 held-out events" icon={ShieldCheck} tone="teal" />
-        <Kpi label="Validated ROC-AUC" value="0.91" sub="real ground-truth test year" tone="teal" />
-        <Kpi label="Top priority district" value={topPriority[0]?.district_name || "—"} sub="highest mitigation priority" icon={AlertTriangle} tone="red" />
+        <Kpi label={gt.kpiDistrictsCovered} value={summary.districts} sub={gt.allBangladesh} icon={MapPin} />
+        <Kpi label={gt.kpiValidatedRecall} value="83%" sub={gt.kpiValidatedRecallSub} icon={ShieldCheck} tone="teal" />
+        <Kpi label={gt.kpiValidatedAuc} value="0.91" sub={gt.kpiValidatedAucSub} tone="teal" />
+        <Kpi label={gt.kpiTopPriority} value={topPriority[0]?.district_name || "—"} sub={gt.kpiTopPrioritySub} icon={AlertTriangle} tone="red" />
       </div>
 
       {summary.last_refreshed_at && (
         <div className="flex items-center gap-2 text-[11px] text-emerald-400/80">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>
-            Live — risk rescored every 3 days from real rainfall
-            {summary.live_prediction_window ? ` through ${summary.live_prediction_window.end_date}` : ""}.
-            Last refreshed {new Date(summary.last_refreshed_at).toLocaleString("en-GB", {
-              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-            })}.
+            {gt.liveFloodBanner(
+              summary.live_prediction_window?.end_date,
+              new Date(summary.last_refreshed_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+                day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+              })
+            )}
           </span>
         </div>
       )}
@@ -1182,23 +1557,16 @@ function FloodNationalView({ national }) {
       <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
         <IconBadge icon={Info} tone="amber" size={14} />
         <p className="text-xs text-amber-200/90 leading-relaxed">
-          Trained on real flood-event ground truth (DFO + Global Flood Database) for {observedYears.join("–")}.
-          No free machine-readable ground truth exists for {proxyYears[0]}–{proxyYears[proxyYears.length - 1]},
-          so those years use a disclosed rainfall-extremity proxy label instead — never silently mixed with real
-          events. Precision is intentionally low (a district-day is genuinely a flood ~3–5% of the time); the model
-          trades some false alarms for catching more real floods, the right tradeoff for early warning.
+          {gt.fieldNoticeFlood}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow>Mitigation priority</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">Top 20 of 64 districts</h3>
-          <p className="text-xs text-stone-400 mb-1">Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% area exposure</p>
-          <p className="text-[11px] text-stone-500 mb-4">
-            The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A
-            district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.
-          </p>
+          <Eyebrow>{gt.mitigationPriority}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">{gt.top20of64}</h3>
+          <p className="text-xs text-stone-400 mb-1">{gt.rankedByScore}</p>
+          <p className="text-[11px] text-stone-500 mb-4">{gt.badgeVsPercent}</p>
           <div className="space-y-1">
             {topPriority.map((d) => {
               const sev = severityByDistrict[d.district_id];
@@ -1209,19 +1577,19 @@ function FloodNationalView({ national }) {
                   <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
                   <span className="flex-1 min-w-0 text-sm text-stone-200 truncate">{d.district_name}</span>
-                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tier}</span>
+                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
                   <RiskTrendBadge trend={sev?.risk_trend} />
-                  <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">now {(d.avg_predicted_risk * 100).toFixed(1)}%</span>
+                  <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">{(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-[11px] text-stone-500 mt-3">+{Math.max(0, (priority || []).length - 20)} more districts, ranked, in the full export.</p>
+          <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, (priority || []).length - 20))}</p>
         </div>
 
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow tone="teal">Model provenance</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-3">For the defense panel</h3>
+          <Eyebrow tone="teal">{gt.modelProvenance}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-3">{gt.forDefensePanel}</h3>
           <div className="space-y-3 text-xs text-stone-300">
             <div><span className="text-stone-200">Algorithm:</span> Random Forest, class-weighted</div>
             <div><span className="text-stone-200">Rows:</span> {summary.rows_total?.toLocaleString()} district-days</div>
@@ -1286,7 +1654,8 @@ function downloadWorklistCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
-function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports }) {
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, lang }) {
+  const gt = GOVT_I18N[lang];
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
 
   if (loading || error || !districts) {
@@ -1306,27 +1675,21 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="National loss, 2017–2024" value={`${Math.round(nationalLossKm2).toLocaleString()} km²`} sub="persistent, 2-year-confirmed loss" icon={TreeDeciduous} tone="red" />
-        <Kpi label="Districts accelerating" value={alertCount} sub="recent loss ≥1.5× own baseline" icon={AlertTriangle} tone="orange" />
-        <Kpi label="Avg. tree cover" value={`${avgForestPct.toFixed(1)}%`} sub="national average, 2024" tone="teal" />
-        <Kpi label="Loss patches mapped" value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub="≥0.25 km², 2017–2023" />
+        <Kpi label={gt.kpiNationalLoss} value={`${Math.round(nationalLossKm2).toLocaleString()} km²`} sub={gt.kpiNationalLossSub} icon={TreeDeciduous} tone="red" />
+        <Kpi label={gt.kpiAccelerating} value={alertCount} sub={gt.kpiAcceleratingSub} icon={AlertTriangle} tone="orange" />
+        <Kpi label={gt.kpiAvgTreeCover} value={`${avgForestPct.toFixed(1)}%`} sub={gt.kpiAvgTreeCoverSub} tone="teal" />
+        <Kpi label={gt.kpiLossPatches} value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub={gt.kpiLossPatchesSub} />
       </div>
 
       <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
         <IconBadge icon={Info} tone="amber" size={14} />
-        <p className="text-xs text-amber-200/90 leading-relaxed">
-          This reports tree cover (includes homestead groves and plantations), not gazetted forest — do not
-          compare to the Forest Department's 11–15% figure. National year-by-year trend direction and the
-          loss forecast are intentionally not shown here: three normalisation methods on this data disagree
-          even on the sign of the decade change, and the forecast's error exceeds a usable threshold. District
-          rankings and loss locations below passed every integration check.
-        </p>
+        <p className="text-xs text-amber-200/90 leading-relaxed">{gt.forestNotice}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow>Ranked by loss</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">District ranking — 64 districts</h3>
+          <Eyebrow>{gt.rankedByLoss}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.districtRanking64}</h3>
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {sortedByLoss.map((d, i) => {
               const c = tierColor(d.priority);
@@ -1343,12 +1706,12 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                   {d.protected_loss_km2 > 0 && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400 shrink-0"
-                      title="Confirmed loss inside a protected area"
+                      title={gt.protectedLoss}
                     >
-                      {d.protected_loss_km2.toFixed(1)} km² protected
+                      {d.protected_loss_km2.toFixed(1)} km² {gt.protectedShort}
                     </span>
                   )}
-                  <span className="text-xs text-stone-400 tabular-nums shrink-0">{d.forest_pct_now?.toFixed(1)}% cover</span>
+                  <span className="text-xs text-stone-400 tabular-nums shrink-0">{d.forest_pct_now?.toFixed(1)}% {gt.coverSuffix}</span>
                   <ChevronRight size={13} className={`text-stone-500 transition-transform shrink-0 ${isSelected ? "translate-x-0.5" : ""}`} />
                 </button>
               );
@@ -1357,15 +1720,15 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         </div>
 
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow tone="teal">Restoration priority</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">Top replanting targets</h3>
+          <Eyebrow tone="teal">{gt.restorationPriority}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.topReplanting}</h3>
           <div className="space-y-2.5">
             {topRestoration.map((r, i) => (
               <div key={r.district} className="flex items-center gap-2.5">
                 <IconBadge icon={Sprout} tone="teal" size={13} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-stone-200 truncate">{r.district}</p>
-                  <p className="text-[11px] text-stone-400">{r.forest_pct_now?.toFixed(1)}% cover · {r.trend}</p>
+                  <p className="text-[11px] text-stone-400">{r.forest_pct_now?.toFixed(1)}% {gt.coverSuffix} · {r.trend}</p>
                 </div>
               </div>
             ))}
@@ -1379,9 +1742,9 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
           <div className="flex-1">
             <span className="text-sm text-stone-100 font-medium">{selectedDistrict.district}</span>
             <span className="text-xs text-stone-400 ml-2">
-              {selectedDistrict.forest_pct_now?.toFixed(1)}% cover · lost {selectedDistrict.forest_loss_pct?.toFixed(1)}% since 2016 ·
-              {" "}{selectedDistrict.trend} · restoration: {selectedDistrict.restoration_tier}
-              {selectedDistrict.protected_loss_km2 > 0 && ` · ${selectedDistrict.protected_loss_km2.toFixed(1)} km² lost inside protected areas`}
+              {selectedDistrict.forest_pct_now?.toFixed(1)}% {gt.coverSuffix} · -{selectedDistrict.forest_loss_pct?.toFixed(1)}% (2016–) ·
+              {" "}{selectedDistrict.trend} · {tierLabel(selectedDistrict.restoration_tier, lang)}
+              {selectedDistrict.protected_loss_km2 > 0 && ` · ${selectedDistrict.protected_loss_km2.toFixed(1)} km² ${gt.protectedShort}`}
             </span>
           </div>
           <button onClick={() => setSelectedDistrict(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
@@ -1392,8 +1755,8 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
 
       {lossByYear && lossByYear.length > 0 && (
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <h3 className="text-sm font-medium text-stone-100 mb-1">National loss by year</h3>
-          <p className="text-xs text-stone-400 mb-3">km² of persistent, 2-year-confirmed loss</p>
+          <h3 className="text-sm font-medium text-stone-100 mb-1">{gt.nationalLossByYear}</h3>
+          <p className="text-xs text-stone-400 mb-3">{gt.km2PerYear}</p>
           <div style={{ width: "100%", height: 180 }}>
             <ResponsiveContainer>
               <BarChart data={lossByYear} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -1412,17 +1775,17 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
           <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
             <div>
-              <Eyebrow tone="orange">Field worklist</Eyebrow>
-              <h3 className="text-sm font-medium text-stone-100 mt-0.5">Recent loss patches</h3>
+              <Eyebrow tone="orange">{gt.fieldWorklist}</Eyebrow>
+              <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.recentLossPatches}</h3>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[11px] text-stone-400">showing {Math.min(50, worklist.length)} of {(worklistTotal ?? worklist.length).toLocaleString()}, protected + recent first</span>
+              <span className="text-[11px] text-stone-400">{gt.showingOf(Math.min(50, worklist.length), (worklistTotal ?? worklist.length).toLocaleString())}</span>
               <button
                 onClick={() => downloadWorklistCsv(worklist)}
                 className="text-[11px] px-2 py-1 rounded-lg border border-stone-700 text-stone-300 hover:text-stone-100 hover:bg-stone-800 transition-colors shrink-0"
-                title="Download the rows shown below as a CSV file"
+                title={gt.downloadCsvHint}
               >
-                Download CSV
+                {gt.downloadCsv}
               </button>
             </div>
           </div>
@@ -1430,11 +1793,11 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
             <table className="w-full text-xs border-separate border-spacing-0">
               <thead className="sticky top-0 bg-stone-800">
                 <tr className="text-stone-400 text-left">
-                  <th className="py-1.5 font-medium border-b border-stone-700">District</th>
-                  <th className="py-1.5 font-medium border-b border-stone-700">Year</th>
-                  <th className="py-1.5 font-medium border-b border-stone-700">Area</th>
-                  <th className="py-1.5 font-medium border-b border-stone-700">Protected</th>
-                  <th className="py-1.5 font-medium border-b border-stone-700">Location</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colDistrict}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colYear}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colArea}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colProtected}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colLocation}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1444,7 +1807,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                     <td className="py-1.5 px-1 text-stone-300">{p.loss_year}</td>
                     <td className="py-1.5 px-1 text-stone-300">{p.area_km2?.toFixed(2)} km²</td>
                     <td className="py-1.5 px-1">
-                      {p.in_protected ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400">yes</span> : <span className="text-stone-500">—</span>}
+                      {p.in_protected ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400">{gt.yes}</span> : <span className="text-stone-500">—</span>}
                     </td>
                     <td className="py-1.5 px-1">
                       {p.lat != null && p.lon != null ? (
@@ -1455,7 +1818,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                           className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 tabular-nums"
                           title={`${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`}
                         >
-                          <MapPin size={11} /> Map
+                          <MapPin size={11} /> {gt.map}
                         </a>
                       ) : (
                         <span className="text-stone-500">—</span>
@@ -1472,26 +1835,22 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
       <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <Eyebrow tone="teal">Citizen reports</Eyebrow>
-            <h3 className="text-sm font-medium text-stone-100 mt-0.5">Tree-cutting reported by citizens</h3>
+            <Eyebrow tone="teal">{gt.citizenReportsEyebrow}</Eyebrow>
+            <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.citizenReportsTitle}</h3>
           </div>
           {citizenReports?.reports && (
-            <span className="text-[11px] text-stone-400">{citizenReports.reports.length} report(s)</span>
+            <span className="text-[11px] text-stone-400">{gt.reportCount(citizenReports.reports.length)}</span>
           )}
         </div>
-        <p className="text-xs text-stone-400 mb-3">
-          Unverified — a complementary signal to the satellite model, not confirmed field findings.
-        </p>
+        <p className="text-xs text-stone-400 mb-3">{gt.citizenReportsSub}</p>
         {citizenReports?.loading ? (
-          <p className="text-xs text-stone-400 py-4">Loading citizen reports…</p>
+          <p className="text-xs text-stone-400 py-4">{gt.loadingCitizenReports}</p>
         ) : citizenReports?.error ? (
-          <p className="text-xs text-amber-500 py-4">Couldn't load citizen reports.</p>
+          <p className="text-xs text-amber-500 py-4">{gt.couldntLoadCitizenReports}</p>
         ) : citizenReports?.configured === false ? (
-          <p className="text-xs text-stone-400 py-4">
-            Not set up yet — see CITIZEN-REPORTS-SETUP.md to enable citizen reporting.
-          </p>
+          <p className="text-xs text-stone-400 py-4">{gt.reportsNotSetUp}</p>
         ) : !citizenReports?.reports || citizenReports.reports.length === 0 ? (
-          <p className="text-xs text-stone-400 py-4">No citizen reports submitted yet.</p>
+          <p className="text-xs text-stone-400 py-4">{gt.noCitizenReports}</p>
         ) : (
           <div className="space-y-2.5 max-h-64 overflow-y-auto">
             {citizenReports.reports.map((r) => (
@@ -1502,8 +1861,8 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                     <span className="font-medium">{r.district}</span> — {r.description}
                   </p>
                   <p className="text-[11px] text-stone-500 mt-0.5">
-                    {new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    {r.contact ? ` · contact: ${r.contact}` : ""}
+                    {new Date(r.created_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {r.contact ? ` · ${gt.contactLabel}: ${r.contact}` : ""}
                   </p>
                 </div>
               </div>
@@ -1569,6 +1928,10 @@ const CITIZEN_I18N = {
     reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
     reportError: "Couldn't submit your report. Please try again shortly.",
     reportTooShort: "Please add a few more words describing what you saw.",
+    legendSafe: "Safe",
+    legendCaution: "Caution",
+    legendHigh: "High risk",
+    listen: "Listen",
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -1609,6 +1972,10 @@ const CITIZEN_I18N = {
     reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
     reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
     reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
+    legendSafe: "নিরাপদ",
+    legendCaution: "সতর্কতা",
+    legendHigh: "উচ্চ ঝুঁকি",
+    listen: "শুনুন",
   },
 };
 
@@ -1798,7 +2165,7 @@ function CitizenReportForm({ district, lang }) {
 
 function CitizenDashboard({ onLogout }) {
   const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
-  const { citizenCards } = useDeforestationData();
+  const { citizenCards, districts: forestDistricts } = useDeforestationData();
   const { severity, summary, loading: floodLoading, error: floodError } = useNationalFloodData();
   const [lang, setLang] = useState("en");
   const t = CITIZEN_I18N[lang];
@@ -1836,6 +2203,15 @@ function CitizenDashboard({ onLogout }) {
   const selectedHeat = useMemo(
     () => (heatDistricts || []).find((d) => d.name === selectedDistrict) || null,
     [heatDistricts, selectedDistrict]
+  );
+
+  // Real forest-loss priority tier for the citizen's own district, from the
+  // same government-side deforestation data — not a new/invented signal —
+  // so the Deforestation hub card can carry a real color-coded risk level
+  // too, instead of being the one card with no risk color at all.
+  const selectedForestPriority = useMemo(
+    () => (forestDistricts || []).find((d) => d.district === selectedDistrict)?.priority || null,
+    [forestDistricts, selectedDistrict]
   );
 
   // Heatwave watch is reported at the national level (it's keyed to the
@@ -1907,11 +2283,26 @@ function CitizenDashboard({ onLogout }) {
 
             <p className="text-[11px] text-stone-500 -mb-1">{t.hubHint}</p>
 
+            {/* Always-visible color legend — the same red/amber/green scale
+                is used everywhere in this app, so once someone learns it
+                here, every badge and card below becomes readable by color
+                alone, without needing to read any tier word. */}
+            <div className="flex items-center gap-3 flex-wrap -mb-1">
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {t.legendSafe}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {t.legendCaution}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {t.legendHigh}
+              </span>
+            </div>
+
             {[
               {
                 key: "heat",
                 icon: Thermometer,
-                tone: "orange",
                 label: t.heatModuleLabel,
                 tier: selectedHeat?.risk_category || null,
                 sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
@@ -1919,7 +2310,6 @@ function CitizenDashboard({ onLogout }) {
               {
                 key: "flood",
                 icon: Droplets,
-                tone: "teal",
                 label: t.floodModuleLabel,
                 tier: selectedFlood?.severity_tier || null,
                 sub: selectedFlood
@@ -1931,30 +2321,37 @@ function CitizenDashboard({ onLogout }) {
               {
                 key: "forest",
                 icon: TreeDeciduous,
-                tone: "teal",
                 label: t.forestModuleLabel,
-                tier: null,
+                tier: selectedForestPriority,
                 sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
               },
-            ].map((m) => (
-              <button
-                key={m.key}
-                onClick={() => setCitizenView(m.key)}
-                className="w-full flex items-center gap-3 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
-              >
-                <IconBadge icon={m.icon} tone={m.tone} size={16} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-stone-100">{m.label}</div>
-                  <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
-                </div>
-                {m.tier && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
-                    {m.tier}
+            ].map((m) => {
+              // Icon color = risk level (red/amber/green), the same scale as
+              // the legend above and everywhere else in the app — this is
+              // the primary signal now, not each module's brand color.
+              const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => setCitizenView(m.key)}
+                  className="w-full flex items-center gap-3.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+                >
+                  <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+                    <m.icon size={22} />
                   </span>
-                )}
-                <ChevronRight size={16} className="text-stone-500 shrink-0" />
-              </button>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-stone-100">{m.label}</div>
+                    <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
+                  </div>
+                  {m.tier && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                      {tierLabel(m.tier, lang)}
+                    </span>
+                  )}
+                  <ChevronRight size={16} className="text-stone-500 shrink-0" />
+                </button>
+              );
+            })}
           </>
         ) : (
           <>
@@ -1968,46 +2365,55 @@ function CitizenDashboard({ onLogout }) {
               {selectedDistrict && <span className="text-[11px] text-stone-400">{selectedDistrict}</span>}
             </div>
 
-            {citizenView === "heat" && selectedHeat && (
-              <>
-                <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-stone-100">{t.heatMapTitle}</h3>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
-                      {selectedHeat.risk_category} risk
-                    </span>
-                  </div>
-                  {heatGrid ? (
-                    <div className="flex justify-center">
-                      <HeatGrid grid={heatGrid} compact />
-                    </div>
-                  ) : (
-                    <p className="text-xs text-stone-400 text-center py-4">Loading…</p>
-                  )}
-                </div>
+            {citizenView === "heat" && selectedHeat && (() => {
+              const advisory = heatAdvisory(selectedHeat.risk_category, lang);
+              const heroSpeak = `${tierLabel(selectedHeat.risk_category, lang)} — ${selectedHeat.lst_c.toFixed(1)}°C. ${advisory.body}`;
+              return (
+                <>
+                  <RiskHero
+                    icon={Thermometer}
+                    tier={selectedHeat.risk_category}
+                    title={tierLabel(selectedHeat.risk_category, lang)}
+                    sub={`${selectedHeat.lst_c.toFixed(1)}°C · ${selectedDistrict || ""}`}
+                    lang={lang}
+                    speak={heroSpeak}
+                    listenLabel={t.listen}
+                  />
 
-                <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                  <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
-                  <div className="text-xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {selectedHeat.lst_c.toFixed(1)}°C
-                  </div>
-                  <div className="text-[11px] text-stone-400 mt-0.5">{t.currentTemp}</div>
-                </div>
-
-                {(() => {
-                  const advisory = heatAdvisory(selectedHeat.risk_category, lang);
-                  return (
-                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                      <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
-                      <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
-                      {advisory.safeHours && (
-                        <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
-                      )}
+                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-stone-100">{t.heatMapTitle}</h3>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
+                        {tierLabel(selectedHeat.risk_category, lang)}
+                      </span>
                     </div>
-                  );
-                })()}
-              </>
-            )}
+                    {heatGrid ? (
+                      <div className="flex justify-center">
+                        <HeatGrid grid={heatGrid} compact />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
+                    )}
+                  </div>
+
+                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                    <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+                    <div className="text-xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {selectedHeat.lst_c.toFixed(1)}°C
+                    </div>
+                    <div className="text-[11px] text-stone-400 mt-0.5">{t.currentTemp}</div>
+                  </div>
+
+                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                    <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
+                    <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
+                    {advisory.safeHours && (
+                      <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
 
             {citizenView === "flood" &&
               (floodLoading || floodError || !selectedFlood ? (
@@ -2020,48 +2426,71 @@ function CitizenDashboard({ onLogout }) {
                   const tier = selectedFlood.severity_tier || "Moderate";
                   const c = tierColor(tier);
                   const steps = floodSafetySteps(tier, lang);
+                  const heroSpeak = `${tierLabel(tier, lang)} — ${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%. ${steps.join(" ")}`;
                   return (
-                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2.5">
-                          <IconBadge icon={Droplets} tone="teal" size={14} />
-                          <h3 className="text-sm font-medium text-stone-100">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
-                        </div>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tier}</span>
-                      </div>
-                      <p className="text-[11px] text-stone-400 mb-3 flex items-center gap-1.5 flex-wrap">
-                        <span>
-                          {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
-                          {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
-                        </span>
-                        {selectedFlood.risk_trend && (
-                          <span className="inline-flex items-center gap-1">
-                            <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
-                            {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
-                          </span>
-                        )}
-                      </p>
-                      <div className="space-y-2 mb-1">
-                        {steps.map((s, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <span className="w-1 h-1 rounded-full bg-stone-500 mt-1.5 shrink-0" />
-                            <p className="text-xs text-stone-300 leading-relaxed">{s}</p>
+                    <>
+                      <RiskHero
+                        icon={Droplets}
+                        tier={tier}
+                        title={tierLabel(tier, lang)}
+                        sub={`${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% · ${selectedFlood.district_name}`}
+                        lang={lang}
+                        speak={heroSpeak}
+                        listenLabel={t.listen}
+                      />
+                      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2.5">
+                            <IconBadge icon={Droplets} tone="teal" size={14} />
+                            <h3 className="text-sm font-medium text-stone-100">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
                           </div>
-                        ))}
-                      </div>
-                      {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
-                        <div className="mt-3 pt-3 border-t border-stone-700 space-y-1">
-                          <p className="text-[11px] text-stone-400">{t.emergencyLine}</p>
-                          <p className="text-[11px] text-stone-400">{t.emergencyLine2}</p>
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tierLabel(tier, lang)}</span>
                         </div>
-                      )}
-                    </div>
+                        <p className="text-[11px] text-stone-400 mb-3 flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                            {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                          </span>
+                          {selectedFlood.risk_trend && (
+                            <span className="inline-flex items-center gap-1">
+                              <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                              {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                            </span>
+                          )}
+                        </p>
+                        <div className="space-y-2 mb-1">
+                          {steps.map((s, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span className="w-1 h-1 rounded-full bg-stone-500 mt-1.5 shrink-0" />
+                              <p className="text-xs text-stone-300 leading-relaxed">{s}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
+                          <div className="mt-3 pt-3 border-t border-stone-700 space-y-1">
+                            <p className="text-[11px] text-stone-400">{t.emergencyLine}</p>
+                            <p className="text-[11px] text-stone-400">{t.emergencyLine2}</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   );
                 })()
               ))}
 
             {citizenView === "forest" && (
               <>
+                {treeCard && (
+                  <RiskHero
+                    icon={TreeDeciduous}
+                    tier={selectedForestPriority}
+                    title={selectedForestPriority ? tierLabel(selectedForestPriority, lang) : `${treeCard.forest_pct}%`}
+                    sub={`${treeCard.district} · ${treeCard.forest_pct}% ${lang === "bn" ? "গাছপালা" : "tree cover"}`}
+                    lang={lang}
+                    speak={`${treeCard.district}: ${treeCard.forest_pct}%. ${treeCard.message || ""}`}
+                    listenLabel={t.listen}
+                  />
+                )}
                 {treeCard && (
                   <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
                     <div className="flex items-center justify-between mb-3">
