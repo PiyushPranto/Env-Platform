@@ -1113,11 +1113,14 @@ const GOVT_I18N = {
     kpiValidatedAucSub: "real ground-truth test year",
     kpiTopPriority: "Top priority district",
     kpiTopPrioritySub: "highest mitigation priority",
+    kpiPopulationTopPriority: "Population, top-20 priority",
+    kpiPopulationTopPrioritySub: "real 2022 census, summed",
+    popLabel: (n) => `pop. ${n}`,
     liveFloodBanner: (window, dateStr) =>
       `Live — risk rescored every 3 days from real rainfall${window ? ` through ${window}` : ""}. Last refreshed ${dateStr}.`,
     mitigationPriority: "Mitigation priority",
     top20of64: "Top 20 of 64 districts",
-    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% area exposure",
+    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (2022 census)",
     badgeVsPercent: "The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.",
     moreDistricts: (n) => `+${n} more districts, ranked, in the full export.`,
     scoreDeltaTooltip: (prev, curr) =>
@@ -1257,11 +1260,14 @@ const GOVT_I18N = {
     kpiValidatedAucSub: "প্রকৃত গ্রাউন্ড-ট্রুথ পরীক্ষার বছর",
     kpiTopPriority: "শীর্ষ অগ্রাধিকার জেলা",
     kpiTopPrioritySub: "সর্বোচ্চ প্রশমন অগ্রাধিকার",
+    kpiPopulationTopPriority: "জনসংখ্যা, শীর্ষ-২০ অগ্রাধিকার",
+    kpiPopulationTopPrioritySub: "real ২০২২ census, যোগফল",
+    popLabel: (n) => `জনসংখ্যা ${n}`,
     liveFloodBanner: (window, dateStr) =>
       `লাইভ — প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে প্রতি ৩ দিন পরপর ঝুঁকি পুনর্মূল্যায়ন করা হয়${window ? ` — ${window} পর্যন্ত` : ""}। সর্বশেষ হালনাগাদ ${dateStr}।`,
     mitigationPriority: "প্রশমন অগ্রাধিকার",
     top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
-    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% এলাকার সংস্পর্শ",
+    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (২০২২ census)",
     badgeVsPercent: "ব্যাজটি ঐতিহাসিক তীব্রতা (অতীতের বন্যার মাত্রা) দেখায় — % হলো এই সপ্তাহের লাইভ পূর্বাভাসিত ঝুঁকি। একটি জেলার ইতিহাসে মারাত্মক বন্যা থাকতে পারে কিন্তু এই সপ্তাহ শান্ত, অথবা উল্টোটাও হতে পারে — তাই দুটো ভিন্ন হতে পারে।",
     moreDistricts: (n) => `সম্পূর্ণ এক্সপোর্টে আরও ${n} টি জেলা, ক্রমানুসারে।`,
     scoreDeltaTooltip: (prev, curr) =>
@@ -1965,6 +1971,13 @@ function FloodNationalView({ national, lang }) {
   const topPriority = (priority || []).slice(0, 20);
   const observedYears = summary.observed_years || [];
   const proxyYears = summary.proxy_years || [];
+  // Real 2022 census population summed across the top-20 priority districts —
+  // the actual number the population-weighted exposure term (see
+  // rankedByScore / summary.exposure_metric) is now grounded in, surfaced
+  // directly rather than left implicit in the score.
+  const populationInTopPriority = topPriority.reduce((sum, d) => sum + (d.population_2022 || 0), 0);
+  const formatPopulation = (n) =>
+    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : String(n);
 
   return (
     <>
@@ -1973,6 +1986,13 @@ function FloodNationalView({ national, lang }) {
         <Kpi label={gt.kpiValidatedRecall} value="83%" sub={gt.kpiValidatedRecallSub} icon={ShieldCheck} tone="teal" />
         <Kpi label={gt.kpiValidatedAuc} value="0.91" sub={gt.kpiValidatedAucSub} tone="teal" />
         <Kpi label={gt.kpiTopPriority} value={topPriority[0]?.district_name || "—"} sub={gt.kpiTopPrioritySub} icon={AlertTriangle} tone="red" />
+        <Kpi
+          label={gt.kpiPopulationTopPriority}
+          value={populationInTopPriority > 0 ? formatPopulation(populationInTopPriority) : "—"}
+          sub={gt.kpiPopulationTopPrioritySub}
+          icon={Users}
+          tone="amber"
+        />
       </div>
 
       {summary.last_refreshed_at && (
@@ -2058,7 +2078,14 @@ function FloodNationalView({ national, lang }) {
                 <div key={d.district_id} className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-stone-800/80 transition-colors">
                   <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
-                  <span className="flex-1 min-w-0 text-sm text-stone-200 truncate">{d.district_name}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm text-stone-200 truncate">{d.district_name}</span>
+                    {typeof d.population_2022 === "number" && (
+                      <span className="block text-[9px] text-stone-500 tabular-nums">
+                        {gt.popLabel(d.population_2022.toLocaleString())}
+                      </span>
+                    )}
+                  </span>
                   <span className="shrink-0 w-16 flex justify-center">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
                   </span>
@@ -2099,8 +2126,9 @@ function FloodNationalView({ national, lang }) {
               </div>
             )}
             <div className="pt-2 border-t border-stone-700">
-              <span className="text-stone-200">Exposure proxy:</span> district area (population data wasn't in the
-              original export — a disclosed limitation, not a hidden one)
+              <span className="text-stone-200">Exposure metric:</span> real 2022 census population per district
+              (Bangladesh Population and Housing Census 2022, BBS) — previously a disclosed limitation
+              (district area as a stand-in), now fixed with actual population figures.
             </div>
             {movementStats && (
               <div className="pt-2 border-t border-stone-700">
@@ -2460,6 +2488,7 @@ const CITIZEN_I18N = {
     projectionRising: (day, pct) => `Rising — ${day || "later this week"} looks worst, around ${pct}% predicted risk.`,
     projectionFalling: "Falling — this week's forecast rain eases up, risk trends down.",
     projectionSteady: "Steady — no sharp change expected over the next 7 days.",
+    districtPopulation: (n) => `${n} people live in this district (2022 census) — part of why it's ranked the way it is.`,
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -2523,6 +2552,7 @@ const CITIZEN_I18N = {
     projectionRising: (day, pct) => `বাড়ছে — ${day || "এই সপ্তাহের পরের দিকে"} সবচেয়ে খারাপ, প্রায় ${pct}% predicted risk।`,
     projectionFalling: "কমছে — এই সপ্তাহের পূর্বাভাসে বৃষ্টি কমছে, ঝুঁকি নিম্নমুখী।",
     projectionSteady: "স্থিতিশীল — পরের ৭ দিনে বড় কোনো পরিবর্তনের আশঙ্কা নেই।",
+    districtPopulation: (n) => `এই জেলায় ${n} জন মানুষ বসবাস করে (২০২২ census) — এটাও এই ranking-এর একটা কারণ।`,
   },
 };
 
@@ -3073,6 +3103,11 @@ function CitizenDashboard({ onLogout }) {
                             </span>
                           )}
                         </p>
+                        {typeof selectedFlood.population_2022 === "number" && (
+                          <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                            {t.districtPopulation(selectedFlood.population_2022.toLocaleString())}
+                          </p>
+                        )}
                         {typeof selectedFlood.previous_avg_predicted_risk === "number" && (
                           <p className="text-[11px] text-stone-500 mb-3 -mt-2">
                             {t.trendDetail(

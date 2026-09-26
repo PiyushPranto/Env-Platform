@@ -470,9 +470,12 @@ def flood_national_severity():
 def flood_national_priority():
     """All 64 districts ranked for flood-mitigation investment: a weighted
     composite of average predicted risk (50%), historical severity
-    magnitude (30%), and district area as an exposure proxy (20%) —
-    population wasn't in the original export, so area substitutes for it,
-    disclosed here as a known weak spot."""
+    magnitude (30%), and real 2022 census population as the exposure term
+    (20%) — each district's actual population, not the area_km2 stand-in
+    the export used before real population data was added. area_km2 is
+    still included per district for reference; it no longer feeds the
+    score. See flood_national_summary.json's "population_data_source" for
+    where the population figures came from."""
     return _load("flood_national_priority.json")
 
 

@@ -53,7 +53,24 @@ because it doesn't change):
     scripts/models/data/flood_model.joblib          - {"model", "feature_cols"}
     scripts/models/data/flood_districts_static.csv  - 64 rows: terrain + centroid
     scripts/models/data/flood_severity_static.csv   - 64 rows: historical DFO/GFD profile
+    scripts/models/data/flood_population_static.csv - 64 rows: real 2022 census population
     scripts/models/data/flood_training_provenance.json - static training-corpus facts
+
+EXPOSURE WEIGHT FIX (population data now used — previously a disclosed
+known weakness): the original export used district area (area_km2) as a
+stand-in for population in the 20%-weighted "exposure" term of
+priority_score, because population data wasn't part of the original
+export. That gap is now closed: flood_population_static.csv holds each
+district's real population from Bangladesh's 2022 Population and Housing
+Census (BBS), sourced from the Wikipedia division/district pages that
+carry those census infoboxes (en.wikipedia.org/wiki/<Division>_Division
+and en.wikipedia.org/wiki/<District>_District, fetched and cross-checked
+per district on 2026-09-26; the 64-district sum is ~164.9M, matching BBS's
+published national total of ~165.16M). priority_score's exposure term is
+now genuinely "how many people are in this district", not a geographic
+area stand-in — a materially more defensible number for a mitigation-
+investment ranking. area_km2 is still reported in the output (informational),
+it just no longer feeds the score.
 
 DATA THIS SCRIPT FETCHES LIVE, EVERY RUN:
     Daily precipitation_sum per district centroid, last ~104 days, from
@@ -82,6 +99,7 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 MODEL_PATH = DATA_DIR / "flood_model.joblib"
 DISTRICTS_STATIC_PATH = DATA_DIR / "flood_districts_static.csv"
 SEVERITY_STATIC_PATH = DATA_DIR / "flood_severity_static.csv"
+POPULATION_STATIC_PATH = DATA_DIR / "flood_population_static.csv"
 TRAINING_PROVENANCE_PATH = DATA_DIR / "flood_training_provenance.json"
 
 # The currently-LIVE output from the previous run (about to be replaced).
@@ -100,7 +118,11 @@ BUFFER_DAYS = 14         # extra days fetched before the window, only to seed ra
 MAX_RETRIES = 3
 RETRY_BACKOFF_SECONDS = 5
 
-RISK_WEIGHT, SEVERITY_WEIGHT, EXPOSURE_WEIGHT = 0.5, 0.3, 0.2  # unchanged from the original notebook
+RISK_WEIGHT, SEVERITY_WEIGHT, EXPOSURE_WEIGHT = 0.5, 0.3, 0.2  # weights unchanged from the original notebook
+POPULATION_DATA_SOURCE = (
+    "Bangladesh Population and Housing Census 2022 (BBS), via Wikipedia division/district "
+    "page infoboxes, cross-checked per district 2026-09-26"
+)
 
 
 def _read_csv(path: Path) -> list[dict]:
@@ -261,10 +283,18 @@ def generate(staging_dir: Path) -> None:
 
     districts = _read_csv(DISTRICTS_STATIC_PATH)
     severity_static = {int(r["district_id"]): r for r in _read_csv(SEVERITY_STATIC_PATH)}
+    population_static = {int(r["district_id"]): int(r["population_2022"]) for r in _read_csv(POPULATION_STATIC_PATH)}
     training_provenance = json.loads(TRAINING_PROVENANCE_PATH.read_text())
 
     if len(districts) != 64:
         raise RuntimeError(f"Expected 64 districts in {DISTRICTS_STATIC_PATH}, found {len(districts)}")
+
+    missing_population = [d["district_name"] for d in districts if int(d["district_id"]) not in population_static]
+    if missing_population:
+        raise RuntimeError(
+            f"No population figure for: {', '.join(missing_population)} — refusing to score exposure "
+            f"with an incomplete population table rather than silently defaulting to zero/area."
+        )
 
     end_date = (datetime.now(timezone.utc) - timedelta(days=LAG_DAYS)).date()
     start_date = end_date - timedelta(days=WINDOW_DAYS + BUFFER_DAYS - 1)
@@ -303,6 +333,7 @@ def generate(staging_dir: Path) -> None:
         sev = severity_static.get(did, {})
         historical_magnitude = float(sev.get("historical_magnitude", 0.0) or 0.0)
         has_recorded_event = str(sev.get("has_recorded_event", "False")).strip().lower() == "true"
+        population_2022 = population_static[did]
 
         severity_rows.append(
             {
@@ -318,6 +349,7 @@ def generate(staging_dir: Path) -> None:
                 "severity_tier": _assess_severity(avg_predicted_risk, historical_magnitude),
                 "previous_avg_predicted_risk": previous_avg_risk.get(did),
                 "risk_trend": _risk_trend(avg_predicted_risk, previous_avg_risk.get(did)),
+                "population_2022": population_2022,
             }
         )
 
@@ -326,6 +358,7 @@ def generate(staging_dir: Path) -> None:
                 "district_id": did,
                 "district_name": d["district_name"],
                 "area_km2": float(d["area_km2"]),
+                "population_2022": population_2022,
                 "avg_predicted_risk": avg_predicted_risk,
                 "historical_magnitude": historical_magnitude,
                 "has_recorded_event": has_recorded_event,
@@ -334,10 +367,14 @@ def generate(staging_dir: Path) -> None:
 
     risk_values = [p["avg_predicted_risk"] for p in priority_rows]
     sev_values = [p["historical_magnitude"] for p in priority_rows]
-    area_values = [p["area_km2"] for p in priority_rows]
+    # Exposure term: real 2022 census population per district, replacing the
+    # area_km2 stand-in the original export used (see POPULATION_DATA_SOURCE
+    # and the module docstring). area_km2 stays in the output for reference,
+    # it just no longer drives priority_score.
+    population_values = [p["population_2022"] for p in priority_rows]
     risk_norms = _normalize(risk_values)
     sev_norms = _normalize(sev_values)
-    exposure_norms = _normalize(area_values)
+    exposure_norms = _normalize(population_values)
 
     for p, rn, sn, en in zip(priority_rows, risk_norms, sev_norms, exposure_norms):
         p["risk_norm"] = rn
@@ -358,6 +395,8 @@ def generate(staging_dir: Path) -> None:
     }
     summary["last_refreshed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     summary["refresh_mode"] = "frozen_model_scored_on_live_open_meteo_rolling_window"
+    summary["exposure_metric"] = "population_2022"
+    summary["population_data_source"] = POPULATION_DATA_SOURCE
 
     (staging_dir / "flood_national_severity.json").write_text(json.dumps(severity_rows))
     (staging_dir / "flood_national_priority.json").write_text(json.dumps(priority_rows))
