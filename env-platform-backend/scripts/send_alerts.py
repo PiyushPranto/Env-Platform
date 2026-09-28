@@ -57,10 +57,35 @@ SMTP isn't configured, every alert that WOULD have been sent is printed
 instead (dry run) rather than failing the whole automation job — same
 non-strict philosophy as update_model_outputs.py: one broken piece here
 must never block the model-output commit this runs alongside.
+
+WHATSAPP (OPTIONAL, DEMO-ONLY — read before relying on this):
+    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN  - from the Twilio console
+    TWILIO_WHATSAPP_FROM                   - defaults to Twilio's shared
+                                              Sandbox number
+                                              "whatsapp:+14155238886"
+A subscriber who also gives a phone number gets the SAME alert over
+WhatsApp too, via Twilio's REST API (plain urllib, no twilio SDK — same
+dependency-minimalism as the Supabase client above). This uses Twilio's
+free WhatsApp SANDBOX, not a paid production WhatsApp Business sender, and
+that has one real, disclosed limitation: Twilio only allows a sandbox
+number to message someone who has first sent it a "join <code-words>"
+message from their own WhatsApp, and that opt-in session expires after a
+period of the recipient's inactivity (Twilio's docs call this the sandbox
+session window). Email is rescored and delivered every 3 days regardless;
+a WhatsApp send made after that recipient's sandbox session has lapsed
+will fail (logged as a per-recipient failure below, never fatal) until
+they resend the join message. This makes WhatsApp reliable for a live demo
+(rejoin right before triggering a run) but NOT a substitute for email as
+the always-on channel — that's why it's additive, never the only channel
+a subscription can pick. Fixing this for real production use means a paid
+Twilio WhatsApp Business sender (or another approved provider), which is
+out of scope for this thesis project — documented here as an honest,
+known limitation rather than silently pretended away.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import smtplib
@@ -87,6 +112,10 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 ALERT_FROM_EMAIL = os.environ.get("ALERT_FROM_EMAIL") or SMTP_USER
 ALERT_FROM_NAME = os.environ.get("ALERT_FROM_NAME") or "Environmental Risk Platform"
 PUBLIC_API_BASE_URL = (os.environ.get("PUBLIC_API_BASE_URL") or "https://env-platform-u7jb.vercel.app").rstrip("/")
+
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_WHATSAPP_FROM = os.environ.get("TWILIO_WHATSAPP_FROM") or "whatsapp:+14155238886"
 
 FLOOD_ALERT_THRESHOLD = 0.5  # avg_predicted_risk (0-1) that counts as "high enough to warn about"
 
@@ -174,6 +203,50 @@ def _send_email(to_email: str, subject: str, body: str) -> bool:
         return True
     except Exception as e:  # noqa: BLE001 — one bad send must never crash the run
         print(f"  FAILED to email {to_email}: {e}")
+        return False
+
+
+def _twilio_configured() -> bool:
+    return bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN)
+
+
+def _send_whatsapp(to_phone: str, body: str) -> bool:
+    """Returns True if Twilio accepted the message, False if only dry-run
+    logged or the send failed. Never raises — see the module docstring's
+    WHATSAPP section for why a failure here (most commonly: the recipient's
+    Twilio Sandbox join session has lapsed) must never stop email delivery
+    or fail the automation job."""
+    if not _twilio_configured():
+        print(f"  [dry-run, Twilio not configured] would WhatsApp {to_phone}: {body[:60]}...")
+        return False
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
+    data = urllib.parse.urlencode({
+        "From": TWILIO_WHATSAPP_FROM if TWILIO_WHATSAPP_FROM.startswith("whatsapp:") else f"whatsapp:{TWILIO_WHATSAPP_FROM}",
+        "To": f"whatsapp:{to_phone}",
+        "Body": body,
+    }).encode()
+    basic = base64.b64encode(f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}".encode()).decode()
+    req = urllib.request.Request(
+        url, data=data, method="POST",
+        headers={
+            "Authorization": f"Basic {basic}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            resp.read()
+        print(f"  WhatsApp sent to {to_phone}")
+        return True
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        # Most common cause here: error 63016 — the recipient's Sandbox join
+        # session has expired and they need to resend "join <code>" on
+        # WhatsApp before they can receive anything else. Logged, not fatal.
+        print(f"  FAILED to WhatsApp {to_phone}: HTTP {e.code}: {detail[:200]}")
+        return False
+    except Exception as e:  # noqa: BLE001 — one bad send must never crash the run
+        print(f"  FAILED to WhatsApp {to_phone}: {e}")
         return False
 
 
@@ -267,9 +340,12 @@ def main() -> int:
         "ran_at": _now_iso(),
         "supabase_configured": _supabase_configured(),
         "smtp_configured": _smtp_configured(),
+        "twilio_configured": _twilio_configured(),
         "subscriptions_checked": 0,
         "flood_emails_sent": 0,
         "heat_emails_sent": 0,
+        "flood_whatsapp_sent": 0,
+        "heat_whatsapp_sent": 0,
         "note": None,
     }
 
@@ -312,6 +388,8 @@ def main() -> int:
         body += "\n\n" + ("সাবস্ক্রিপশন বাতিল: " if lang == "bn" else "Unsubscribe: ") + _unsubscribe_link(sub["unsubscribe_token"])
         if _send_email(sub["email"], subject, body):
             status["flood_emails_sent"] += 1
+        if sub.get("phone") and _send_whatsapp(sub["phone"], f"{subject}\n\n{body}"):
+            status["flood_whatsapp_sent"] += 1
 
     # --- Heat: national notice, once per new forecast run ---
     heat_payload = _load_json("heat_alerts.json") or {}
@@ -324,6 +402,8 @@ def main() -> int:
         body += "\n\n" + ("সাবস্ক্রিপশন বাতিল: " if lang == "bn" else "Unsubscribe: ") + _unsubscribe_link(sub["unsubscribe_token"])
         if _send_email(sub["email"], subject, body):
             status["heat_emails_sent"] += 1
+        if sub.get("phone") and _send_whatsapp(sub["phone"], f"{subject}\n\n{body}"):
+            status["heat_whatsapp_sent"] += 1
     if heat_recipients and heat_payload.get("generated_at"):
         state["heat_last_alerted_generated_at"] = heat_payload["generated_at"]
         _save_state(state)

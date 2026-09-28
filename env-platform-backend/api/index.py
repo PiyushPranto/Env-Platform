@@ -520,6 +520,7 @@ def flood_national_projection():
 # ---------------------------------------------------------------------------
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")  # E.164: + then 8-15 digits total
 ALLOWED_HAZARDS = {"flood", "heat"}
 
 
@@ -528,6 +529,10 @@ class AlertSubscribeRequest(BaseModel):
     district: str = Field(min_length=1, max_length=64)
     hazards: list[str] = Field(min_length=1, max_length=2)
     lang: str = Field(default="en")
+    # Optional WhatsApp channel (Twilio Sandbox — see ALERTS-SETUP.md Part 3
+    # for why this is demo-only, not a production-grade channel yet). None
+    # means email-only, unchanged from before this field existed.
+    phone: Optional[str] = Field(default=None, max_length=20)
 
     @field_validator("email")
     @classmethod
@@ -558,6 +563,16 @@ class AlertSubscribeRequest(BaseModel):
     def _valid_lang(cls, v: str) -> str:
         return v if v in ("en", "bn") else "en"
 
+    @field_validator("phone")
+    @classmethod
+    def _valid_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or not v.strip():
+            return None
+        v = v.strip().replace(" ", "")
+        if not PHONE_RE.match(v):
+            raise ValueError("phone must be in international format, e.g. +8801XXXXXXXXX")
+        return v
+
 
 @app.post("/alerts/subscribe")
 def subscribe_to_alerts(request: AlertSubscribeRequest):
@@ -576,6 +591,7 @@ def subscribe_to_alerts(request: AlertSubscribeRequest):
     try:
         sub = alert_subscriptions_db.create_or_update_subscription(
             email=request.email, district=request.district, hazards=request.hazards, lang=request.lang,
+            phone=request.phone,
         )
     except alert_subscriptions_db.SupabaseError as e:
         raise HTTPException(status_code=503, detail=f"Couldn't save subscription: {e}")
@@ -584,6 +600,7 @@ def subscribe_to_alerts(request: AlertSubscribeRequest):
         "email": sub["email"],
         "district": sub["district"],
         "hazards": sub["hazards"].split(","),
+        "phone": sub.get("phone"),
     }
 
 

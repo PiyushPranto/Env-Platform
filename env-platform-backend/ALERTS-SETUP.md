@@ -78,6 +78,64 @@ A free Gmail account comfortably handles this project's scale (Gmail's own
 daily send cap is far above what 64 districts' worth of subscribers would
 ever trigger in a single 3-day run).
 
+## Part 3 — WhatsApp, optional (Twilio Sandbox — demo, not production)
+
+Citizens can also opt into getting the same alert on WhatsApp by adding a
+phone number. **Read this whole section before setting it up** — it's built
+on Twilio's free Sandbox, which has one real limitation worth knowing
+upfront: it is genuinely useful for a live demo (e.g. your thesis defense),
+but not reliable as an always-on channel the way email is. That's why it's
+additive — a subscriber always keeps getting email regardless of whether
+they also add WhatsApp.
+
+**Why the limitation exists:** Twilio's Sandbox only lets you message a
+phone number *after* that number has sent it a "join <code-words>" message
+from WhatsApp — and that opt-in expires after a period of the recipient's
+inactivity. Since this platform's alerts fire automatically every 3 days,
+if a subscriber's sandbox session has lapsed by the time an alert fires,
+their WhatsApp message will fail quietly (logged in the Actions run, never
+breaks the automation) while their email still arrives. A paid Twilio
+WhatsApp Business sender removes this limitation entirely, but costs money
+and requires Meta's business approval — out of scope here; this is an
+honest, disclosed limitation, not a bug.
+
+**Setup:**
+
+1. Create a free account at [twilio.com/try-twilio](https://www.twilio.com/try-twilio).
+2. In the Twilio Console, go to **Messaging → Try it out → Send a WhatsApp message**.
+   This shows you a Sandbox phone number (usually `+1 415 523 8886`) and a
+   unique join code like `join happy-tiger`. Anyone who wants WhatsApp
+   alerts must send that exact phrase to that number from their own
+   WhatsApp first (once — it's how Twilio's Sandbox knows it's allowed to
+   message them back).
+3. From the Console's main dashboard, copy your **Account SID** and
+   **Auth Token**.
+4. Add 3 more GitHub Actions secrets (same page as Part 2's table):
+
+   | Secret | Example | Notes |
+   |---|---|---|
+   | `TWILIO_ACCOUNT_SID` | `ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` | |
+   | `TWILIO_AUTH_TOKEN` | (from the Console dashboard) | |
+   | `TWILIO_WHATSAPP_FROM` | `whatsapp:+14155238886` | Keep the `whatsapp:` prefix; only change the number if you upgrade past the Sandbox |
+
+5. In `src/environmental-risk-platform.jsx`, find `WHATSAPP_SANDBOX_NUMBER`
+   and `WHATSAPP_SANDBOX_JOIN_CODE` near the top of the file and replace
+   them with your actual Sandbox number and join phrase from step 2 — this
+   is only used to show the citizen the right instructions in the
+   dashboard's "Also get this on WhatsApp (demo)" section, it isn't a
+   credential.
+6. In Supabase's SQL Editor, add the one new column this needs:
+
+   ```sql
+   alter table alert_subscriptions add column phone text;
+   ```
+
+**Demoing it live:** right before you trigger a run (or shortly before the
+scheduled one fires), send the join message again from your phone to
+refresh the session, then subscribe with that phone number on the
+dashboard. That guarantees the Sandbox session is active when the alert
+actually sends.
+
 ## What actually triggers an email
 
 - **Flood**: a subscribed district's live `avg_predicted_risk` (rescored
@@ -101,10 +159,11 @@ exact thresholds.
 
 ## What's actually stored / privacy
 
-- Email, district, which hazard(s) they picked, and a language preference
-  — no login, no verification step (same low-friction, anonymous design as
-  the citizen report feature). No personal data beyond the email address
-  is required.
+- Email, district, which hazard(s) they picked, a language preference, and
+  (only if they opted into WhatsApp) a phone number — no login, no
+  verification step (same low-friction, anonymous design as the citizen
+  report feature). Phone is entirely optional; email-only subscriptions
+  store `phone` as null.
 - A random, unguessable `unsubscribe_token` is generated per subscription
   and included in every email's one-click unsubscribe link
   (`GET /alerts/unsubscribe?token=...`) — no login needed to unsubscribe

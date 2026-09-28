@@ -50,6 +50,7 @@ class SubscriptionRow(TypedDict):
     lang: str
     unsubscribe_token: str
     created_at: str
+    phone: Optional[str]
 
 
 class SupabaseError(Exception):
@@ -108,18 +109,25 @@ def get_by_email_district(email: str, district: str) -> Optional[SubscriptionRow
     return rows[0] if rows else None
 
 
-def create_or_update_subscription(email: str, district: str, hazards: list[str], lang: str) -> SubscriptionRow:
+def create_or_update_subscription(
+    email: str, district: str, hazards: list[str], lang: str, phone: Optional[str] = None,
+) -> SubscriptionRow:
     """Idempotent resubscribe: if this email already subscribed to this
-    district, update its hazards/lang in place (keeping the SAME
+    district, update its hazards/lang/phone in place (keeping the SAME
     unsubscribe_token, so any link already emailed to them keeps working)
-    rather than creating a duplicate row."""
+    rather than creating a duplicate row.
+
+    `phone` is optional (E.164 format, e.g. "+8801XXXXXXXXX") — set only if
+    the citizen also opted into the WhatsApp channel (see
+    scripts/send_alerts.py's Twilio Sandbox section). None/omitted means
+    email-only, same as before this field existed."""
     hazards_str = ",".join(sorted(set(hazards)))
     existing = get_by_email_district(email, district)
     if existing:
         rows = _request(
             "PATCH", TABLE,
             params={"id": f"eq.{existing['id']}"},
-            body={"hazards": hazards_str, "lang": lang},
+            body={"hazards": hazards_str, "lang": lang, "phone": phone},
             prefer="return=representation",
         )
         return rows[0]
@@ -128,6 +136,7 @@ def create_or_update_subscription(email: str, district: str, hazards: list[str],
         "district": district,
         "hazards": hazards_str,
         "lang": lang,
+        "phone": phone,
         "unsubscribe_token": secrets.token_urlsafe(24),
     }
     rows = _request("POST", TABLE, body=body, prefer="return=representation")

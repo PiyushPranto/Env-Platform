@@ -20,6 +20,18 @@ import {
 const API_BASE =
   import.meta.env.VITE_API_URL || "https://env-platform-u7jb.vercel.app";
 
+// WhatsApp alerts (optional, demo-only — see ALERTS-SETUP.md Part 3):
+// Twilio's free Sandbox requires the recipient to first send a fixed
+// "join <code-words>" message to a fixed Sandbox number before the backend
+// can message them back. Both values are specific to whoever's Twilio
+// account is wired up in scripts/send_alerts.py — replace
+// WHATSAPP_SANDBOX_JOIN_CODE below with the exact words Twilio's console
+// shows you (Console -> Messaging -> Try it out -> Send a WhatsApp message)
+// once you set that up; until then this is a harmless placeholder shown in
+// the UI's instructions text, not a real credential.
+const WHATSAPP_SANDBOX_NUMBER = "+1 415 523 8886";
+const WHATSAPP_SANDBOX_JOIN_CODE = "join your-sandbox-code";
+
 // ---------------------------------------------------------------------------
 // Fallback / placeholder data (used only while loading or if a call fails,
 // so the UI never looks broken)
@@ -2559,6 +2571,10 @@ const CITIZEN_I18N = {
     alertSubscribeInvalid: "Enter an email and pick at least one alert type.",
     alertSubscribeNotConfigured: "Alerts aren't accepted yet — this feature needs one more setup step on the backend.",
     alertSubscribeError: "Couldn't save your subscription. Please try again shortly.",
+    alertWhatsappLabel: "Also get this on WhatsApp (demo)",
+    alertPhonePlaceholder: "WhatsApp number, e.g. +8801XXXXXXXXX",
+    alertPhoneInvalid: "Enter a valid WhatsApp number in international format, e.g. +8801XXXXXXXXX.",
+    alertWhatsappJoinNote: "Demo feature — first send \"{code}\" to {number} on WhatsApp (one-time), then enter your number below.",
     legendSafe: "Safe",
     legendCaution: "Caution",
     legendHigh: "High risk",
@@ -2635,6 +2651,10 @@ const CITIZEN_I18N = {
     alertSubscribeInvalid: "একটি ইমেইল লিখুন এবং অন্তত একটি সতর্কতার ধরন বেছে নিন।",
     alertSubscribeNotConfigured: "সতর্কতা এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
     alertSubscribeError: "আপনার সাবস্ক্রিপশন সংরক্ষণ করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    alertWhatsappLabel: "WhatsApp-এও পেতে চাই (ডেমো)",
+    alertPhonePlaceholder: "WhatsApp নম্বর, যেমন +8801XXXXXXXXX",
+    alertPhoneInvalid: "সঠিক আন্তর্জাতিক ফরম্যাটে WhatsApp নম্বর দিন, যেমন +8801XXXXXXXXX।",
+    alertWhatsappJoinNote: "ডেমো ফিচার — প্রথমে WhatsApp থেকে \"{code}\" লিখে {number} নম্বরে পাঠান (একবার মাত্র), তারপর নিচে আপনার নম্বর লিখুন।",
     legendSafe: "নিরাপদ",
     legendCaution: "সতর্কতা",
     legendHigh: "উচ্চ ঝুঁকি",
@@ -2859,7 +2879,9 @@ function AlertSubscribeForm({ district, lang }) {
   const t = CITIZEN_I18N[lang];
   const [email, setEmail] = useState("");
   const [hazards, setHazards] = useState({ flood: true, heat: false });
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | invalid
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | invalid | invalid_phone
   const [errorDetail, setErrorDetail] = useState("");
 
   function toggleHazard(key) {
@@ -2873,13 +2895,23 @@ function AlertSubscribeForm({ district, lang }) {
       setStatus("invalid");
       return;
     }
+    if (wantsWhatsapp && !/^\+[1-9]\d{7,14}$/.test(phone.trim())) {
+      setStatus("invalid_phone");
+      return;
+    }
     setStatus("sending");
     setErrorDetail("");
     try {
       const res = await fetch(`${API_BASE}/alerts/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), district, hazards: selected, lang }),
+        body: JSON.stringify({
+          email: email.trim(),
+          district,
+          hazards: selected,
+          lang,
+          phone: wantsWhatsapp ? phone.trim() : null,
+        }),
       });
       if (res.status === 503) {
         setStatus("not_configured");
@@ -2927,7 +2959,35 @@ function AlertSubscribeForm({ district, lang }) {
               {t.hazardHeat}
             </label>
           </div>
+
+          <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={wantsWhatsapp}
+              onChange={() => setWantsWhatsapp((w) => !w)}
+              className="accent-emerald-500"
+            />
+            {t.alertWhatsappLabel}
+          </label>
+          {wantsWhatsapp && (
+            <div className="space-y-1.5 pl-0.5">
+              <p className="text-[10px] text-stone-500 leading-relaxed">
+                {t.alertWhatsappJoinNote
+                  .replace("{code}", WHATSAPP_SANDBOX_JOIN_CODE)
+                  .replace("{number}", WHATSAPP_SANDBOX_NUMBER)}
+              </p>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t.alertPhonePlaceholder}
+                className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+          )}
+
           {status === "invalid" && <p className="text-[11px] text-amber-400">{t.alertSubscribeInvalid}</p>}
+          {status === "invalid_phone" && <p className="text-[11px] text-amber-400">{t.alertPhoneInvalid}</p>}
           {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.alertSubscribeNotConfigured}</p>}
           {status === "error" && <p className="text-[11px] text-amber-400">{t.alertSubscribeError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
           <button

@@ -182,5 +182,8 @@ than in your actual deployment:
    `flood_export.py` should be built around — see the Flood section above.
 5. This workflow also runs `scripts/send_alerts.py` after the model
    automation, emailing citizens who subscribed for proactive alerts (see
-   the Citizen dashboard's "Get alerted automatically" card). It's a silent
-   no-op until you set it up — see `ALERTS-SETUP.md`.
+   the Citizen dashboard's "Get alerted automatically" card), and optionally
+   also messaging them on WhatsApp if they added a phone number (demo-only,
+   via Twilio's free Sandbox — see the limitation explained in
+   `ALERTS-SETUP.md` Part 3). It's a silent no-op until you set it up — see
+   `ALERTS-SETUP.md`.
