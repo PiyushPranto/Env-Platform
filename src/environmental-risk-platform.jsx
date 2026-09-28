@@ -2548,6 +2548,17 @@ const CITIZEN_I18N = {
     reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
     reportError: "Couldn't submit your report. Please try again shortly.",
     reportTooShort: "Please add a few more words describing what you saw.",
+    alertSubscribeTitle: "Get alerted automatically",
+    alertSubscribeHint: "Don't wait to check the app — get an email the moment your area's risk actually goes up. No account needed.",
+    alertEmailPlaceholder: "Your email address",
+    hazardFlood: "Flood",
+    hazardHeat: "Heatwave (national watch)",
+    alertSubscribeButton: "Subscribe",
+    alertSubscribeSending: "Subscribing…",
+    alertSubscribeSuccess: "You're subscribed — we'll only email you when your risk actually changes.",
+    alertSubscribeInvalid: "Enter an email and pick at least one alert type.",
+    alertSubscribeNotConfigured: "Alerts aren't accepted yet — this feature needs one more setup step on the backend.",
+    alertSubscribeError: "Couldn't save your subscription. Please try again shortly.",
     legendSafe: "Safe",
     legendCaution: "Caution",
     legendHigh: "High risk",
@@ -2613,6 +2624,17 @@ const CITIZEN_I18N = {
     reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
     reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
     reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
+    alertSubscribeTitle: "স্বয়ংক্রিয় সতর্কতা পান",
+    alertSubscribeHint: "অ্যাপ চেক করার জন্য অপেক্ষা করবেন না — আপনার এলাকার ঝুঁকি সত্যিই বাড়লে সাথে সাথে ইমেইল পাবেন। কোনো অ্যাকাউন্ট লাগবে না।",
+    alertEmailPlaceholder: "আপনার ইমেইল ঠিকানা",
+    hazardFlood: "বন্যা",
+    hazardHeat: "তাপপ্রবাহ (জাতীয় সতর্কতা)",
+    alertSubscribeButton: "সাবস্ক্রাইব করুন",
+    alertSubscribeSending: "সাবস্ক্রাইব হচ্ছে…",
+    alertSubscribeSuccess: "আপনি সাবস্ক্রাইব করেছেন — ঝুঁকি সত্যিই পরিবর্তন হলেই কেবল আমরা ইমেইল পাঠাবো।",
+    alertSubscribeInvalid: "একটি ইমেইল লিখুন এবং অন্তত একটি সতর্কতার ধরন বেছে নিন।",
+    alertSubscribeNotConfigured: "সতর্কতা এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    alertSubscribeError: "আপনার সাবস্ক্রিপশন সংরক্ষণ করা যায়নি। একটু পর আবার চেষ্টা করুন।",
     legendSafe: "নিরাপদ",
     legendCaution: "সতর্কতা",
     legendHigh: "উচ্চ ঝুঁকি",
@@ -2818,6 +2840,102 @@ function CitizenReportForm({ district, lang }) {
             className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
             {status === "sending" ? t.reportSending : t.reportSubmit}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// Proactive alert subscription — the one piece that turns this dashboard
+// from "pull" (a citizen has to open the app to check) into an actual
+// early-warning system: subscribe an email to a district + hazard(s), and
+// scripts/send_alerts.py (same every-3-day automation that refreshes the
+// model data) emails automatically when that district's LIVE flood risk
+// newly crosses into dangerous territory, or a new national heatwave
+// forecast is issued. No login, no verification step — same low-friction,
+// anonymous design as the citizen report form above.
+function AlertSubscribeForm({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [email, setEmail] = useState("");
+  const [hazards, setHazards] = useState({ flood: true, heat: false });
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | invalid
+  const [errorDetail, setErrorDetail] = useState("");
+
+  function toggleHazard(key) {
+    setHazards((h) => ({ ...h, [key]: !h[key] }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const selected = Object.keys(hazards).filter((k) => hazards[k]);
+    if (!email.trim() || selected.length === 0 || !district) {
+      setStatus("invalid");
+      return;
+    }
+    setStatus("sending");
+    setErrorDetail("");
+    try {
+      const res = await fetch(`${API_BASE}/alerts/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), district, hazards: selected, lang }),
+      });
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(typeof body.detail === "string" ? body.detail : "");
+        setStatus("error");
+        return;
+      }
+      setStatus("sent");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="bg-gradient-to-b from-emerald-950/30 to-stone-800/30 border border-emerald-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Bell} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.alertSubscribeTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.alertSubscribeHint}</p>
+
+      {status === "sent" ? (
+        <p className="text-xs text-emerald-300">{t.alertSubscribeSuccess}</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t.alertEmailPlaceholder}
+            className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+          />
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer">
+              <input type="checkbox" checked={hazards.flood} onChange={() => toggleHazard("flood")} className="accent-emerald-500" />
+              {t.hazardFlood}
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer">
+              <input type="checkbox" checked={hazards.heat} onChange={() => toggleHazard("heat")} className="accent-emerald-500" />
+              {t.hazardHeat}
+            </label>
+          </div>
+          {status === "invalid" && <p className="text-[11px] text-amber-400">{t.alertSubscribeInvalid}</p>}
+          {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.alertSubscribeNotConfigured}</p>}
+          {status === "error" && <p className="text-[11px] text-amber-400">{t.alertSubscribeError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            {status === "sending" ? t.alertSubscribeSending : t.alertSubscribeButton}
           </button>
         </form>
       )}
@@ -3128,6 +3246,8 @@ function CitizenDashboard({ onLogout }) {
                 );
               })}
             </div>
+
+            {selectedDistrict && <AlertSubscribeForm district={selectedDistrict} lang={lang} />}
 
             <EmergencyHelplineCard t={t} />
           </>
