@@ -6,7 +6,7 @@ import {
   Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
   Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
   FileText, X, Lock, ChevronRight, Radar, Building2, Sprout, ArrowLeft,
-  UserPlus, ShieldAlert, Info, Send, Volume2, Languages, Share2, Phone, Type,
+  UserPlus, ShieldAlert, Info, Send, Volume2, VolumeX, Languages, Share2, Phone, Type,
   CloudRain, Sun, Cloud,
 } from "lucide-react";
 
@@ -40,14 +40,15 @@ const OTHER_MODULES = [
 
 function tempToColor(t) {
   if (t === null || t === undefined) return "rgb(68,64,60)"; // stone-700 — "no data" cell
-  // Calibrated to the real Mar-May 2026 composite's actual range (~23.9-28.1C
-  // across all 64 districts) — the old 29-39C stops were left over from an
-  // earlier placeholder and clamped every real cell to the same flat color.
+  // Legend range is 20-30°C (per team review) — stretched proportionally
+  // from the previous 25-30 breakpoints so the real Mar-May 2026 composite's
+  // actual range (~23.9-28.1C across all 64 districts) still differentiates
+  // meaningfully across the whole scale instead of clamping near one end.
   const stops = [
-    { t: 25, c: [45, 130, 130] },
-    { t: 26.5, c: [90, 150, 90] },
-    { t: 28, c: [210, 170, 40] },
-    { t: 29, c: [225, 120, 30] },
+    { t: 20, c: [45, 130, 130] },
+    { t: 23, c: [90, 150, 90] },
+    { t: 26, c: [210, 170, 40] },
+    { t: 28, c: [225, 120, 30] },
     { t: 30, c: [190, 40, 30] },
   ];
   let lo = stops[0], hi = stops[stops.length - 1];
@@ -136,31 +137,63 @@ function tierLabel(tier, lang) {
 // text-to-speech — no backend, no API key, and a real accessibility aid for
 // a citizen who can't read, not a cosmetic icon. Bangla voice availability
 // varies by device/browser, so this quietly no-ops rather than pretending
-// to work everywhere.
-function speakText(text, lang) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
-  try {
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang === "bn" ? "bn-BD" : "en-US";
-    utter.rate = 0.95;
-    window.speechSynthesis.speak(utter);
-  } catch {
-    // Some embedded/webview browsers throw on speech synthesis — fail
-    // silently rather than breaking the page over a nice-to-have.
-  }
-}
-
-function SpeakButton({ text, lang, label }) {
+// to work everywhere. Tracks its own "speaking" state so a second tap
+// actually stops the audio instead of just restarting the same clip —
+// window.speechSynthesis has no built-in toggle, so onend/onerror are what
+// bring the button back to its resting state when speech finishes on its
+// own (not just when the person taps stop).
+function SpeakButton({ text, lang, label, stopLabel }) {
   const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+  const [speaking, setSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (supported) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // no-op
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!supported || !text) return null;
+
+  function handleClick() {
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang === "bn" ? "bn-BD" : "en-US";
+      utter.rate = 0.95;
+      utter.onend = () => setSpeaking(false);
+      utter.onerror = () => setSpeaking(false);
+      window.speechSynthesis.speak(utter);
+      setSpeaking(true);
+    } catch {
+      // Some embedded/webview browsers throw on speech synthesis — fail
+      // silently rather than breaking the page over a nice-to-have.
+      setSpeaking(false);
+    }
+  }
+
   return (
     <button
       type="button"
-      onClick={() => speakText(text, lang)}
-      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+      onClick={handleClick}
+      className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border active:scale-[0.97] transition-all shrink-0 ${
+        speaking
+          ? "border-emerald-600 text-emerald-300 bg-emerald-900/20"
+          : "border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800"
+      }`}
     >
-      <Volume2 size={13} /> {label}
+      {speaking ? <VolumeX size={13} /> : <Volume2 size={13} />} {speaking ? (stopLabel || label) : label}
     </button>
   );
 }
@@ -238,8 +271,6 @@ function SaveCardButton({ content, filename, label }) {
 // tel: links dial directly on a phone browser — no app, no data needed.
 const EMERGENCY_HELPLINES = [
   { number: "999", labelKey: "emergencyNational" },
-  { number: "1098", labelKey: "emergencyChild" },
-  { number: "109", labelKey: "emergencyWomenChild" },
   { number: "333", labelKey: "emergencyGovtInfo" },
   { number: "16123", labelKey: "emergencyAgri" },
 ];
@@ -275,7 +306,7 @@ function EmergencyHelplineCard({ t }) {
 // tier word and a Listen button are secondary support for whoever wants
 // them. Everything below this block (maps, charts, exact numbers) is
 // unchanged — this is a plain-language summary placed in front of it.
-function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel, shareLabel, saveLabel, saveFilename }) {
+function RiskHero({ icon: Icon, tier, title, sub, lang, speak, saveContent, listenLabel, stopListenLabel, shareLabel, saveLabel, saveFilename }) {
   const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(tier)] || "slate";
   const bg = tier ? tierColor(tier).bg : "bg-stone-800/40";
   const hasActions = speak || shareLabel || saveLabel;
@@ -289,16 +320,42 @@ function RiskHero({ icon: Icon, tier, title, sub, lang, speak, listenLabel, shar
           <div className="text-base font-semibold text-stone-50 truncate">{title}</div>
           {sub && <div className="text-xs text-stone-300 mt-0.5 truncate">{sub}</div>}
         </div>
-        {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} />}
+        {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} stopLabel={stopListenLabel} />}
       </div>
       {hasActions && (shareLabel || saveLabel) && (
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-700/60 flex-wrap">
           {shareLabel && <ShareButton text={speak} label={shareLabel} />}
-          {saveLabel && <SaveCardButton content={speak} filename={saveFilename || "safety-info.txt"} label={saveLabel} />}
+          {/* Saved file gets the fuller write-up (saveContent) when the
+              caller provides one — safety steps, helpline numbers, a
+              timestamp — rather than just the one-line speech text, so it's
+              actually useful read back offline later. Falls back to speak
+              for any caller that hasn't been updated. */}
+          {saveLabel && <SaveCardButton content={saveContent || speak} filename={saveFilename || "safety-info.txt"} label={saveLabel} />}
         </div>
       )}
     </div>
   );
+}
+
+// Builds the richer, multi-line text saved to disk by SaveCardButton: a
+// title, the real body content (safety steps / advisory / message — never
+// just the flattened one-line speech string), the real emergency helpline
+// numbers, and a save timestamp — so the file is actually useful read back
+// with zero connectivity, not just a restatement of what "Listen" already
+// said out loud.
+function buildSaveContent(title, bodyLines, lang) {
+  const stamp = new Date().toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+  const helplines = EMERGENCY_HELPLINES.map((h) => h.number).join(" / ");
+  return [
+    title,
+    "",
+    ...bodyLines,
+    "",
+    (lang === "bn" ? "জরুরি নম্বর: " : "Emergency numbers: ") + helplines,
+    (lang === "bn" ? "সংরক্ষণ করা হয়েছে: " : "Saved: ") + stamp,
+  ].join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +545,7 @@ function LiveForecastStrip({ forecast, lang, title, hint }) {
 // absence is never treated as an error.
 function projectionRiskTone(risk) {
   if (risk >= 0.6) return { bar: "bg-red-500", text: "text-red-400" };
-  if (risk >= 0.4) return { bar: "bg-orange-500", text: "text-orange-400" };
+  if (risk >= 0.4) return { bar: "bg-emerald-500", text: "text-emerald-400" };
   if (risk >= 0.2) return { bar: "bg-amber-500", text: "text-amber-400" };
   return { bar: "bg-emerald-500", text: "text-emerald-400" };
 }
@@ -855,7 +912,7 @@ function HeatGrid({ grid, compact, colorFn = tempToColor, labelFn = (t) => (t ==
 // slightly more premium "icon in a badge" look instead of a bare icon.
 const ICON_BADGE_TONES = {
   slate: "bg-stone-700/80 text-stone-300 ring-1 ring-stone-600/60",
-  orange: "bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20",
+  orange: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20",
   red: "bg-red-500/10 text-red-400 ring-1 ring-red-500/20",
   teal: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20",
   amber: "bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20",
@@ -873,7 +930,7 @@ function IconBadge({ icon: Icon, tone = "slate", size = 15, className = "" }) {
 // hierarchy without adding much size/noise.
 function Eyebrow({ children, tone = "orange" }) {
   const toneMap = {
-    orange: "text-orange-400",
+    orange: "text-emerald-400",
     teal: "text-emerald-400",
     slate: "text-stone-400",
   };
@@ -911,7 +968,7 @@ function DataStateNotice({ loading, error, label }) {
 function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
   const toneMap = {
     slate: "text-stone-100",
-    orange: "text-orange-400",
+    orange: "text-emerald-400",
     red: "text-red-400",
     teal: "text-emerald-400",
   };
@@ -960,7 +1017,7 @@ function ReportModal({ districts, alerts, onClose }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
             <div className="text-center">
-              <div className="text-xl font-semibold text-orange-400">{avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"}</div>
+              <div className="text-xl font-semibold text-emerald-400">{avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"}</div>
               <div className="text-[11px] text-stone-400 mt-1">National avg. surface temp</div>
             </div>
             <div className="text-center">
@@ -1012,7 +1069,7 @@ function ReportModal({ districts, alerts, onClose }) {
           </button>
           <button
             onClick={() => window.print()}
-            className="px-3.5 py-1.5 text-sm rounded-lg bg-orange-600 text-white hover:bg-orange-500 active:scale-[0.97] flex items-center gap-1.5 shadow-lg shadow-orange-950/40 transition-all duration-150"
+            className="px-3.5 py-1.5 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.97] flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition-all duration-150"
           >
             <Download size={14} /> Save as PDF
           </button>
@@ -1366,8 +1423,8 @@ function GovtDashboard({ role, onLogout }) {
   );
 
   const sortedByRisk = useMemo(
-    () => [...(heatDistricts || [])].sort((a, b) => b.heat_risk - a.heat_risk),
-    [heatDistricts]
+    () => [...filteredDistricts].sort((a, b) => b.heat_risk - a.heat_risk),
+    [filteredDistricts]
   );
 
   const avgLst = heatDistricts?.length
@@ -1416,8 +1473,8 @@ function GovtDashboard({ role, onLogout }) {
         <div className="px-5 py-5 border-b border-stone-700/80 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25">
-                <ShieldCheck size={16} className="text-orange-400" />
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/25 to-emerald-600/5 ring-1 ring-emerald-500/25">
+                <ShieldCheck size={16} className="text-emerald-400" />
               </span>
               <span className="text-sm font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {gt.consoleName}
@@ -1447,12 +1504,12 @@ function GovtDashboard({ role, onLogout }) {
             onClick={() => { setActiveModule("heat"); setMobileNavOpen(false); }}
             className={`relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
               activeModule === "heat"
-                ? "bg-orange-500/10 text-orange-400"
+                ? "bg-emerald-500/10 text-emerald-400"
                 : "text-stone-300 hover:bg-stone-800 hover:text-stone-200"
             }`}
           >
             {activeModule === "heat" && (
-              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-orange-500" />
+              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-emerald-500" />
             )}
             <Thermometer size={16} />
             {gt.navHeat}
@@ -1472,21 +1529,6 @@ function GovtDashboard({ role, onLogout }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-stone-700/80 space-y-1">
-          <button
-            onClick={() => setLang(lang === "en" ? "bn" : "en")}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
-          >
-            <Languages size={15} />
-            {lang === "en" ? "বাংলা" : "English"}
-          </button>
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
-          >
-            <LogOut size={15} /> {gt.signOut}
-          </button>
-        </div>
       </aside>
 
       {/* Main */}
@@ -1504,7 +1546,7 @@ function GovtDashboard({ role, onLogout }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={gt.searchPlaceholder}
-              className="w-full bg-stone-800/80 border border-stone-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10 transition-shadow"
+              className="w-full bg-stone-800/80 border border-stone-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-shadow"
             />
           </div>
           <div className="flex-1 hidden md:block" />
@@ -1561,10 +1603,31 @@ function GovtDashboard({ role, onLogout }) {
           </div>
           <button
             onClick={() => setShowReport(true)}
-            className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 active:scale-[0.97] text-white shadow-lg shadow-orange-950/30 transition-all duration-150 shrink-0"
+            className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white shadow-lg shadow-emerald-950/30 transition-all duration-150 shrink-0"
           >
             <FileText size={14} /> <span className="hidden sm:inline">{gt.generateReport}</span>
           </button>
+
+          {/* Language + sign-out — moved from the sidebar footer to the
+              top-right of the header per team feedback, so they're visible
+              without opening the mobile nav drawer. */}
+          <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-stone-700/80 shrink-0">
+            <button
+              onClick={() => setLang(lang === "en" ? "bn" : "en")}
+              className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+              title={lang === "en" ? "বাংলা" : "English"}
+            >
+              <Languages size={15} />
+              <span className="hidden md:inline">{lang === "en" ? "বাংলা" : "English"}</span>
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+              title={gt.signOut}
+            >
+              <LogOut size={15} /> <span className="hidden md:inline">{gt.signOut}</span>
+            </button>
+          </div>
         </div>
 
         {activeModule === "flood" ? (
@@ -1576,6 +1639,7 @@ function GovtDashboard({ role, onLogout }) {
             selectedArea={selectedFloodArea}
             setSelectedArea={setSelectedFloodArea}
             lang={lang}
+            search={search}
           />
         ) : activeModule === "forest" ? (
           <DeforestationModuleContent
@@ -1584,6 +1648,7 @@ function GovtDashboard({ role, onLogout }) {
             setSelectedDistrict={setSelectedDistrict}
             citizenReports={citizenReports}
             lang={lang}
+            search={search}
           />
         ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
@@ -1597,7 +1662,7 @@ function GovtDashboard({ role, onLogout }) {
               </p>
               <button
                 onClick={() => setActiveModule("heat")}
-                className="mt-5 text-sm text-orange-400 hover:text-orange-300 inline-flex items-center gap-1.5 transition-colors"
+                className="mt-5 text-sm text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1.5 transition-colors"
               >
                 <ArrowLeft size={14} /> {gt.backToHeat}
               </button>
@@ -1625,9 +1690,12 @@ function GovtDashboard({ role, onLogout }) {
             <p className="text-[10px] text-stone-500 -mt-4">{gt.kpiUhiGloss}</p>
 
             {heatAlerts?.generated_at && (
-              <div className="flex items-center gap-2 text-[11px] text-emerald-400/80">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>
+              <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+                </span>
+                <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
                   {gt.liveHeatBanner(
                     new Date(heatAlerts.generated_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
                       day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -1647,7 +1715,7 @@ function GovtDashboard({ role, onLogout }) {
                     <p className="text-xs text-stone-400 mt-0.5">{gt.surfaceTempSub}</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
-                    <span>25°C</span>
+                    <span>20°C</span>
                     <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
                     <span>30°C</span>
                   </div>
@@ -1670,25 +1738,29 @@ function GovtDashboard({ role, onLogout }) {
                 <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.heatMitigationTitle}</h3>
                 <p className="text-[11px] text-stone-500 mb-3">{gt.heatMitigationSub}</p>
                 <div className="space-y-1 max-h-[360px] overflow-y-auto">
-                  {sortedByRisk.map((d, i) => {
-                    const c = tierColor(d.risk_category);
-                    const isSelected = selectedHeatDistrict?.name === d.name;
-                    return (
-                      <button
-                        key={d.name}
-                        onClick={() => setSelectedHeatDistrict(d)}
-                        className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
-                          isSelected ? "bg-stone-700/70 ring-1 " + c.ring : "hover:bg-stone-800/80"
-                        }`}
-                      >
-                        <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                        <span className="flex-1 text-sm text-stone-200">{d.name}</span>
-                        <span className="text-xs text-stone-400 tabular-nums">{d.lst_c.toFixed(1)}°C</span>
-                        <ChevronRight size={13} className={`text-stone-500 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
-                      </button>
-                    );
-                  })}
+                  {sortedByRisk.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+                  ) : (
+                    sortedByRisk.map((d, i) => {
+                      const c = tierColor(d.risk_category);
+                      const isSelected = selectedHeatDistrict?.name === d.name;
+                      return (
+                        <button
+                          key={d.name}
+                          onClick={() => setSelectedHeatDistrict(d)}
+                          className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
+                            isSelected ? "bg-stone-700/70 ring-1 " + c.ring : "hover:bg-stone-800/80"
+                          }`}
+                        >
+                          <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                          <span className="flex-1 text-sm text-stone-200">{d.name}</span>
+                          <span className="text-xs text-stone-400 tabular-nums">{d.lst_c.toFixed(1)}°C</span>
+                          <ChevronRight size={13} className={`text-stone-500 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
@@ -1716,7 +1788,7 @@ function GovtDashboard({ role, onLogout }) {
               {/* Trend chart */}
               <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp size={14} className="text-orange-400/80" />
+                  <TrendingUp size={14} className="text-emerald-400/80" />
                   <h3 className="text-sm font-medium text-stone-100">{gt.trendTitle}</h3>
                 </div>
                 <p className="text-xs text-stone-400 mb-3">{gt.trendSub}</p>
@@ -1752,7 +1824,7 @@ function GovtDashboard({ role, onLogout }) {
               {/* Heatwave watch */}
               <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <Bell size={14} className="text-orange-400/80" />
+                  <Bell size={14} className="text-emerald-400/80" />
                   <h3 className="text-sm font-medium text-stone-100">{gt.heatwaveWatch}</h3>
                 </div>
                 <p className="text-[11px] text-stone-400 mb-3.5 leading-relaxed">{gt.heatwaveWatchSub}</p>
@@ -1798,7 +1870,7 @@ function GovtDashboard({ role, onLogout }) {
 // merging them would blur that distinction rather than clarify it.
 // ---------------------------------------------------------------------------
 
-function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea, lang }) {
+function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea, lang, search }) {
   const gt = GOVT_I18N[lang];
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
@@ -1820,7 +1892,7 @@ function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedAr
       {floodTab === "dhaka" ? (
         <FloodDhakaView dhaka={dhaka} selectedArea={selectedArea} setSelectedArea={setSelectedArea} lang={lang} />
       ) : (
-        <FloodNationalView national={national} lang={lang} />
+        <FloodNationalView national={national} lang={lang} search={search} />
       )}
     </div>
   );
@@ -1864,7 +1936,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
                 <button
                   key={a.area}
                   onClick={() => setSelectedArea(a)}
-                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-stone-700/70 ring-1 ring-orange-500/30" : "hover:bg-stone-800/80"}`}
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-stone-700/70 ring-1 ring-emerald-500/30" : "hover:bg-stone-800/80"}`}
                 >
                   <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
                   <span className={`w-1.5 h-1.5 rounded-full ${a.category === "High" ? "bg-red-500" : a.category === "Medium" ? "bg-amber-500" : "bg-emerald-500"}`} />
@@ -1898,7 +1970,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
       {trend && (
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={14} className="text-orange-400/80" />
+            <TrendingUp size={14} className="text-emerald-400/80" />
             <h3 className="text-sm font-medium text-stone-100">{gt.rainfallVsAlert}</h3>
           </div>
           <p className="text-xs text-stone-400 mb-3">{gt.rainfallVsAlertSub}</p>
@@ -1925,7 +1997,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
   );
 }
 
-function FloodNationalView({ national, lang }) {
+function FloodNationalView({ national, lang, search }) {
   const gt = GOVT_I18N[lang];
   const { severity, priority, summary, projection, loading, error } = national;
 
@@ -1968,7 +2040,10 @@ function FloodNationalView({ national, lang }) {
     return <DataStateNotice loading={loading} error={error} label="nationwide flood data" />;
   }
 
-  const topPriority = (priority || []).slice(0, 20);
+  const searchedPriority = search
+    ? (priority || []).filter((d) => d.district_name.toLowerCase().includes(search.toLowerCase()))
+    : priority || [];
+  const topPriority = searchedPriority.slice(0, 20);
   const observedYears = summary.observed_years || [];
   const proxyYears = summary.proxy_years || [];
   // Real 2022 census population summed across the top-20 priority districts —
@@ -1996,9 +2071,12 @@ function FloodNationalView({ national, lang }) {
       </div>
 
       {summary.last_refreshed_at && (
-        <div className="flex items-center gap-2 text-[11px] text-emerald-400/80">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>
+        <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+          </span>
+          <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
             {gt.liveFloodBanner(
               summary.live_prediction_window?.end_date,
               new Date(summary.last_refreshed_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
@@ -2067,7 +2145,10 @@ function FloodNationalView({ national, lang }) {
           </div>
 
           <div className="space-y-1">
-            {topPriority.map((d) => {
+            {topPriority.length === 0 && search ? (
+              <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+            ) : (
+            topPriority.map((d) => {
               const sev = severityByDistrict[d.district_id];
               const tier = sev?.severity_tier || "Moderate";
               const c = tierColor(tier);
@@ -2105,9 +2186,10 @@ function FloodNationalView({ national, lang }) {
                   <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">{(d.avg_predicted_risk * 100).toFixed(1)}%</span>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
-          <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, (priority || []).length - 20))}</p>
+          <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, searchedPriority.length - 20))}</p>
         </div>
 
         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
@@ -2191,7 +2273,7 @@ function downloadWorklistCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
-function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, lang }) {
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, lang, search }) {
   const gt = GOVT_I18N[lang];
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
 
@@ -2206,7 +2288,9 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
   const nationalLossKm2 = (lossByYear || []).reduce((sum, r) => sum + (r.km2_lost || 0), 0);
   const alertCount = districts.filter((d) => d.alert).length;
   const avgForestPct = districts.reduce((s, d) => s + (d.forest_pct_now || 0), 0) / districts.length;
-  const sortedByLoss = [...districts].sort((a, b) => (b.forest_loss_pct || 0) - (a.forest_loss_pct || 0));
+  const sortedByLoss = [...districts]
+    .filter((d) => !search || d.district.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.forest_loss_pct || 0) - (a.forest_loss_pct || 0));
   const topRestoration = (restoration || []).filter((r) => r.restoration_tier === "High").slice(0, 10);
 
   return (
@@ -2218,17 +2302,15 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         <Kpi label={gt.kpiLossPatches} value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub={gt.kpiLossPatchesSub} />
       </div>
 
-      <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
-        <IconBadge icon={Info} tone="amber" size={14} />
-        <p className="text-xs text-amber-200/90 leading-relaxed">{gt.forestNotice}</p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>{gt.rankedByLoss}</Eyebrow>
           <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.districtRanking64}</h3>
           <div className="space-y-1 max-h-80 overflow-y-auto">
-            {sortedByLoss.map((d, i) => {
+            {sortedByLoss.length === 0 && search ? (
+              <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+            ) : (
+            sortedByLoss.map((d, i) => {
               const c = tierColor(d.priority);
               const isSelected = selectedDistrict?.district === d.district;
               return (
@@ -2252,7 +2334,8 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
                   <ChevronRight size={13} className={`text-stone-500 transition-transform shrink-0 ${isSelected ? "translate-x-0.5" : ""}`} />
                 </button>
               );
-            })}
+            })
+            )}
           </div>
         </div>
 
@@ -2469,6 +2552,7 @@ const CITIZEN_I18N = {
     legendCaution: "Caution",
     legendHigh: "High risk",
     listen: "Listen",
+    stopListening: "Stop",
     share: "Share",
     saveCard: "Save",
     emergencyHelplinesTitle: "Emergency helplines",
@@ -2533,6 +2617,7 @@ const CITIZEN_I18N = {
     legendCaution: "সতর্কতা",
     legendHigh: "উচ্চ ঝুঁকি",
     listen: "শুনুন",
+    stopListening: "থামুন",
     share: "শেয়ার করুন",
     saveCard: "সংরক্ষণ করুন",
     emergencyHelplinesTitle: "জরুরি হেল্পলাইন",
@@ -2740,6 +2825,66 @@ function CitizenReportForm({ district, lang }) {
   );
 }
 
+// Searchable district picker — replaces a plain native <select> holding all
+// 64 districts (clunky to scroll on mobile) with a small filterable panel,
+// same interaction pattern as the notification popover elsewhere in the app.
+function DistrictPicker({ value, options, onChange, lang }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(
+    () => options.filter((d) => d.toLowerCase().includes(query.toLowerCase())),
+    [options, query]
+  );
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-xs bg-stone-700/80 border border-stone-600 text-stone-100 rounded-lg pl-2.5 pr-2 py-1.5 flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 max-w-[9.5rem]"
+      >
+        <MapPin size={12} className="shrink-0 text-emerald-400" />
+        <span className="truncate">{value || "—"}</span>
+        <ChevronRight size={12} className="shrink-0 rotate-90 text-stone-400" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => { setOpen(false); setQuery(""); }} />
+          <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-30 overflow-hidden animate-fade-in">
+            <div className="p-2 border-b border-stone-700">
+              <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={lang === "bn" ? "জেলা খুঁজুন" : "Search district"}
+                  className="w-full bg-stone-900/60 border border-stone-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+                />
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-4 text-xs text-stone-500 text-center">{lang === "bn" ? "কোনো মিল নেই" : "No match"}</p>
+              ) : (
+                filtered.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => { onChange(d); setOpen(false); setQuery(""); }}
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${d === value ? "bg-emerald-500/10 text-emerald-300" : "text-stone-200 hover:bg-stone-700/60"}`}
+                  >
+                    {d}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CitizenDashboard({ onLogout }) {
   const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
   const { citizenCards, districts: forestDistricts } = useDeforestationData();
@@ -2853,8 +2998,8 @@ function CitizenDashboard({ onLogout }) {
           >
             <ArrowLeft size={16} />
           </button>
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-600/5 ring-1 ring-orange-500/25 shrink-0">
-            <Radar size={16} className="text-orange-400" />
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/25 to-emerald-600/5 ring-1 ring-emerald-500/25 shrink-0">
+            <Radar size={16} className="text-emerald-400" />
           </span>
           <span className="text-sm font-semibold text-stone-50 tracking-tight truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {t.appName}
@@ -2882,22 +3027,14 @@ function CitizenDashboard({ onLogout }) {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-5 space-y-4 animate-fade-in">
+      <div className="max-w-md md:max-w-4xl mx-auto px-4 py-5 space-y-4 animate-fade-in">
         {citizenView === "hub" ? (
           <>
             {districtOptions.length > 0 && (
               <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-between mb-1.5">
                   <h3 className="text-sm font-medium text-stone-100">{t.yourArea}</h3>
-                  <select
-                    value={selectedDistrict || ""}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                    className="text-xs bg-stone-700/80 border border-stone-600 text-stone-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                  >
-                    {districtOptions.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <DistrictPicker value={selectedDistrict} options={districtOptions} onChange={setSelectedDistrict} lang={lang} />
                 </div>
                 <p className="text-[11px] text-stone-400">{t.yourAreaHint}</p>
               </div>
@@ -2932,59 +3069,65 @@ function CitizenDashboard({ onLogout }) {
               </span>
             </div>
 
-            {[
-              {
-                key: "heat",
-                icon: Thermometer,
-                label: t.heatModuleLabel,
-                tier: selectedHeat?.risk_category || null,
-                sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
-              },
-              {
-                key: "flood",
-                icon: Droplets,
-                label: t.floodModuleLabel,
-                tier: selectedFlood?.severity_tier || null,
-                sub: selectedFlood
-                  ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
-                  : floodLoading
-                  ? t.loading
-                  : t.floodRiskFallbackNote,
-              },
-              {
-                key: "forest",
-                icon: TreeDeciduous,
-                label: t.forestModuleLabel,
-                tier: selectedForestPriority,
-                sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
-              },
-            ].map((m) => {
-              // Icon color = risk level (red/amber/green), the same scale as
-              // the legend above and everywhere else in the app — this is
-              // the primary signal now, not each module's brand color.
-              const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => setCitizenView(m.key)}
-                  className="w-full flex items-center gap-3.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
-                >
-                  <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
-                    <m.icon size={22} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-stone-100">{m.label}</div>
-                    <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
-                  </div>
-                  {m.tier && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
-                      {tierLabel(m.tier, lang)}
-                    </span>
-                  )}
-                  <ChevronRight size={16} className="text-stone-500 shrink-0" />
-                </button>
-              );
-            })}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {[
+                {
+                  key: "heat",
+                  icon: Thermometer,
+                  label: t.heatModuleLabel,
+                  tier: selectedHeat?.risk_category || null,
+                  sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
+                },
+                {
+                  key: "flood",
+                  icon: Droplets,
+                  label: t.floodModuleLabel,
+                  tier: selectedFlood?.severity_tier || null,
+                  sub: selectedFlood
+                    ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
+                    : floodLoading
+                    ? t.loading
+                    : t.floodRiskFallbackNote,
+                },
+                {
+                  key: "forest",
+                  icon: TreeDeciduous,
+                  label: t.forestModuleLabel,
+                  tier: selectedForestPriority,
+                  sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
+                },
+              ].map((m) => {
+                // Icon color = risk level (red/amber/green), the same scale as
+                // the legend above and everywhere else in the app — this is
+                // the primary signal now, not each module's brand color.
+                const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => setCitizenView(m.key)}
+                    className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+                        <m.icon size={22} />
+                      </span>
+                      <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
+                    </div>
+                    <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-stone-100">{m.label}</div>
+                        <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
+                      </div>
+                      {m.tier && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                          {tierLabel(m.tier, lang)}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
             <EmergencyHelplineCard t={t} />
           </>
@@ -3003,6 +3146,11 @@ function CitizenDashboard({ onLogout }) {
             {citizenView === "heat" && selectedHeat && (() => {
               const advisory = heatAdvisory(selectedHeat.risk_category, lang);
               const heroSpeak = `${tierLabel(selectedHeat.risk_category, lang)} — ${selectedHeat.lst_c.toFixed(1)}°C. ${advisory.body}`;
+              const heroSave = buildSaveContent(
+                `${tierLabel(selectedHeat.risk_category, lang)} — ${selectedDistrict || ""} (${selectedHeat.lst_c.toFixed(1)}°C)`,
+                [advisory.body, advisory.safeHours].filter(Boolean),
+                lang
+              );
               return (
                 <>
                   <RiskHero
@@ -3012,45 +3160,49 @@ function CitizenDashboard({ onLogout }) {
                     sub={`${selectedHeat.lst_c.toFixed(1)}°C · ${selectedDistrict || ""}`}
                     lang={lang}
                     speak={heroSpeak}
+                    saveContent={heroSave}
                     listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
                     shareLabel={t.share}
                     saveLabel={t.saveCard}
                     saveFilename={`heat-risk-${selectedDistrict || "area"}.txt`}
                   />
 
-                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-stone-100">{t.heatMapTitle}</h3>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
-                        {tierLabel(selectedHeat.risk_category, lang)}
-                      </span>
-                    </div>
-                    {heatGrid ? (
-                      <div className="flex justify-center">
-                        <HeatGrid grid={heatGrid} compact />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-stone-100">{t.heatMapTitle}</h3>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
+                          {tierLabel(selectedHeat.risk_category, lang)}
+                        </span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
-                    )}
-                  </div>
-
-                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                    <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
-                    <div className="text-xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {selectedHeat.lst_c.toFixed(1)}°C
+                      {heatGrid ? (
+                        <div className="flex justify-center">
+                          <HeatGrid grid={heatGrid} compact />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
+                      )}
                     </div>
-                    <div className="text-[11px] text-stone-400 mt-0.5">{t.currentTemp}</div>
-                  </div>
 
-                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                    <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
-                    <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
-                    {advisory.safeHours && (
-                      <p className="text-xs text-orange-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
-                    )}
-                  </div>
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+                      <div className="text-xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {selectedHeat.lst_c.toFixed(1)}°C
+                      </div>
+                      <div className="text-[11px] text-stone-400 mt-0.5">{t.currentTemp}</div>
+                    </div>
 
-                  <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
+                      <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
+                      {advisory.safeHours && (
+                        <p className="text-xs text-emerald-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
+                      )}
+                    </div>
+
+                    <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                  </div>
 
                   {selectedHeat.risk_category === "High" && <EmergencyHelplineCard t={t} />}
                 </>
@@ -3069,6 +3221,11 @@ function CitizenDashboard({ onLogout }) {
                   const c = tierColor(tier);
                   const steps = floodSafetySteps(tier, lang);
                   const heroSpeak = `${tierLabel(tier, lang)} — ${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%. ${steps.join(" ")}`;
+                  const heroSave = buildSaveContent(
+                    `${tierLabel(tier, lang)} — ${selectedFlood.district_name} (${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%)`,
+                    steps,
+                    lang
+                  );
                   return (
                     <>
                       <RiskHero
@@ -3078,60 +3235,65 @@ function CitizenDashboard({ onLogout }) {
                         sub={`${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% · ${selectedFlood.district_name}`}
                         lang={lang}
                         speak={heroSpeak}
+                        saveContent={heroSave}
                         listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
                         shareLabel={t.share}
                         saveLabel={t.saveCard}
                         saveFilename={`flood-risk-${selectedFlood.district_name}.txt`}
                       />
-                      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2.5">
-                            <IconBadge icon={Droplets} tone="teal" size={14} />
-                            <h3 className="text-sm font-medium text-stone-100">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2.5">
+                              <IconBadge icon={Droplets} tone="teal" size={14} />
+                              <h3 className="text-sm font-medium text-stone-100">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
+                            </div>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tierLabel(tier, lang)}</span>
                           </div>
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tierLabel(tier, lang)}</span>
-                        </div>
-                        <p className="text-[11px] text-stone-400 mb-3 flex items-center gap-1.5 flex-wrap">
-                          <span>
-                            {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
-                            {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
-                          </span>
-                          {selectedFlood.risk_trend && (
-                            <span className="inline-flex items-center gap-1">
-                              <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
-                              {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                          <p className="text-[11px] text-stone-400 mb-3 flex items-center gap-1.5 flex-wrap">
+                            <span>
+                              {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                              {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
                             </span>
-                          )}
-                        </p>
-                        {typeof selectedFlood.population_2022 === "number" && (
-                          <p className="text-[11px] text-stone-500 mb-3 -mt-2">
-                            {t.districtPopulation(selectedFlood.population_2022.toLocaleString())}
-                          </p>
-                        )}
-                        {typeof selectedFlood.previous_avg_predicted_risk === "number" && (
-                          <p className="text-[11px] text-stone-500 mb-3 -mt-2">
-                            {t.trendDetail(
-                              (selectedFlood.previous_avg_predicted_risk * 100).toFixed(0),
-                              (selectedFlood.avg_predicted_risk * 100).toFixed(0)
+                            {selectedFlood.risk_trend && (
+                              <span className="inline-flex items-center gap-1">
+                                <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                                {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                              </span>
                             )}
                           </p>
-                        )}
-                        <div className="space-y-2 mb-1">
-                          {steps.map((s, i) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <span className="w-1 h-1 rounded-full bg-stone-500 mt-1.5 shrink-0" />
-                              <p className="text-xs text-stone-300 leading-relaxed">{s}</p>
-                            </div>
-                          ))}
+                          {typeof selectedFlood.population_2022 === "number" && (
+                            <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                              {t.districtPopulation(selectedFlood.population_2022.toLocaleString())}
+                            </p>
+                          )}
+                          {typeof selectedFlood.previous_avg_predicted_risk === "number" && (
+                            <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                              {t.trendDetail(
+                                (selectedFlood.previous_avg_predicted_risk * 100).toFixed(0),
+                                (selectedFlood.avg_predicted_risk * 100).toFixed(0)
+                              )}
+                            </p>
+                          )}
+                          <div className="space-y-2 mb-1">
+                            {steps.map((s, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="w-1 h-1 rounded-full bg-stone-500 mt-1.5 shrink-0" />
+                                <p className="text-xs text-stone-300 leading-relaxed">{s}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
+                            <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-700">{t.emergencyLine2}</p>
+                          )}
                         </div>
-                        {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
-                          <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-700">{t.emergencyLine2}</p>
-                        )}
+
+                        <div className="space-y-4">
+                          <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                          <FloodProjectionStrip projection={selectedProjection} lang={lang} t={t} />
+                        </div>
                       </div>
-
-                      <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
-
-                      <FloodProjectionStrip projection={selectedProjection} lang={lang} t={t} />
 
                       {(tier === "Severe" || tier === "High" || tier === "Moderate") && <EmergencyHelplineCard t={t} />}
                     </>
@@ -3149,38 +3311,50 @@ function CitizenDashboard({ onLogout }) {
                     sub={`${treeCard.district} · ${treeCard.forest_pct}% ${lang === "bn" ? "গাছপালা" : "tree cover"}`}
                     lang={lang}
                     speak={`${treeCard.district}: ${treeCard.forest_pct}%. ${treeCard.message || ""}`}
+                    saveContent={buildSaveContent(
+                      `${treeCard.district} — ${treeCard.forest_pct}% ${lang === "bn" ? "গাছপালা" : "tree cover"}`,
+                      [treeCard.message, treeCard.call_to_action].filter(Boolean),
+                      lang
+                    )}
                     listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
                     shareLabel={t.share}
                     saveLabel={t.saveCard}
                     saveFilename={`forest-cover-${treeCard.district}.txt`}
                   />
                 )}
-                {treeCard && (
-                  <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
-                        <h3 className="text-sm font-medium text-stone-100">{t.treeCoverTitle} {treeCard.district}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {treeCard && (
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
+                          <h3 className="text-sm font-medium text-stone-100">{t.treeCoverTitle} {treeCard.district}</h3>
+                        </div>
+                        <span className="text-lg font-semibold text-stone-50 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {treeCard.forest_pct}%
+                        </span>
                       </div>
-                      <span className="text-lg font-semibold text-stone-50 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {treeCard.forest_pct}%
-                      </span>
+                      <div style={{ width: "100%", height: 56 }}>
+                        <ResponsiveContainer>
+                          <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
+                            <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <p className="text-xs text-stone-300 leading-relaxed mt-2">{treeCard.message}</p>
+                      <button
+                        type="button"
+                        onClick={() => shareRiskText(`${treeCard.district}: ${treeCard.message} ${treeCard.call_to_action || ""}`.trim())}
+                        className="w-full mt-3 bg-emerald-600/20 hover:bg-emerald-600/30 active:scale-[0.98] text-emerald-300 text-xs font-medium py-2 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Share2 size={13} /> {treeCard.call_to_action}
+                      </button>
                     </div>
-                    <div style={{ width: "100%", height: 56 }}>
-                      <ResponsiveContainer>
-                        <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
-                          <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <p className="text-xs text-stone-300 leading-relaxed mt-2">{treeCard.message}</p>
-                    <button className="w-full mt-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-medium py-2 rounded-lg transition-colors">
-                      {treeCard.call_to_action}
-                    </button>
-                  </div>
-                )}
+                  )}
 
-                {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
+                  {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
+                </div>
               </>
             )}
           </>
@@ -3310,7 +3484,7 @@ function GovtLogin({ onBack, onLogin }) {
   }
 
   const inputClass =
-    "w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-stone-200 focus:outline-none focus:border-orange-500/50";
+    "w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-stone-200 focus:outline-none focus:border-emerald-500/50";
 
   return (
     <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
@@ -3321,7 +3495,7 @@ function GovtLogin({ onBack, onLogin }) {
 
         {mode === "login" ? (
           <form onSubmit={handleLoginSubmit} className="bg-stone-800/60 border border-stone-700 rounded-2xl p-6">
-            <ShieldCheck size={22} className="text-orange-400 mb-3" />
+            <ShieldCheck size={22} className="text-emerald-400 mb-3" />
             <h2 className="text-lg font-semibold text-stone-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Government sign in
             </h2>
@@ -3354,7 +3528,7 @@ function GovtLogin({ onBack, onLogin }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
@@ -3364,7 +3538,7 @@ function GovtLogin({ onBack, onLogin }) {
               <button
                 type="button"
                 onClick={() => switchMode("register")}
-                className="text-xs text-orange-400 hover:text-orange-300 inline-flex items-center gap-1"
+                className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
               >
                 <UserPlus size={13} /> New officer? Register here
               </button>
@@ -3372,7 +3546,7 @@ function GovtLogin({ onBack, onLogin }) {
           </form>
         ) : (
           <form onSubmit={handleRegisterSubmit} className="bg-stone-800/60 border border-stone-700 rounded-2xl p-6">
-            <UserPlus size={22} className="text-orange-400 mb-3" />
+            <UserPlus size={22} className="text-emerald-400 mb-3" />
             <h2 className="text-lg font-semibold text-stone-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Officer registration
             </h2>
@@ -3418,7 +3592,7 @@ function GovtLogin({ onBack, onLogin }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
             >
               {loading ? "Creating account…" : "Register & sign in"}
             </button>
@@ -3460,8 +3634,8 @@ function RoleSelect({ onSelect }) {
 
       <div className="relative max-w-2xl w-full animate-fade-in-up">
         <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-orange-400 bg-orange-500/10 ring-1 ring-orange-500/20 px-3 py-1 rounded-full mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-1 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Environmental Risk Monitoring Platform
           </span>
           <h1 className="text-3xl sm:text-4xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -3476,16 +3650,16 @@ function RoleSelect({ onSelect }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <button
             onClick={() => onSelect("govt")}
-            className="text-left bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-orange-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-950/20"
+            className="text-left bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-emerald-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/20"
           >
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 mb-4 group-hover:scale-105 transition-transform">
-              <ShieldCheck size={22} className="text-orange-400" />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <ShieldCheck size={22} className="text-emerald-400" />
             </span>
             <p className="text-stone-50 font-medium">Government dashboard</p>
             <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
               Full access to risk analysis, AI predictions, resource planning and report generation.
             </p>
-            <span className="text-xs text-orange-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
+            <span className="text-xs text-emerald-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
               Continue <ChevronRight size={13} />
             </span>
           </button>
