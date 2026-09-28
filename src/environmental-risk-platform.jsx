@@ -1204,13 +1204,8 @@ const GOVT_I18N = {
     earlyWarningHint: "Same trained classifier, scored day-by-day against the real published weather forecast (not the 90-day average used for the ranking below). A district here has its worst predicted day still ahead of it this week.",
     earlyWarningEmpty: "No district is currently projected to trend upward over the next 7 days.",
     earlyWarningPeak: (pct) => `peaks around ${pct}% this week`,
-    avgMovementTitle: "Proof this is live, not frozen",
-    avgMovementBody: (avg, min, max, n) =>
-      `Average change in raw predicted risk since the last automated refresh, across all ${n} districts: ${avg}. Smallest movement: ${min}. Largest: ${max}. These are real numbers from the last scheduled run — not visible in the rounded percentages above, but recomputed from live rainfall every time the pipeline runs.`,
     noDeltaYet: "First refresh recorded — nothing to compare against yet.",
     fieldNoticeFlood: "Trained on real flood-event records for the years shown. A district-day is genuinely a flood only about 3–5% of the time, so the model is deliberately tuned to catch more real floods even at the cost of some false alarms — the right tradeoff for early warning.",
-    forDefensePanel: "For the defense panel",
-    modelProvenance: "Model provenance",
     citizenReportsEyebrow: "Citizen reports",
     citizenReportsTitle: "Tree-cutting reported by citizens",
     reportCount: (n) => `${n} report${n === 1 ? "" : "s"}`,
@@ -1355,13 +1350,8 @@ const GOVT_I18N = {
     earlyWarningHint: "একই trained classifier, কিন্তু real আবহাওয়া পূর্বাভাসের উপর day-by-day চালানো (নিচের র‍্যাংকিং-এ ব্যবহৃত ৯০ দিনের average নয়)। এখানে থাকা জেলার সবচেয়ে খারাপ predicted দিনটি এখনো এই সপ্তাহে আসেনি।",
     earlyWarningEmpty: "আপাতত পরের ৭ দিনে কোনো জেলার ঝুঁকি বাড়ার প্রক্ষেপণ নেই।",
     earlyWarningPeak: (pct) => `এই সপ্তাহে প্রায় ${pct}% এ চূড়ায় উঠবে`,
-    avgMovementTitle: "এটা সত্যিই live, frozen না — তার প্রমাণ",
-    avgMovementBody: (avg, min, max, n) =>
-      `সর্বশেষ স্বয়ংক্রিয় refresh-এর পর আসল predicted risk-এর গড় পরিবর্তন, সবগুলো ${n} জেলা মিলিয়ে: ${avg}। সবচেয়ে কম পরিবর্তন: ${min}। সবচেয়ে বেশি: ${max}। এগুলো সর্বশেষ scheduled run-এর প্রকৃত সংখ্যা — উপরের round করা percentage-এ বোঝা না গেলেও, pipeline প্রতিবার run হওয়ার সময় live বৃষ্টিপাতের তথ্য থেকে এই পরিবর্তন সত্যিই recompute হচ্ছে।`,
     noDeltaYet: "প্রথম refresh রেকর্ড হয়েছে — তুলনা করার মতো আগের কিছু এখনো নেই।",
     fieldNoticeFlood: "প্রদর্শিত বছরগুলোর প্রকৃত বন্যার ঘটনার তথ্য দিয়ে প্রশিক্ষিত। একটি জেলা-দিন প্রকৃতপক্ষে বন্যা হয় মাত্র ৩–৫% সময়ে, তাই মডেলটি ইচ্ছাকৃতভাবে বেশি প্রকৃত বন্যা ধরার জন্য তৈরি, এমনকি কিছু ভুল সতর্কতার বিনিময়েও — আগাম সতর্কতার জন্য এটাই সঠিক পন্থা।",
-    forDefensePanel: "থিসিস ডিফেন্স প্যানেলের জন্য",
-    modelProvenance: "মডেলের বিস্তারিত তথ্য",
     citizenReportsEyebrow: "নাগরিক রিপোর্ট",
     citizenReportsTitle: "নাগরিকদের রিপোর্ট করা গাছ কাটা",
     reportCount: (n) => `${n} টি রিপোর্ট`,
@@ -2076,21 +2066,6 @@ function FloodNationalView({ national, lang, search }) {
     return m;
   }, [severity]);
 
-  // Real, un-rounded evidence that the pipeline recomputes every run, even
-  // on days the rounded percentages above don't visibly move: every
-  // district's current avg_predicted_risk against the previous_avg_predicted_risk
-  // the automation script itself recorded (scripts/models/flood_export.py),
-  // before it overwrote that file on the last run. Never invented — a
-  // district with no previous value yet (first-ever run) is simply excluded.
-  const movementStats = useMemo(() => {
-    const deltas = (severity || [])
-      .filter((s) => typeof s.previous_avg_predicted_risk === "number" && typeof s.avg_predicted_risk === "number")
-      .map((s) => Math.abs(s.avg_predicted_risk - s.previous_avg_predicted_risk));
-    if (deltas.length === 0) return null;
-    const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    return { avg, min: Math.min(...deltas), max: Math.max(...deltas), n: deltas.length };
-  }, [severity]);
-
   if (loading || error || !summary) {
     return <DataStateNotice loading={loading} error={error} label="nationwide flood data" />;
   }
@@ -2176,8 +2151,8 @@ function FloodNationalView({ national, lang, search }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
           <Eyebrow>{gt.mitigationPriority}</Eyebrow>
           <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">{gt.top20of64}</h3>
           <p className="text-xs text-stone-400 mb-1">{gt.rankedByScore}</p>
@@ -2245,42 +2220,6 @@ function FloodNationalView({ national, lang, search }) {
             )}
           </div>
           <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, searchedPriority.length - 20))}</p>
-        </div>
-
-        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
-          <Eyebrow tone="teal">{gt.modelProvenance}</Eyebrow>
-          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-3">{gt.forDefensePanel}</h3>
-          <div className="space-y-3 text-xs text-stone-300">
-            <div><span className="text-stone-200">Algorithm:</span> Random Forest, class-weighted</div>
-            <div><span className="text-stone-200">Rows:</span> {summary.rows_total?.toLocaleString()} district-days</div>
-            <div><span className="text-stone-200">Date range:</span> {summary.date_range?.[0]} – {summary.date_range?.[1]}</div>
-            <div><span className="text-stone-200">Train years:</span> {summary.train_years?.join("–")} (real events only)</div>
-            <div><span className="text-stone-200">Test years:</span> {summary.test_years?.join("–")}</div>
-            {summary.live_prediction_window && (
-              <div className="pt-2 border-t border-stone-700">
-                <span className="text-stone-200">Live risk window:</span> {summary.live_prediction_window.start_date} – {summary.live_prediction_window.end_date}
-                {" "}({summary.live_prediction_window.window_days} real days, refreshed every 3 days via Open-Meteo)
-              </div>
-            )}
-            <div className="pt-2 border-t border-stone-700">
-              <span className="text-stone-200">Exposure metric:</span> real 2022 census population per district
-              (Bangladesh Population and Housing Census 2022, BBS) — previously a disclosed limitation
-              (district area as a stand-in), now fixed with actual population figures.
-            </div>
-            {movementStats && (
-              <div className="pt-2 border-t border-stone-700">
-                <div className="text-stone-200 mb-1">{gt.avgMovementTitle}</div>
-                <div className="text-stone-400">
-                  {gt.avgMovementBody(
-                    movementStats.avg.toFixed(4),
-                    movementStats.min.toFixed(4),
-                    movementStats.max.toFixed(4),
-                    movementStats.n
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </>
@@ -2618,6 +2557,8 @@ const CITIZEN_I18N = {
     alertPhonePlaceholder: "WhatsApp number, e.g. +8801XXXXXXXXX",
     alertPhoneInvalid: "Enter a valid WhatsApp number in international format, e.g. +8801XXXXXXXXX.",
     alertWhatsappJoinNote: "Demo feature — first send \"{code}\" to {number} on WhatsApp (one-time), then enter your number below.",
+    chooseDistrictPrompt: "Choose your district to see your area's risk",
+    chooseDistrictHint: "Tap the district picker above and pick where you are — nothing is shown by default so you never see someone else's area by mistake.",
     legendSafe: "Safe",
     legendCaution: "Caution",
     legendHigh: "High risk",
@@ -2698,6 +2639,8 @@ const CITIZEN_I18N = {
     alertPhonePlaceholder: "WhatsApp নম্বর, যেমন +8801XXXXXXXXX",
     alertPhoneInvalid: "সঠিক আন্তর্জাতিক ফরম্যাটে WhatsApp নম্বর দিন, যেমন +8801XXXXXXXXX।",
     alertWhatsappJoinNote: "ডেমো ফিচার — প্রথমে WhatsApp থেকে \"{code}\" লিখে {number} নম্বরে পাঠান (একবার মাত্র), তারপর নিচে আপনার নম্বর লিখুন।",
+    chooseDistrictPrompt: "আপনার এলাকার ঝুঁকি দেখতে আপনার জেলা বেছে নিন",
+    chooseDistrictHint: "উপরের জেলা নির্বাচক-এ ট্যাপ করে আপনার অবস্থান বেছে নিন — by default কিছু দেখানো হয় না, যাতে ভুলবশত অন্য কারো এলাকার তথ্য না দেখেন।",
     legendSafe: "নিরাপদ",
     legendCaution: "সতর্কতা",
     legendHigh: "উচ্চ ঝুঁকি",
@@ -3153,12 +3096,11 @@ function CitizenDashboard({ onLogout }) {
     [severity]
   );
 
+  // No default district — the citizen must actively pick their own area;
+  // showing someone else's district's data by default (e.g. always opening
+  // on Chittagong) would be misleading for anyone who doesn't notice the
+  // picker and just reads the hub cards.
   const [selectedDistrict, setSelectedDistrict] = useState(null);
-  useEffect(() => {
-    if (selectedDistrict || !districtOptions.length) return;
-    const chattogram = districtOptions.find((d) => /chattogram|chittagong/i.test(d));
-    setSelectedDistrict(chattogram || districtOptions[0]);
-  }, [districtOptions, selectedDistrict]);
 
   const selectedFlood = useMemo(
     () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
@@ -3272,85 +3214,98 @@ function CitizenDashboard({ onLogout }) {
               </div>
             )}
 
-            <p className="text-[11px] text-stone-500 -mb-1">{t.hubHint}</p>
+            {!selectedDistrict ? (
+              // No district picked yet — a prominent, unmissable prompt
+              // instead of hub cards stuck on "loading" forever (there's
+              // nothing to show until the citizen actually chooses an area).
+              <div className="bg-gradient-to-b from-emerald-950/30 to-stone-800/30 border border-emerald-900/40 rounded-2xl p-5 text-center shadow-sm shadow-black/20">
+                <IconBadge icon={MapPin} tone="teal" size={15} />
+                <p className="text-sm text-stone-100 font-medium mt-2">{t.chooseDistrictPrompt}</p>
+                <p className="text-[11px] text-stone-400 mt-1">{t.chooseDistrictHint}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[11px] text-stone-500 -mb-1">{t.hubHint}</p>
 
-            {/* Always-visible color legend — the same red/amber/green scale
-                is used everywhere in this app, so once someone learns it
-                here, every badge and card below becomes readable by color
-                alone, without needing to read any tier word. */}
-            <div className="flex items-center gap-3 flex-wrap -mb-1">
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {t.legendSafe}
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {t.legendCaution}
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {t.legendHigh}
-              </span>
-            </div>
+                {/* Always-visible color legend — the same red/amber/green scale
+                    is used everywhere in this app, so once someone learns it
+                    here, every badge and card below becomes readable by color
+                    alone, without needing to read any tier word. */}
+                <div className="flex items-center gap-3 flex-wrap -mb-1">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {t.legendSafe}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {t.legendCaution}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {t.legendHigh}
+                  </span>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {[
-                {
-                  key: "heat",
-                  icon: Thermometer,
-                  label: t.heatModuleLabel,
-                  tier: selectedHeat?.risk_category || null,
-                  sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
-                },
-                {
-                  key: "flood",
-                  icon: Droplets,
-                  label: t.floodModuleLabel,
-                  tier: selectedFlood?.severity_tier || null,
-                  sub: selectedFlood
-                    ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
-                    : floodLoading
-                    ? t.loading
-                    : t.floodRiskFallbackNote,
-                },
-                {
-                  key: "forest",
-                  icon: TreeDeciduous,
-                  label: t.forestModuleLabel,
-                  tier: selectedForestPriority,
-                  sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
-                },
-              ].map((m) => {
-                // Icon color = risk level (red/amber/green), the same scale as
-                // the legend above and everywhere else in the app — this is
-                // the primary signal now, not each module's brand color.
-                const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
-                return (
-                  <button
-                    key={m.key}
-                    onClick={() => setCitizenView(m.key)}
-                    className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
-                        <m.icon size={22} />
-                      </span>
-                      <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
-                    </div>
-                    <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-stone-100">{m.label}</div>
-                        <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
-                      </div>
-                      {m.tier && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
-                          {tierLabel(m.tier, lang)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {[
+                    {
+                      key: "heat",
+                      icon: Thermometer,
+                      label: t.heatModuleLabel,
+                      tier: selectedHeat?.risk_category || null,
+                      sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
+                    },
+                    {
+                      key: "flood",
+                      icon: Droplets,
+                      label: t.floodModuleLabel,
+                      tier: selectedFlood?.severity_tier || null,
+                      sub: selectedFlood
+                        ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
+                        : floodLoading
+                        ? t.loading
+                        : t.floodRiskFallbackNote,
+                    },
+                    {
+                      key: "forest",
+                      icon: TreeDeciduous,
+                      label: t.forestModuleLabel,
+                      tier: selectedForestPriority,
+                      sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
+                    },
+                  ].map((m) => {
+                    // Icon color = risk level (red/amber/green), the same scale as
+                    // the legend above and everywhere else in the app — this is
+                    // the primary signal now, not each module's brand color.
+                    const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
+                    return (
+                      <button
+                        key={m.key}
+                        onClick={() => setCitizenView(m.key)}
+                        className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+                            <m.icon size={22} />
+                          </span>
+                          <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
+                        </div>
+                        <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-stone-100">{m.label}</div>
+                            <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
+                          </div>
+                          {m.tier && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                              {tierLabel(m.tier, lang)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {selectedDistrict && <AlertSubscribeForm district={selectedDistrict} lang={lang} />}
+                <AlertSubscribeForm district={selectedDistrict} lang={lang} />
+              </>
+            )}
 
             <EmergencyHelplineCard t={t} />
           </>
