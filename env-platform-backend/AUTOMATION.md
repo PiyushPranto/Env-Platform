@@ -180,3 +180,7 @@ than in your actual deployment:
    GitHub repo Settings → Secrets and variables → Actions.
 4. Decide (whenever you're ready, not urgent) which flood effort
    `flood_export.py` should be built around — see the Flood section above.
+5. This workflow also runs `scripts/send_alerts.py` after the model
+   automation, emailing citizens who subscribed for proactive alerts (see
+   the Citizen dashboard's "Get alerted automatically" card). It's a silent
+   no-op until you set it up — see `ALERTS-SETUP.md`.

@@ -20,9 +20,11 @@ into /flood/risk + /flood/trend), /deforestation/ndvi, /deforestation/detect
 from pathlib import Path
 from typing import Optional
 import json
+import re
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, Field, field_validator
 from fastapi.middleware.cors import CORSMiddleware
 
 try:
@@ -30,14 +32,17 @@ try:
     # (e.g. local testing with `import api.index`).
     from . import officers_db
     from . import citizen_reports_db
+    from . import alert_subscriptions_db
 except ImportError:
     # Vercel's Python runtime loads api/index.py directly rather than as a
     # package submodule, which makes the relative import above fail with
     # "attempted relative import with no known parent package". Its own
     # directory is on sys.path in that case, so a plain import resolves
-    # officers_db.py / citizen_reports_db.py sitting right next to this file either way.
+    # officers_db.py / citizen_reports_db.py / alert_subscriptions_db.py
+    # sitting right next to this file either way.
     import officers_db
     import citizen_reports_db
+    import alert_subscriptions_db
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -179,6 +184,7 @@ def root():
             "/deforestation/timeseries", "/deforestation/restoration-priority",
             "/deforestation/loss-by-year", "/deforestation/model-metrics",
             "/deforestation/citizen-reports",
+            "/alerts/subscribe", "/alerts/unsubscribe",
             "/model/refresh-status",
         ],
     }
@@ -497,6 +503,116 @@ def flood_national_projection():
     this payload's own "methodology" field for the full disclosure,
     including how forecast uncertainty grows with lead time."""
     return _load("flood_risk_projection.json")
+
+
+# ---------------------------------------------------------------------------
+# Proactive alert subscriptions — turns the dashboard from "pull" (a citizen
+# has to open the app to see their risk) into an actual early-warning
+# system: a citizen subscribes an email + district + which hazards they
+# care about, and scripts/send_alerts.py (run as part of the every-3-day
+# automation, see .github/workflows/update-model-outputs.yml) emails them
+# automatically when that district's LIVE flood risk newly crosses into
+# high territory, or when a new national heatwave forecast is issued.
+#
+# Needs Supabase configured (same env vars as /auth/register — see
+# ALERTS-SETUP.md for the one extra table) — until then this returns a
+# clear 503, not a fake success, same as citizen reports above.
+# ---------------------------------------------------------------------------
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+ALLOWED_HAZARDS = {"flood", "heat"}
+
+
+class AlertSubscribeRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    district: str = Field(min_length=1, max_length=64)
+    hazards: list[str] = Field(min_length=1, max_length=2)
+    lang: str = Field(default="en")
+
+    @field_validator("email")
+    @classmethod
+    def _valid_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        # Deliberately a plain regex, not pydantic's EmailStr — that needs
+        # the `email-validator` package, which isn't installed (see
+        # requirements.txt's comment on keeping Vercel cold-start tiny).
+        # This is a "does this look like an email" check, not a
+        # deliverability guarantee — same honesty bar as everywhere else on
+        # this platform: no email is ever actually verified/confirmed, and
+        # subscribing is anonymous (no login), by design, same as citizen
+        # reports above.
+        if not EMAIL_RE.match(v):
+            raise ValueError("doesn't look like a valid email address")
+        return v
+
+    @field_validator("hazards")
+    @classmethod
+    def _valid_hazards(cls, v: list[str]) -> list[str]:
+        cleaned = sorted({h.strip().lower() for h in v})
+        if not cleaned or any(h not in ALLOWED_HAZARDS for h in cleaned):
+            raise ValueError(f"hazards must be a non-empty subset of {sorted(ALLOWED_HAZARDS)}")
+        return cleaned
+
+    @field_validator("lang")
+    @classmethod
+    def _valid_lang(cls, v: str) -> str:
+        return v if v in ("en", "bn") else "en"
+
+
+@app.post("/alerts/subscribe")
+def subscribe_to_alerts(request: AlertSubscribeRequest):
+    """Subscribe (or update an existing subscription for the same
+    email+district — re-submitting just changes which hazards you get,
+    it never creates a duplicate)."""
+    if not alert_subscriptions_db.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Alerts aren't set up yet: SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY are not configured on this "
+                "backend. See ALERTS-SETUP.md for setup steps."
+            ),
+        )
+    try:
+        sub = alert_subscriptions_db.create_or_update_subscription(
+            email=request.email, district=request.district, hazards=request.hazards, lang=request.lang,
+        )
+    except alert_subscriptions_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't save subscription: {e}")
+    return {
+        "subscribed": True,
+        "email": sub["email"],
+        "district": sub["district"],
+        "hazards": sub["hazards"].split(","),
+    }
+
+
+@app.get("/alerts/unsubscribe", response_class=HTMLResponse)
+def unsubscribe_from_alerts(token: str):
+    """One-click unsubscribe link target — this is what the URL in every
+    alert email points to. Returns a small standalone HTML page (not JSON)
+    since a real person clicks this straight from their email client, not
+    the dashboard; the same friendly confirmation shows whether the token
+    matched a live subscription or not (an already-unsubscribed link isn't
+    an error from the citizen's point of view)."""
+    if not alert_subscriptions_db.is_configured():
+        body = "Alerts aren't set up on this backend yet, so there's nothing to unsubscribe from."
+    else:
+        try:
+            alert_subscriptions_db.delete_by_token(token)
+        except alert_subscriptions_db.SupabaseError:
+            pass  # still show the same friendly confirmation — see docstring
+        body = "You won't receive any more alerts for this subscription."
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        "<title>Unsubscribed</title></head>"
+        "<body style='font-family: system-ui, sans-serif; background:#0c0a09; color:#e7e5e4; "
+        "display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:24px;'>"
+        "<div style='max-width:420px; text-align:center;'>"
+        "<p style='font-size:15px; line-height:1.6;'>" + body + "</p>"
+        "</div></body></html>"
+    )
 
 
 # ---------------------------------------------------------------------------

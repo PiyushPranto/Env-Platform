@@ -73,6 +73,26 @@ jobs:
         # and printed above in the logs for you to read directly in the
         # Actions run — that's the "useful logs on failure" requirement.
 
+      - name: Send proactive alerts to subscribed citizens (if configured)
+        # Runs BEFORE the commit step below so alert_state.json /
+        # alerts_status.json (written into api/data/) ride along in the
+        # same commit as the model-output refresh, instead of needing a
+        # second commit+push round trip. See scripts/send_alerts.py's own
+        # docstring for exactly what triggers an email and why. Silently
+        # a no-op (exit 0) until SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are
+        # set as repo secrets — see ALERTS-SETUP.md.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_FROM_EMAIL: ${{ secrets.ALERT_FROM_EMAIL }}
+          ALERT_FROM_NAME: ${{ secrets.ALERT_FROM_NAME }}
+        run: |
+          python scripts/send_alerts.py
+
       - name: Show what changed (for the run log)
         run: |
           git status --porcelain -- api/data/ || true
@@ -98,4 +118,5 @@ jobs:
           name: update-model-outputs-log-${{ github.run_id }}
           path: |
             env-platform-backend/api/data/refresh_status.json
+            env-platform-backend/api/data/alerts_status.json
           retention-days: 30
