@@ -1251,6 +1251,10 @@ const GOVT_I18N = {
     map: "Map",
     yes: "yes",
     close: "Close",
+    openData: "Open data",
+    openDataHint: "Download this platform's current per-district numbers (flood, heat, deforestation) as CSV or JSON — for researchers and third parties, free to reuse.",
+    openDataCsv: "Download CSV",
+    openDataJson: "View raw JSON",
   },
   bn: {
     consoleName: "পরিবেশ কনসোল",
@@ -1398,6 +1402,10 @@ const GOVT_I18N = {
     map: "মানচিত্র",
     yes: "হ্যাঁ",
     close: "বন্ধ করুন",
+    openData: "উন্মুক্ত ডেটা",
+    openDataHint: "এই প্ল্যাটফর্মের বর্তমান জেলাভিত্তিক তথ্য (বন্যা, তাপ, বন উজাড়) CSV বা JSON হিসেবে ডাউনলোড করুন — গবেষক ও তৃতীয় পক্ষের জন্য, বিনামূল্যে ব্যবহারযোগ্য।",
+    openDataCsv: "CSV ডাউনলোড করুন",
+    openDataJson: "JSON দেখুন",
   },
 };
 
@@ -1412,6 +1420,7 @@ function GovtDashboard({ role, onLogout }) {
   const [selectedFloodArea, setSelectedFloodArea] = useState(null);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [openDataOpen, setOpenDataOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
@@ -1619,6 +1628,40 @@ function GovtDashboard({ role, onLogout }) {
           >
             <FileText size={14} /> <span className="hidden sm:inline">{gt.generateReport}</span>
           </button>
+
+          {/* Open Data — lets researchers/third parties pull the platform's
+              current per-district numbers directly, outside this UI. Same
+              popover pattern as the notification bell above. */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenDataOpen((v) => !v)}
+              className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg border border-stone-700 text-stone-300 hover:bg-stone-800 hover:text-stone-100 transition-colors shrink-0"
+            >
+              <Download size={14} /> <span className="hidden sm:inline">{gt.openData}</span>
+            </button>
+            {openDataOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setOpenDataOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in p-3.5 space-y-2.5">
+                  <p className="text-[11px] text-stone-400 leading-relaxed">{gt.openDataHint}</p>
+                  <a
+                    href={`${API_BASE}/data/export.csv`}
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 py-2 rounded-lg transition-colors"
+                  >
+                    <Download size={13} /> {gt.openDataCsv}
+                  </a>
+                  <a
+                    href={`${API_BASE}/data/export`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium border border-stone-700 hover:bg-stone-700/60 text-stone-300 py-2 rounded-lg transition-colors"
+                  >
+                    {gt.openDataJson}
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Language + sign-out — moved from the sidebar footer to the
               top-right of the header per team feedback, so they're visible

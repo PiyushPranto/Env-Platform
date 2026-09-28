@@ -19,10 +19,12 @@ into /flood/risk + /flood/trend), /deforestation/ndvi, /deforestation/detect
 
 from pathlib import Path
 from typing import Optional
+import csv
+import io
 import json
 import re
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator
 from fastapi.middleware.cors import CORSMiddleware
@@ -186,6 +188,7 @@ def root():
             "/deforestation/citizen-reports",
             "/alerts/subscribe", "/alerts/unsubscribe",
             "/model/refresh-status",
+            "/data/export", "/data/export.csv",
         ],
     }
 
@@ -658,3 +661,98 @@ def model_refresh_status():
             "models": {},
         }
     return json.loads(path.read_text())
+
+
+# ---------------------------------------------------------------------------
+# Public data export — for researchers/third parties who want the platform's
+# current numbers outside the dashboard UI (open-data angle: this is public
+# good infrastructure, not just a citizen-facing app). Deliberately NOT a new
+# computation: it reshapes the exact same per-district files the dashboard
+# itself already reads (flood_national_severity.json, heat_risk.json,
+# deforestation_districts.json) into one combined row per district, joined
+# on district name (verified to match exactly across all three files — same
+# 64 districts, same spelling, no fuzzy matching needed).
+#
+# Honesty note carried into the export itself (see _export_metadata below):
+# flood and heat are live, rescored every ~3 days by the automation; the
+# deforestation numbers are from a one-time satellite analysis and are NOT
+# yet refreshed automatically (refresh_status.json's own "deforestation":
+# "skipped" already says this — the export's metadata just repeats it in a
+# place a researcher pulling only /data/export would actually see it).
+# ---------------------------------------------------------------------------
+
+EXPORT_FIELDS = [
+    "district", "population_2022",
+    "flood_avg_predicted_risk", "flood_severity_tier", "flood_risk_trend",
+    "heat_risk_score", "heat_risk_category", "heat_lst_c",
+    "deforestation_forest_pct_now", "deforestation_forest_loss_pct",
+    "deforestation_trend", "deforestation_risk_tier",
+]
+
+
+def _build_export_rows() -> list[dict]:
+    flood_rows = {r["district_name"]: r for r in _load("flood_national_severity.json")}
+    heat_rows = {w["name"]: w for w in _load("heat_risk.json").get("wards", [])}
+    defor_rows = {r["district"]: r for r in _load("deforestation_districts.json")}
+
+    districts = sorted(set(flood_rows) | set(heat_rows) | set(defor_rows))
+    rows = []
+    for d in districts:
+        f, h, g = flood_rows.get(d, {}), heat_rows.get(d, {}), defor_rows.get(d, {})
+        rows.append({
+            "district": d,
+            "population_2022": f.get("population_2022"),
+            "flood_avg_predicted_risk": f.get("avg_predicted_risk"),
+            "flood_severity_tier": f.get("severity_tier"),
+            "flood_risk_trend": f.get("risk_trend"),
+            "heat_risk_score": h.get("heat_risk"),
+            "heat_risk_category": h.get("risk_category"),
+            "heat_lst_c": h.get("lst_c"),
+            "deforestation_forest_pct_now": g.get("forest_pct_now"),
+            "deforestation_forest_loss_pct": g.get("forest_loss_pct"),
+            "deforestation_trend": g.get("trend"),
+            "deforestation_risk_tier": g.get("risk_tier"),
+        })
+    return rows
+
+
+def _export_metadata() -> dict:
+    try:
+        refresh = _load("refresh_status.json")
+    except HTTPException:
+        refresh = {}
+    return {
+        "generated_at": refresh.get("last_run_at"),
+        "field_notes": {
+            "flood_avg_predicted_risk": "Live — rescored roughly every 3 days from real rainfall via a trained Random Forest classifier. 0-1 scale.",
+            "flood_severity_tier": "Historical classification (DFO event severity + Global Flood Database flooded-area fraction). Does not change between automation runs.",
+            "heat_risk_score": "Composite urban-heat-island + land-cover risk score, 0-1 scale, refreshed on the same ~3-day cadence as flood.",
+            "deforestation_forest_pct_now": "From a one-time MODIS NDVI satellite analysis. NOT YET live-refreshed by the automation (see /model/refresh-status — deforestation is currently 'skipped') — treat as a snapshot, not a live feed.",
+        },
+        "license_note": "Produced by a BRAC University CSE400 thesis project (Group P2530998) for research/educational reuse. Provided as-is with no warranty on accuracy — verify independently before any operational use.",
+    }
+
+
+@app.get("/data/export")
+def data_export():
+    """Combined per-district snapshot across all three hazards, as JSON.
+    Same underlying files the dashboard itself reads — nothing computed
+    specially for this endpoint. See _export_metadata()'s field_notes for
+    what's live vs. a one-time snapshot."""
+    return {"metadata": _export_metadata(), "districts": _build_export_rows()}
+
+
+@app.get("/data/export.csv")
+def data_export_csv():
+    """Same data as /data/export, as a downloadable CSV — for researchers
+    who want to open it directly in a spreadsheet rather than parse JSON."""
+    rows = _build_export_rows()
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=EXPORT_FIELDS)
+    writer.writeheader()
+    writer.writerows(rows)
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=env-platform-export.csv"},
+    )
