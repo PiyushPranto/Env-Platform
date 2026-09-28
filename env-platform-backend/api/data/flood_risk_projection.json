@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-28T07:52:57Z",
+  "generated_at": "2026-09-28T17:29:52Z",
   "forecast_days": 7,
   "seed_days_used": 13,
   "methodology": "The same frozen, trained classifier flood_national_priority.json's avg_predicted_risk uses, scored day-by-day for the next 7 real forecast days from Open-Meteo's published forecast (not the 90-day historical average the nowcast uses). 13 prior days of near-real-time rainfall are fetched only to correctly seed the rolling-rain features for day 1 of the forecast, and are not themselves scored or reported. This inherits the weather forecast's own uncertainty, which grows with each day further out \u2014 treat later days as directional, not precise.",
@@ -10,45 +10,45 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.007846769269956862,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.005935959859376918,
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0030537461857428425,
+          "predicted_risk": 0.0012779389182733319,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 1.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.005379186566048399,
-          "rainfall_mm": 4.0
+          "predicted_risk": 0.0,
+          "rainfall_mm": 1.2
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0037897572442513973,
-          "rainfall_mm": 2.1
+          "predicted_risk": 0.0015406509509777657,
+          "rainfall_mm": 1.5
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0022056869700995767,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.005696196292896463,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.6
         }
       ],
-      "risk_in_7_days": 0.005696196292896463,
+      "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-09-28",
-        "predicted_risk": 0.007846769269956862,
-        "rainfall_mm": 1.8
+        "predicted_risk": 0.005935959859376918,
+        "rainfall_mm": 0.5
       },
       "projection_trend": "steady"
     },
@@ -58,8 +58,8 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.002993942938286963,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.0047243112869502476,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-29",
@@ -68,35 +68,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0016300078952163088,
-          "rainfall_mm": 1.7
+          "predicted_risk": 0.0013884242654159194,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.003889072702248243,
-          "rainfall_mm": 2.1
+          "predicted_risk": 0.010508288357142126,
+          "rainfall_mm": 2.2
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.008220110738376741,
-          "rainfall_mm": 4.5
+          "rainfall_mm": 3.2
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.009950479087040026,
-          "rainfall_mm": 2.1
+          "predicted_risk": 0.008220110738376741,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.0048597344944971465,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.0048597344944971465,
       "peak_day": {
-        "date": "2026-10-03",
-        "predicted_risk": 0.009950479087040026,
-        "rainfall_mm": 2.1
+        "date": "2026-10-01",
+        "predicted_risk": 0.010508288357142126,
+        "rainfall_mm": 2.2
       },
       "projection_trend": "steady"
     },
@@ -106,28 +106,28 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.00021495723814621664,
-          "rainfall_mm": 2.0
+          "predicted_risk": 0.002058855376328368,
+          "rainfall_mm": 1.3
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.00021495723814621664,
+          "predicted_risk": 0.002058855376328368,
           "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.00021495723814621664,
-          "rainfall_mm": 0.6
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.002188328641508797,
-          "rainfall_mm": 4.1
+          "predicted_risk": 0.00030763530538248986,
+          "rainfall_mm": 2.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 3.0
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 1.8
         },
         {
           "date": "2026-10-03",
@@ -136,15 +136,15 @@
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.003946742806725161,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.003946742806725161,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.002188328641508797,
-        "rainfall_mm": 4.1
+        "date": "2026-10-04",
+        "predicted_risk": 0.003946742806725161,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -154,45 +154,45 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.0011197338254985572,
-          "rainfall_mm": 1.5
+          "predicted_risk": 0.0029636319636807086,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0029636319636807086,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.0011197338254985572,
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0011197338254985572,
-          "rainfall_mm": 1.3
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0011197338254985572,
-          "rainfall_mm": 2.9
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.005505911261392662,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.005929993110683493,
+          "rainfall_mm": 3.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.005505911261392662,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.006501035594000928,
+          "rainfall_mm": 1.5
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0020451745640660914,
+          "predicted_risk": 0.006150621971500649,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0020451745640660914,
+      "risk_in_7_days": 0.006150621971500649,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.005505911261392662,
-        "rainfall_mm": 2.7
+        "date": "2026-10-03",
+        "predicted_risk": 0.006501035594000928,
+        "rainfall_mm": 1.5
       },
       "projection_trend": "steady"
     },
@@ -203,7 +203,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.002083442572852001,
-          "rainfall_mm": 1.7
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-09-29",
@@ -213,34 +213,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.002083442572852001,
-          "rainfall_mm": 0.5
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.003619705405651662,
-          "rainfall_mm": 1.6
+          "predicted_risk": 0.002092230629435022,
+          "rainfall_mm": 1.2
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.005204363130656464,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.0039729239655613285,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0004589016112209827,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0019995525621987484,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.004276171152765715,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0004589016112209827,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.004276171152765715,
+      "risk_in_7_days": 0.0004589016112209827,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.005204363130656464,
-        "rainfall_mm": 1.8
+        "predicted_risk": 0.0039729239655613285,
+        "rainfall_mm": 1.0
       },
       "projection_trend": "steady"
     },
@@ -250,33 +250,33 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.008947237971303585,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.003001750064916996,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-09-29",
           "predicted_risk": 0.0,
-          "rainfall_mm": 10.9
+          "rainfall_mm": 21.1
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 10.6
+          "rainfall_mm": 15.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 7.6
+          "predicted_risk": 0.0020451745640660914,
+          "rainfall_mm": 5.2
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 8.1
+          "rainfall_mm": 3.6
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0,
-          "rainfall_mm": 5.1
+          "rainfall_mm": 3.3
         },
         {
           "date": "2026-10-04",
@@ -287,8 +287,8 @@
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-09-28",
-        "predicted_risk": 0.008947237971303585,
-        "rainfall_mm": 0.7
+        "predicted_risk": 0.003001750064916996,
+        "rainfall_mm": 0.1
       },
       "projection_trend": "steady"
     },
@@ -299,7 +299,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-09-29",
@@ -309,34 +309,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0018310266383273891,
-          "rainfall_mm": 1.0
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.003990048344259308,
-          "rainfall_mm": 1.3
+          "predicted_risk": 0.0,
+          "rainfall_mm": 3.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 2.4
+          "predicted_risk": 0.0014605819290003084,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0029601302998762823,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.0031295562660922827,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.004636080098989011,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.0018310266383273891,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.004636080098989011,
+      "risk_in_7_days": 0.0018310266383273891,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.004636080098989011,
-        "rainfall_mm": 1.2
+        "date": "2026-10-03",
+        "predicted_risk": 0.0031295562660922827,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -352,39 +352,39 @@
         {
           "date": "2026-09-29",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 9.26780672362732e-05,
+          "predicted_risk": 0.004089379436607628,
           "rainfall_mm": 0.7
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0043669117354127,
-          "rainfall_mm": 1.4
+          "predicted_risk": 0.0023935403320501196,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0043669117354127,
-          "rainfall_mm": 2.4
+          "predicted_risk": 0.00197337140336258,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0043669117354127,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.0034339533323628885,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0023935403320501196,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0014605819290003084,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0023935403320501196,
+      "risk_in_7_days": 0.0014605819290003084,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.0043669117354127,
-        "rainfall_mm": 1.4
+        "date": "2026-09-30",
+        "predicted_risk": 0.004089379436607628,
+        "rainfall_mm": 0.7
       },
       "projection_trend": "steady"
     },
@@ -399,40 +399,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.002032846692292641,
-          "rainfall_mm": 3.9
+          "predicted_risk": 0.0019733714033625797,
+          "rainfall_mm": 7.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 11.2
+          "predicted_risk": 0.00036621419101310097,
+          "rainfall_mm": 2.7
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.00197337140336258,
-          "rainfall_mm": 13.4
+          "predicted_risk": 0.0,
+          "rainfall_mm": 7.0
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 10.1
+          "rainfall_mm": 3.8
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0,
-          "rainfall_mm": 2.5
+          "rainfall_mm": 2.3
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.0,
-          "rainfall_mm": 1.5
+          "rainfall_mm": 0.9
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-09-29",
-        "predicted_risk": 0.002032846692292641,
-        "rainfall_mm": 3.9
+        "predicted_risk": 0.0019733714033625797,
+        "rainfall_mm": 7.0
       },
       "projection_trend": "steady"
     },
@@ -453,34 +453,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.001460581929000308,
-          "rainfall_mm": 1.7
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.005095381184108711,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.008031827017351738,
+          "rainfall_mm": 1.5
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0035742664868454368,
-          "rainfall_mm": 3.2
+          "predicted_risk": 0.006058455613989158,
+          "rainfall_mm": 1.2
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.004049585108281728,
-          "rainfall_mm": 1.3
+          "predicted_risk": 0.004328087265325873,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0022056869700995767,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0063732618293919656,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0022056869700995767,
+      "risk_in_7_days": 0.0063732618293919656,
       "peak_day": {
         "date": "2026-10-01",
-        "predicted_risk": 0.005095381184108711,
-        "rainfall_mm": 2.7
+        "predicted_risk": 0.008031827017351738,
+        "rainfall_mm": 1.5
       },
       "projection_trend": "steady"
     },
@@ -495,40 +495,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0013829391540780176,
-          "rainfall_mm": 7.0
-        },
-        {
-          "date": "2026-09-30",
           "predicted_risk": 0.0010167249630649165,
           "rainfall_mm": 13.4
         },
         {
+          "date": "2026-09-30",
+          "predicted_risk": 0.001500692271849835,
+          "rainfall_mm": 26.4
+        },
+        {
           "date": "2026-10-01",
-          "predicted_risk": 0.0009753886862198126,
-          "rainfall_mm": 3.5
+          "predicted_risk": 0.0015486312828656714,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0010167249630649165,
-          "rainfall_mm": 5.4
+          "rainfall_mm": 2.0
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0010167249630649165,
-          "rainfall_mm": 4.8
+          "rainfall_mm": 4.2
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.006194183311351032,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.0010167249630649165,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.006194183311351032,
+      "risk_in_7_days": 0.0010167249630649165,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.006194183311351032,
-        "rainfall_mm": 2.7
+        "date": "2026-09-28",
+        "predicted_risk": 0.001730368348663285,
+        "rainfall_mm": 0.5
       },
       "projection_trend": "steady"
     },
@@ -543,40 +543,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0019282395765979352,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0045915545164233575,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.0068016668456186095,
+          "rainfall_mm": 3.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.010101400907681666,
-          "rainfall_mm": 4.0
+          "predicted_risk": 0.007905984102916963,
+          "rainfall_mm": 2.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.00969131431722089,
-          "rainfall_mm": 2.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 5.9
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 7.2
+          "predicted_risk": 0.0012092075029660444,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.001918268756991605,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.0012092075029660444,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.001918268756991605,
+      "risk_in_7_days": 0.0012092075029660444,
       "peak_day": {
         "date": "2026-10-01",
-        "predicted_risk": 0.010101400907681666,
-        "rainfall_mm": 4.0
+        "predicted_risk": 0.007905984102916963,
+        "rainfall_mm": 2.6
       },
       "projection_trend": "steady"
     },
@@ -586,45 +586,45 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.0013230606175131867,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.006002238791268295,
-          "rainfall_mm": 4.4
+          "predicted_risk": 0.0,
+          "rainfall_mm": 7.2
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.002122400295226296,
-          "rainfall_mm": 4.7
+          "predicted_risk": 0.0,
+          "rainfall_mm": 7.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 5.8
+          "predicted_risk": 0.0016300078952163086,
+          "rainfall_mm": 1.9
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.005932584655520029,
-          "rainfall_mm": 4.3
+          "predicted_risk": 0.0,
+          "rainfall_mm": 1.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.004026145606874964,
-          "rainfall_mm": 3.5
+          "predicted_risk": 0.0,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0022349210314486353,
-          "rainfall_mm": 1.5
+          "predicted_risk": 0.00197337140336258,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0022349210314486353,
+      "risk_in_7_days": 0.00197337140336258,
       "peak_day": {
-        "date": "2026-09-29",
-        "predicted_risk": 0.006002238791268295,
-        "rainfall_mm": 4.4
+        "date": "2026-10-04",
+        "predicted_risk": 0.00197337140336258,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -635,44 +635,44 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 1.2
+          "rainfall_mm": 1.7
         },
         {
           "date": "2026-09-29",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 0.1
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.004089379436607628,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0018395488357819388,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.005602931860777638,
-          "rainfall_mm": 1.7
+          "predicted_risk": 0.0019995525621987484,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0027546788694326613,
-          "rainfall_mm": 3.6
+          "predicted_risk": 0.006059552406213717,
+          "rainfall_mm": 3.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0004589016112209827,
-          "rainfall_mm": 2.4
+          "predicted_risk": 0.008170478619091055,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0026044492826561884,
+          "predicted_risk": 0.009758654298479236,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0026044492826561884,
+      "risk_in_7_days": 0.009758654298479236,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.005602931860777638,
-        "rainfall_mm": 1.7
+        "date": "2026-10-04",
+        "predicted_risk": 0.009758654298479236,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -683,44 +683,44 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.6
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-09-29",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 0.1
+          "rainfall_mm": 0.7
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 2.3
+          "rainfall_mm": 2.8
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 9.0
+          "rainfall_mm": 5.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.001500692271849835,
-          "rainfall_mm": 3.0
+          "predicted_risk": 0.0018395488357819388,
+          "rainfall_mm": 4.4
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 6.0
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.0018395488357819388,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.6
         }
       ],
       "risk_in_7_days": 0.0018395488357819388,
       "peak_day": {
         "date": "2026-09-29",
         "predicted_risk": 0.0018395488357819388,
-        "rainfall_mm": 0.1
+        "rainfall_mm": 0.7
       },
       "projection_trend": "steady"
     },
@@ -735,36 +735,36 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0022957772582116783,
-          "rainfall_mm": 5.4
+          "predicted_risk": 0.001843898138182151,
+          "rainfall_mm": 8.8
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 6.7
+          "predicted_risk": 0.003447089999622831,
+          "rainfall_mm": 6.4
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0032710192996410507,
-          "rainfall_mm": 5.9
+          "predicted_risk": 0.0015406509509777657,
+          "rainfall_mm": 3.2
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 5.4
+          "rainfall_mm": 2.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 13.5
+          "predicted_risk": 0.0012635745896236777,
+          "rainfall_mm": 1.9
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.003460736697326571,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0,
+          "rainfall_mm": 1.5
         }
       ],
-      "risk_in_7_days": 0.003460736697326571,
+      "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-09-28",
         "predicted_risk": 0.0038527686438895813,
@@ -779,43 +779,43 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.002122400295226296,
-          "rainfall_mm": 3.4
+          "rainfall_mm": 1.9
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.003415033885157183,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-09-30",
-          "predicted_risk": 0.0050937233325609906,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-01",
-          "predicted_risk": 0.004159339731584719,
-          "rainfall_mm": 0.8
-        },
-        {
-          "date": "2026-10-02",
-          "predicted_risk": 0.003415033885157183,
-          "rainfall_mm": 1.2
-        },
-        {
-          "date": "2026-10-03",
-          "predicted_risk": 0.010786979311015825,
+          "predicted_risk": 0.005547873786506638,
           "rainfall_mm": 0.3
         },
         {
-          "date": "2026-10-04",
-          "predicted_risk": 0.006973183961136619,
+          "date": "2026-09-30",
+          "predicted_risk": 0.00752529930645895,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-01",
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 0.5
+        },
+        {
+          "date": "2026-10-02",
+          "predicted_risk": 0.006502599327100968,
+          "rainfall_mm": 1.9
+        },
+        {
+          "date": "2026-10-03",
+          "predicted_risk": 0.008307034359147942,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-04",
+          "predicted_risk": 0.009561549156942517,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.006973183961136619,
+      "risk_in_7_days": 0.009561549156942517,
       "peak_day": {
-        "date": "2026-10-03",
-        "predicted_risk": 0.010786979311015825,
+        "date": "2026-10-04",
+        "predicted_risk": 0.009561549156942517,
         "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
@@ -831,40 +831,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.00224983060082569,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0032710192996410507,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.7
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 2.4
+          "rainfall_mm": 11.8
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.00197337140336258,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.002428004945419456,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.002428004945419456,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.0032710192996410507,
-        "rainfall_mm": 0.1
+        "date": "2026-09-28",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -884,35 +884,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0012092075029660444,
-          "rainfall_mm": 0.8
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0071315062281549265,
-          "rainfall_mm": 1.7
+          "predicted_risk": 0.0054788330631222034,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.010006520852301817,
-          "rainfall_mm": 6.9
+          "predicted_risk": 0.016838082401322625,
+          "rainfall_mm": 2.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.009643020550460662,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.011937323206603147,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0048265943749834506,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.006044710421052877,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0048265943749834506,
+      "risk_in_7_days": 0.006044710421052877,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.010006520852301817,
-        "rainfall_mm": 6.9
+        "predicted_risk": 0.016838082401322625,
+        "rainfall_mm": 2.6
       },
       "projection_trend": "steady"
     },
@@ -923,7 +923,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0013884242654159196,
-          "rainfall_mm": 0.9
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-09-29",
@@ -932,35 +932,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.00224983060082569,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.00741069469603488,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.00454188383095584,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.013531586436928526,
-          "rainfall_mm": 3.3
+          "predicted_risk": 0.008852640807568517,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.006775102075690595,
+          "predicted_risk": 0.00197337140336258,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.004703967598489575,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.002045174564066092,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.004703967598489575,
+      "risk_in_7_days": 0.002045174564066092,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.013531586436928526,
-        "rainfall_mm": 3.3
+        "predicted_risk": 0.008852640807568517,
+        "rainfall_mm": 1.1
       },
       "projection_trend": "steady"
     },
@@ -980,35 +980,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.002291793969292337,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.012859263987992881,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.014371504525883943,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.012859263987992881,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.009198715805022566,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.012464531960741581,
+          "predicted_risk": 0.009198715805022566,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.01293033565012497,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.005345947161132986,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.01293033565012497,
+      "risk_in_7_days": 0.005345947161132986,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.01293033565012497,
-        "rainfall_mm": 0.6
+        "date": "2026-10-01",
+        "predicted_risk": 0.014371504525883943,
+        "rainfall_mm": 1.1
       },
       "projection_trend": "steady"
     },
@@ -1028,35 +1028,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.006566274408589406,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.004316443807763715,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 2.7
+          "rainfall_mm": 4.5
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0030905898242166168,
+          "predicted_risk": 0.0014605819290003084,
           "rainfall_mm": 1.8
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.003820622378043307,
+          "predicted_risk": 0.0014605819290003084,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0059824467886278095,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.00400907538526523,
+          "rainfall_mm": 1.5
         }
       ],
-      "risk_in_7_days": 0.0059824467886278095,
+      "risk_in_7_days": 0.00400907538526523,
       "peak_day": {
         "date": "2026-09-30",
-        "predicted_risk": 0.006566274408589406,
-        "rainfall_mm": 0.4
+        "predicted_risk": 0.004316443807763715,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1076,35 +1076,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 9.26780672362732e-05,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0018230464158995583,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.00224983060082569,
+          "rainfall_mm": 1.4
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 2.4
+          "predicted_risk": 0.012606250016599565,
+          "rainfall_mm": 0.7
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.001730368348663285,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.003248757835268796,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.012606250016599565,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.003248757835268796,
+      "risk_in_7_days": 0.012606250016599565,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.003248757835268796,
-        "rainfall_mm": 0.0
+        "date": "2026-10-02",
+        "predicted_risk": 0.012606250016599565,
+        "rainfall_mm": 0.7
       },
       "projection_trend": "steady"
     },
@@ -1115,7 +1115,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0030377636049952633,
-          "rainfall_mm": 1.1
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-09-29",
@@ -1124,35 +1124,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.004028839343871361,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.007613044966786251,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0067472238067622795,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.010994716014848723,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.001906439048645065,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.011472596853662078,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.008333562569044155,
+          "predicted_risk": 0.017203664124478782,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.01610699252612695,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.014960384866960346,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.01610699252612695,
+      "risk_in_7_days": 0.014960384866960346,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.01610699252612695,
-        "rainfall_mm": 0.6
+        "date": "2026-10-03",
+        "predicted_risk": 0.017203664124478782,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -1163,7 +1163,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0016300078952163086,
-          "rainfall_mm": 0.4
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-09-29",
@@ -1172,35 +1172,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 9.26780672362732e-05,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.0018230464158995583,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.008157974052588036,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.00642760570392475,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.006035573757361741,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.003775571982426401,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0018310266383273891,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0022349210314486353,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0018310266383273891,
+      "risk_in_7_days": 0.0022349210314486353,
       "peak_day": {
         "date": "2026-10-01",
-        "predicted_risk": 0.008157974052588036,
-        "rainfall_mm": 0.7
+        "predicted_risk": 0.00642760570392475,
+        "rainfall_mm": 1.1
       },
       "projection_trend": "steady"
     },
@@ -1210,45 +1210,45 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.0021224002952262956,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.0039077305095302235,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0021224002952262956,
+          "predicted_risk": 0.0044824407442692945,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0065174344427645515,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.014238616763498064,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.008586584837462288,
-          "rainfall_mm": 2.3
+          "predicted_risk": 0.012086164242964293,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.013314410880469781,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.009720784334285864,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.011853828951469471,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.005581108937892034,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.0013884242654159194,
-          "rainfall_mm": 0.6
+          "rainfall_mm": 0.9
         }
       ],
       "risk_in_7_days": 0.0013884242654159194,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.013314410880469781,
-        "rainfall_mm": 0.6
+        "date": "2026-09-30",
+        "predicted_risk": 0.014238616763498064,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1259,44 +1259,44 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.9
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-09-29",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.00224983060082569,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.001906439048645065,
-          "rainfall_mm": 1.3
+          "predicted_risk": 0.0,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.001730368348663285,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.010784354978966489,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0089533283406391,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.010784354978966489,
+      "risk_in_7_days": 0.0089533283406391,
       "peak_day": {
         "date": "2026-10-04",
-        "predicted_risk": 0.010784354978966489,
-        "rainfall_mm": 0.6
+        "predicted_risk": 0.0089533283406391,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -1307,43 +1307,43 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.005897130655031734,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-09-29",
-          "predicted_risk": 0.004069953943038967,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-09-30",
-          "predicted_risk": 0.007505526349942128,
-          "rainfall_mm": 0.8
-        },
-        {
-          "date": "2026-10-01",
-          "predicted_risk": 0.02414636950245825,
           "rainfall_mm": 0.6
         },
         {
+          "date": "2026-09-29",
+          "predicted_risk": 0.0030918871690495,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "predicted_risk": 0.00837873929548397,
+          "rainfall_mm": 0.2
+        },
+        {
+          "date": "2026-10-01",
+          "predicted_risk": 0.02013605866273725,
+          "rainfall_mm": 1.2
+        },
+        {
           "date": "2026-10-02",
-          "predicted_risk": 0.005767657389851305,
-          "rainfall_mm": 10.5
+          "predicted_risk": 0.022320801270242097,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0070174269307235184,
+          "predicted_risk": 0.019622116244878533,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0052474605515145665,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.007243132565770822,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.0052474605515145665,
+      "risk_in_7_days": 0.007243132565770822,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.02414636950245825,
+        "date": "2026-10-02",
+        "predicted_risk": 0.022320801270242097,
         "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
@@ -1364,35 +1364,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.00347390603339846,
+          "rainfall_mm": 1.6
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.007811473746601152,
-          "rainfall_mm": 1.1
+          "predicted_risk": 0.01016867055642453,
+          "rainfall_mm": 2.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.009853368908754276,
-          "rainfall_mm": 1.3
+          "predicted_risk": 0.009598853554619913,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.007509729197788864,
-          "rainfall_mm": 1.0
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.00818613407837334,
-          "rainfall_mm": 2.4
+          "predicted_risk": 0.012696477961046147,
+          "rainfall_mm": 1.5
         }
       ],
-      "risk_in_7_days": 0.00818613407837334,
+      "risk_in_7_days": 0.012696477961046147,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.009853368908754276,
-        "rainfall_mm": 1.3
+        "date": "2026-10-04",
+        "predicted_risk": 0.012696477961046147,
+        "rainfall_mm": 1.5
       },
       "projection_trend": "steady"
     },
@@ -1403,7 +1403,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.00036621419101310097,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-29",
@@ -1412,35 +1412,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.004500971124557596,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0027489924664472754,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.002291793969292337,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.003112546859141677,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.006603388709150376,
-          "rainfall_mm": 3.5
+          "predicted_risk": 0.004159339731584719,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0078030157701168765,
+          "predicted_risk": 0.0032710192996410516,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.004050639871824232,
+          "predicted_risk": 0.004550169129158705,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.004050639871824232,
+      "risk_in_7_days": 0.004550169129158705,
       "peak_day": {
-        "date": "2026-10-03",
-        "predicted_risk": 0.0078030157701168765,
-        "rainfall_mm": 0.3
+        "date": "2026-09-29",
+        "predicted_risk": 0.0056319793286238005,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1451,7 +1451,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-09-29",
@@ -1461,34 +1461,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 9.26780672362732e-05,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.002045174564066092,
-          "rainfall_mm": 0.8
+          "predicted_risk": 0.003876201202393481,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.005114917437823202,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.005114917437823202,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0035742664868454368,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0035742664868454368,
+      "risk_in_7_days": 0.0018438981381821511,
       "peak_day": {
-        "date": "2026-10-02",
+        "date": "2026-10-03",
         "predicted_risk": 0.005114917437823202,
-        "rainfall_mm": 0.5
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -1508,35 +1508,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0050119238890578635,
-          "rainfall_mm": 1.6
+          "predicted_risk": 0.000975784972815505,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.013172071846890567,
-          "rainfall_mm": 2.2
+          "predicted_risk": 0.009244639498853879,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.01165417114248365,
-          "rainfall_mm": 0.9
-        },
-        {
-          "date": "2026-10-03",
-          "predicted_risk": 0.016348553102228606,
+          "predicted_risk": 0.013846653018186566,
           "rainfall_mm": 0.3
         },
         {
+          "date": "2026-10-03",
+          "predicted_risk": 0.009516930842119931,
+          "rainfall_mm": 0.9
+        },
+        {
           "date": "2026-10-04",
-          "predicted_risk": 0.017201225945056867,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.008684169618321054,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.017201225945056867,
+      "risk_in_7_days": 0.008684169618321054,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.017201225945056867,
-        "rainfall_mm": 1.2
+        "date": "2026-10-02",
+        "predicted_risk": 0.013846653018186566,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -1551,40 +1551,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.007472967878286041,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.006567433655870184,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.004418177553437975,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.005238046846837405,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.030183874720965398,
+          "predicted_risk": 0.02072774813884445,
           "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0201432948143501,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.020506684858779583,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.016302746271554428,
+          "predicted_risk": 0.021626720509174423,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.007827641825439218,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.005854270422076638,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.007827641825439218,
+      "risk_in_7_days": 0.005854270422076638,
       "peak_day": {
-        "date": "2026-10-01",
-        "predicted_risk": 0.030183874720965398,
-        "rainfall_mm": 0.6
+        "date": "2026-10-03",
+        "predicted_risk": 0.021626720509174423,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1594,32 +1594,32 @@
       "daily": [
         {
           "date": "2026-09-28",
-          "predicted_risk": 0.002115465447339543,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.001775807267469511,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.004683754080959152,
+          "predicted_risk": 0.0030537461857428425,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0030537461857428425,
-          "rainfall_mm": 1.4
+          "predicted_risk": 0.004442170451158762,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 1.0
+          "predicted_risk": 0.0047942394281017394,
+          "rainfall_mm": 1.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.0029684957359708457,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.001730368348663285,
+          "predicted_risk": 0.0031187926140792046,
           "rainfall_mm": 0.6
         },
         {
@@ -1630,9 +1630,9 @@
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-09-29",
-        "predicted_risk": 0.004683754080959152,
-        "rainfall_mm": 0.0
+        "date": "2026-10-01",
+        "predicted_risk": 0.0047942394281017394,
+        "rainfall_mm": 1.6
       },
       "projection_trend": "steady"
     },
@@ -1647,40 +1647,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.00036621419101310097,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.005308142706442607,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.8
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0008207528898493405,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.0008207528898493405,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.3
         }
       ],
       "risk_in_7_days": 0.0008207528898493405,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.005308142706442607,
-        "rainfall_mm": 0.1
+        "date": "2026-09-28",
+        "predicted_risk": 0.0014605819290003084,
+        "rainfall_mm": 0.4
       },
       "projection_trend": "steady"
     },
@@ -1700,23 +1700,23 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.005551350180198887,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.001775807267469511,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 2.5
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.001730368348663285,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
@@ -1726,9 +1726,9 @@
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.005551350180198887,
-        "rainfall_mm": 0.3
+        "date": "2026-09-29",
+        "predicted_risk": 0.0050989207498089335,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1739,7 +1739,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-29",
@@ -1749,34 +1749,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0038478163156739553,
-          "rainfall_mm": 1.3
+          "predicted_risk": 0.002776848530831839,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.006152429776824737,
-          "rainfall_mm": 1.0
+          "predicted_risk": 0.009599566982756382,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.005556353627589185,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.008248061244584217,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.002531549713842425,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.007177093459742101,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.002531549713842425,
+      "risk_in_7_days": 0.007177093459742101,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.006152429776824737,
-        "rainfall_mm": 1.0
+        "predicted_risk": 0.009599566982756382,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -1797,21 +1797,21 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 1.0
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 3.6
+          "rainfall_mm": 1.9
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.004003335136859886,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.3
         },
         {
@@ -1822,9 +1822,9 @@
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-03",
-        "predicted_risk": 0.004003335136859886,
-        "rainfall_mm": 0.3
+        "date": "2026-09-29",
+        "predicted_risk": 0.0016300078952163086,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1845,33 +1845,33 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.005232667072190903,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0049778112319554925,
-          "rainfall_mm": 0.4
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.006365563386862743,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.002036939436358423,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.004010310839721003,
+          "predicted_risk": 0.00197337140336258,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.00197337140336258,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.00197337140336258,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.006365563386862743,
+        "date": "2026-09-30",
+        "predicted_risk": 0.005232667072190903,
         "rainfall_mm": 0.4
       },
       "projection_trend": "steady"
@@ -1897,30 +1897,30 @@
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.006917331661156068,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.007988299445998184,
+          "rainfall_mm": 0.7
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.005092818966731647,
-          "rainfall_mm": 9.8
+          "predicted_risk": 0.007878249479601532,
+          "rainfall_mm": 4.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.014226089777043045,
+          "predicted_risk": 0.027160081900058638,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.016521867035254725,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.028920693363367507,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.016521867035254725,
+      "risk_in_7_days": 0.028920693363367507,
       "peak_day": {
         "date": "2026-10-04",
-        "predicted_risk": 0.016521867035254725,
-        "rainfall_mm": 0.6
+        "predicted_risk": 0.028920693363367507,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1935,40 +1935,40 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0016892748085262877,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0013230606175131867,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.8
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 1.5
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.009132705003505636,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.00604211517928902,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.006410988949108834,
+          "predicted_risk": 0.0026646510280314917,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0026646510280314917,
+          "predicted_risk": 0.0018438981381821511,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0026646510280314917,
+      "risk_in_7_days": 0.0018438981381821511,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.009132705003505636,
-        "rainfall_mm": 0.3
+        "predicted_risk": 0.00604211517928902,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1979,7 +1979,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-09-29",
@@ -1994,29 +1994,29 @@
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.2
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0019733714033625797,
-          "rainfall_mm": 3.6
+          "predicted_risk": 0.0,
+          "rainfall_mm": 5.9
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.003603379298578889,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0009951243326082656,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0009951243326082656,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.0009951243326082656,
       "peak_day": {
         "date": "2026-10-03",
-        "predicted_risk": 0.003603379298578889,
-        "rainfall_mm": 0.0
+        "predicted_risk": 0.0009951243326082656,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -2036,18 +2036,18 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.003536146306488916,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.002993942938286963,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.8
+          "predicted_risk": 0.004522402317690927,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0018438981381821511,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.0,
+          "rainfall_mm": 2.1
         },
         {
           "date": "2026-10-03",
@@ -2062,8 +2062,8 @@
       ],
       "risk_in_7_days": 0.0022498306008256895,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.003536146306488916,
+        "date": "2026-10-01",
+        "predicted_risk": 0.004522402317690927,
         "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
@@ -2085,34 +2085,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 1.2
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.002404919305861152,
-          "rainfall_mm": 2.9
+          "predicted_risk": 0.0029572947116019554,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.007493772377477259,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.00943703516553233,
+          "rainfall_mm": 2.1
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.004248817444043303,
-          "rainfall_mm": 2.7
+          "predicted_risk": 0.008775216799306342,
+          "rainfall_mm": 2.1
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.01599063426623168,
-          "rainfall_mm": 1.8
+          "predicted_risk": 0.018669467216204064,
+          "rainfall_mm": 1.5
         }
       ],
-      "risk_in_7_days": 0.01599063426623168,
+      "risk_in_7_days": 0.018669467216204064,
       "peak_day": {
         "date": "2026-10-04",
-        "predicted_risk": 0.01599063426623168,
-        "rainfall_mm": 1.8
+        "predicted_risk": 0.018669467216204064,
+        "rainfall_mm": 1.5
       },
       "projection_trend": "steady"
     },
@@ -2132,31 +2132,31 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.006321268845035071,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0,
+          "rainfall_mm": 6.2
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 6.7
+          "rainfall_mm": 3.8
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 6.7
+          "rainfall_mm": 4.8
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0,
-          "rainfall_mm": 1.9
+          "rainfall_mm": 2.7
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 3.3
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.002122400295226296,
       "peak_day": {
         "date": "2026-09-28",
         "predicted_risk": 0.011416477304853137,
@@ -2176,39 +2176,39 @@
         {
           "date": "2026-09-29",
           "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 0.2
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 2.5
+          "rainfall_mm": 3.3
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 6.6
+          "rainfall_mm": 5.5
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 5.2
+          "rainfall_mm": 3.4
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.0,
-          "rainfall_mm": 3.4
+          "rainfall_mm": 3.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 2.1
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 2.3
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.002122400295226296,
       "peak_day": {
-        "date": "2026-09-29",
-        "predicted_risk": 0.001730368348663285,
-        "rainfall_mm": 0.2
+        "date": "2026-10-04",
+        "predicted_risk": 0.002122400295226296,
+        "rainfall_mm": 2.3
       },
       "projection_trend": "steady"
     },
@@ -2223,23 +2223,23 @@
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.0027305520159398087,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0044609203646030935,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0033434465090581254,
-          "rainfall_mm": 2.8
+          "predicted_risk": 0.0,
+          "rainfall_mm": 4.9
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.0,
-          "rainfall_mm": 9.7
+          "rainfall_mm": 9.3
         },
         {
           "date": "2026-10-02",
           "predicted_risk": 0.0,
-          "rainfall_mm": 4.7
+          "rainfall_mm": 1.9
         },
         {
           "date": "2026-10-03",
@@ -2249,14 +2249,14 @@
         {
           "date": "2026-10-04",
           "predicted_risk": 0.0,
-          "rainfall_mm": 4.2
+          "rainfall_mm": 2.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.0033434465090581254,
-        "rainfall_mm": 2.8
+        "date": "2026-09-29",
+        "predicted_risk": 0.0044609203646030935,
+        "rainfall_mm": 0.2
       },
       "projection_trend": "steady"
     },
@@ -2277,34 +2277,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.7
+          "rainfall_mm": 1.2
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.010342515690131959,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0140265206494271,
+          "rainfall_mm": 1.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.007934354473723197,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.011546575697559215,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.006406460371369098,
+          "predicted_risk": 0.007459035852286906,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0074774281562112145,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.00968311512631079,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0074774281562112145,
+      "risk_in_7_days": 0.00968311512631079,
       "peak_day": {
         "date": "2026-10-01",
-        "predicted_risk": 0.010342515690131959,
-        "rainfall_mm": 0.6
+        "predicted_risk": 0.0140265206494271,
+        "rainfall_mm": 1.3
       },
       "projection_trend": "steady"
     },
@@ -2315,7 +2315,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0044644358920561756,
-          "rainfall_mm": 0.4
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-09-29",
@@ -2324,35 +2324,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.012937847409100587,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.014002446394768503,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.016147898850504685,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.014517890955288375,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0150726930680121,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.016680979756336475,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.02195072627465501,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.01595743045563923,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.01220164210466334,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.01677681995370446,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.01220164210466334,
+      "risk_in_7_days": 0.01677681995370446,
       "peak_day": {
-        "date": "2026-10-03",
-        "predicted_risk": 0.02195072627465501,
-        "rainfall_mm": 0.6
+        "date": "2026-10-04",
+        "predicted_risk": 0.01677681995370446,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -2363,44 +2363,44 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0015021113194403307,
-          "rainfall_mm": 0.3
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.00668287358799071,
+          "predicted_risk": 0.004447952556542074,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
           "predicted_risk": 0.005757294053330939,
-          "rainfall_mm": 0.4
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0034984956210723133,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.007841492455775239,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.009482177864155896,
+          "predicted_risk": 0.0025992109110356603,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0046361503473940835,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.007770213470365926,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0025992109110356603,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0046361503473940835,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.0025992109110356603,
+      "risk_in_7_days": 0.0046361503473940835,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.009482177864155896,
-        "rainfall_mm": 0.3
+        "date": "2026-10-01",
+        "predicted_risk": 0.007841492455775239,
+        "rainfall_mm": 0.1
       },
       "projection_trend": "steady"
     },
@@ -2411,7 +2411,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.003156409990279149,
-          "rainfall_mm": 0.8
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-09-29",
@@ -2420,31 +2420,31 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.002379067490048922,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0040744698672305745,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-02",
-          "predicted_risk": 0.00561512081820834,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.3
         },
         {
+          "date": "2026-10-02",
+          "predicted_risk": 0.0040744698672305745,
+          "rainfall_mm": 0.0
+        },
+        {
           "date": "2026-10-03",
-          "predicted_risk": 0.002036939436358423,
+          "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0015406509509777657,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.0032710192996410516,
+          "rainfall_mm": 0.6
         }
       ],
-      "risk_in_7_days": 0.0015406509509777657,
+      "risk_in_7_days": 0.0032710192996410516,
       "peak_day": {
         "date": "2026-09-29",
         "predicted_risk": 0.006047841270593155,
@@ -2459,44 +2459,44 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.0045637740165290945,
-          "rainfall_mm": 0.4
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-29",
-          "predicted_risk": 0.011254393774225279,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0031700136382687427,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.008441483574199826,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0034073880969862046,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.005342393759254465,
-          "rainfall_mm": 0.8
+          "predicted_risk": 0.0012635745896236777,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0034984956210723133,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0020843274794730177,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.006210146239263245,
+          "predicted_risk": 0.006399863636948766,
           "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.006399863636948766,
+          "predicted_risk": 0.009533926759920605,
           "rainfall_mm": 0.6
         }
       ],
-      "risk_in_7_days": 0.006399863636948766,
+      "risk_in_7_days": 0.009533926759920605,
       "peak_day": {
-        "date": "2026-09-29",
-        "predicted_risk": 0.011254393774225279,
-        "rainfall_mm": 0.3
+        "date": "2026-10-04",
+        "predicted_risk": 0.009533926759920605,
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -2516,34 +2516,34 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-01",
-          "predicted_risk": 0.0018395488357819388,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.1
         },
         {
+          "date": "2026-10-01",
+          "predicted_risk": 0.004089379436607628,
+          "rainfall_mm": 0.2
+        },
+        {
           "date": "2026-10-02",
-          "predicted_risk": 0.0019282395765979354,
-          "rainfall_mm": 0.7
+          "predicted_risk": 0.0017303683486632854,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.002036939436358423,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0006575299396918851,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.0006575299396918851,
       "peak_day": {
-        "date": "2026-09-28",
-        "predicted_risk": 0.003936131375458325,
+        "date": "2026-10-01",
+        "predicted_risk": 0.004089379436607628,
         "rainfall_mm": 0.2
       },
       "projection_trend": "steady"
@@ -2555,7 +2555,7 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.00036621419101310097,
-          "rainfall_mm": 0.5
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-09-29",
@@ -2564,35 +2564,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0053974996506811505,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.0013884242654159194,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0022349210314486358,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0042718604678070584,
+          "predicted_risk": 0.0016786894474038088,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.00336000005387161,
+          "predicted_risk": 0.0022990005793476166,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0030534289661764726,
+          "predicted_risk": 0.0017303683486632854,
           "rainfall_mm": 0.6
         }
       ],
-      "risk_in_7_days": 0.0030534289661764726,
+      "risk_in_7_days": 0.0017303683486632854,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.0053974996506811505,
-        "rainfall_mm": 0.4
+        "date": "2026-09-29",
+        "predicted_risk": 0.003623345296864555,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2612,17 +2612,17 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.003936946351657414,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.0013884242654159196,
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.007355992295460274,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0099123939839811,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.007662563383155412,
+          "predicted_risk": 0.005625623946796988,
           "rainfall_mm": 0.3
         },
         {
@@ -2633,7 +2633,7 @@
         {
           "date": "2026-10-04",
           "predicted_risk": 0.006171677805239809,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.3
         }
       ],
       "risk_in_7_days": 0.006171677805239809,
@@ -2660,35 +2660,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.024069123843891753,
-          "rainfall_mm": 0.5
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.004123908680713405,
+          "predicted_risk": 0.0022056869700995767,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.020878796140417034,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.021148582560080006,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.008816921010845304,
+          "predicted_risk": 0.008859210900268486,
           "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.009501835856830796,
-          "rainfall_mm": 1.8
+          "rainfall_mm": 2.1
         }
       ],
       "risk_in_7_days": 0.009501835856830796,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.024069123843891753,
-        "rainfall_mm": 0.5
+        "date": "2026-10-02",
+        "predicted_risk": 0.021148582560080006,
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -2709,34 +2709,34 @@
         {
           "date": "2026-09-30",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.6
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.005005435172329269,
-          "rainfall_mm": 0.4
+          "predicted_risk": 0.004698864084634131,
+          "rainfall_mm": 0.8
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.014993934827490478,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.010806960061278698,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.012515389198719973,
+          "predicted_risk": 0.012515389198719975,
           "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.014116586951789712,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.006463165581987023,
+          "rainfall_mm": 0.3
         }
       ],
-      "risk_in_7_days": 0.014116586951789712,
+      "risk_in_7_days": 0.006463165581987023,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.014993934827490478,
-        "rainfall_mm": 0.9
+        "date": "2026-10-03",
+        "predicted_risk": 0.012515389198719975,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -2756,35 +2756,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.005180608618756726,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.0016300078952163088,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.004462461137475865,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0022275401060272296,
+          "rainfall_mm": 0.9
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.01267955295405762,
-          "rainfall_mm": 1.1
+          "predicted_risk": 0.015072049225077261,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.009855575329124707,
-          "rainfall_mm": 1.0
+          "predicted_risk": 0.01303510978871884,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
           "predicted_risk": 0.009855575329124707,
-          "rainfall_mm": 1.5
+          "rainfall_mm": 1.2
         }
       ],
       "risk_in_7_days": 0.009855575329124707,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.01267955295405762,
-        "rainfall_mm": 1.1
+        "predicted_risk": 0.015072049225077261,
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -2804,35 +2804,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.020214001025797644,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.002917280090711334,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.01743028654805152,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.025299267319238747,
+          "rainfall_mm": 0.5
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.039888169310947186,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.0360354006670576,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.02726858035914442,
-          "rainfall_mm": 1.5
+          "predicted_risk": 0.03128079794020635,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.03250952794032039,
-          "rainfall_mm": 10.7
+          "predicted_risk": 0.01730027645964467,
+          "rainfall_mm": 8.3
         }
       ],
-      "risk_in_7_days": 0.03250952794032039,
+      "risk_in_7_days": 0.01730027645964467,
       "peak_day": {
         "date": "2026-10-02",
-        "predicted_risk": 0.039888169310947186,
-        "rainfall_mm": 0.9
+        "predicted_risk": 0.0360354006670576,
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -2852,35 +2852,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0013230606175131867,
-          "rainfall_mm": 0.1
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.00224983060082569,
-          "rainfall_mm": 0.1
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.007804780248354408,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.007804780248354408,
-          "rainfall_mm": 0.8
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.007286161397307581,
-          "rainfall_mm": 4.4
+          "predicted_risk": 0.00614854590210126,
+          "rainfall_mm": 3.7
         }
       ],
-      "risk_in_7_days": 0.007286161397307581,
+      "risk_in_7_days": 0.00614854590210126,
       "peak_day": {
-        "date": "2026-10-03",
+        "date": "2026-10-02",
         "predicted_risk": 0.007804780248354408,
-        "rainfall_mm": 0.8
+        "rainfall_mm": 0.6
       },
       "projection_trend": "steady"
     },
@@ -2900,35 +2900,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.011412888213193473,
-          "rainfall_mm": 1.0
+          "predicted_risk": 0.0061669159465340155,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.008261027248728969,
-          "rainfall_mm": 0.2
+          "predicted_risk": 0.0013230606175131867,
+          "rainfall_mm": 0.4
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.008236793248290873,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.0069709353820991945,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.0077577572009572835,
-          "rainfall_mm": 3.3
+          "predicted_risk": 0.008502993138713548,
+          "rainfall_mm": 1.1
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.00021495723814621664,
-          "rainfall_mm": 14.1
+          "predicted_risk": 0.0033603762438795936,
+          "rainfall_mm": 7.3
         }
       ],
-      "risk_in_7_days": 0.00021495723814621664,
+      "risk_in_7_days": 0.0033603762438795936,
       "peak_day": {
-        "date": "2026-09-30",
-        "predicted_risk": 0.011412888213193473,
-        "rainfall_mm": 1.0
+        "date": "2026-10-03",
+        "predicted_risk": 0.008502993138713548,
+        "rainfall_mm": 1.1
       },
       "projection_trend": "steady"
     },
@@ -2948,35 +2948,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.007466926973384198,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-01",
-          "predicted_risk": 0.001928239576597935,
+          "predicted_risk": 0.0023935403320501196,
           "rainfall_mm": 0.0
         },
         {
+          "date": "2026-10-01",
+          "predicted_risk": 0.01833283932485082,
+          "rainfall_mm": 0.5
+        },
+        {
           "date": "2026-10-02",
-          "predicted_risk": 0.010002306234558977,
-          "rainfall_mm": 1.2
+          "predicted_risk": 0.01157739320126486,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.010901384579475442,
-          "rainfall_mm": 0.9
+          "predicted_risk": 0.008708741486372762,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.011564556562862276,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.009008500694327208,
+          "rainfall_mm": 0.9
         }
       ],
-      "risk_in_7_days": 0.011564556562862276,
+      "risk_in_7_days": 0.009008500694327208,
       "peak_day": {
-        "date": "2026-10-04",
-        "predicted_risk": 0.011564556562862276,
-        "rainfall_mm": 0.6
+        "date": "2026-10-01",
+        "predicted_risk": 0.01833283932485082,
+        "rainfall_mm": 0.5
       },
       "projection_trend": "steady"
     },
@@ -2996,35 +2996,35 @@
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.0035506007235404165,
-          "rainfall_mm": 0.3
+          "predicted_risk": 0.0013230606175131867,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-01",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.001730368348663285,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.008023854730101376,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.00197337140336258,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-03",
-          "predicted_risk": 0.005853181855370225,
-          "rainfall_mm": 2.2
+          "predicted_risk": 0.003879810452007645,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-04",
-          "predicted_risk": 0.0029530685127294952,
-          "rainfall_mm": 2.9
+          "predicted_risk": 0.0036033792985788893,
+          "rainfall_mm": 3.6
         }
       ],
-      "risk_in_7_days": 0.0029530685127294952,
+      "risk_in_7_days": 0.0036033792985788893,
       "peak_day": {
-        "date": "2026-10-02",
-        "predicted_risk": 0.008023854730101376,
-        "rainfall_mm": 0.6
+        "date": "2026-10-03",
+        "predicted_risk": 0.003879810452007645,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -3035,32 +3035,32 @@
         {
           "date": "2026-09-28",
           "predicted_risk": 0.004025637868295201,
-          "rainfall_mm": 1.4
+          "rainfall_mm": 1.2
         },
         {
           "date": "2026-09-29",
           "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 0.5
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-09-30",
-          "predicted_risk": 0.003506175616132796,
-          "rainfall_mm": 1.7
+          "predicted_risk": 0.001775807267469511,
+          "rainfall_mm": 0.6
         },
         {
           "date": "2026-10-01",
           "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 3.7
+          "rainfall_mm": 1.0
         },
         {
           "date": "2026-10-02",
-          "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 5.1
+          "predicted_risk": 0.0017303683486632854,
+          "rainfall_mm": 7.2
         },
         {
           "date": "2026-10-03",
           "predicted_risk": 0.001775807267469511,
-          "rainfall_mm": 0.9
+          "rainfall_mm": 2.7
         },
         {
           "date": "2026-10-04",
@@ -3072,7 +3072,7 @@
       "peak_day": {
         "date": "2026-09-28",
         "predicted_risk": 0.004025637868295201,
-        "rainfall_mm": 1.4
+        "rainfall_mm": 1.2
       },
       "projection_trend": "steady"
     }

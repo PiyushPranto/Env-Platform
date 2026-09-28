@@ -1,0 +1,9 @@
+{
+  "ran_at": "2026-09-28T17:29:52Z",
+  "supabase_configured": true,
+  "smtp_configured": true,
+  "subscriptions_checked": 0,
+  "flood_emails_sent": 0,
+  "heat_emails_sent": 0,
+  "note": "Could not reach Supabase: HTTP Error 401: Unauthorized"
+}
