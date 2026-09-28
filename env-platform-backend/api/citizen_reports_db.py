@@ -41,6 +41,14 @@ class ReportRow(TypedDict):
     description: str
     contact: Optional[str]
     created_at: str
+    status: str
+    officer_note: Optional[str]
+    assigned_to: Optional[str]
+    updated_at: Optional[str]
+    updated_by: Optional[str]
+
+
+VALID_STATUSES = ("pending", "verified", "resolved", "rejected")
 
 
 class SupabaseError(Exception):
@@ -88,7 +96,11 @@ def _request(method: str, path: str, *, params: Optional[dict] = None, body=None
 
 
 def create_report(district: str, description: str, contact: Optional[str] = None) -> ReportRow:
-    body = {"district": district, "description": description, "contact": contact}
+    # status defaults to "pending" explicitly here (not just relying on the
+    # column's SQL default) so it's visible in code that every new report
+    # starts in the same, unreviewed state — the closed-loop verification
+    # workflow (see index.py's PATCH endpoint) is what moves it forward.
+    body = {"district": district, "description": description, "contact": contact, "status": "pending"}
     rows = _request("POST", TABLE, body=body, prefer="return=representation")
     return rows[0]
 
@@ -99,3 +111,45 @@ def list_reports(limit: int = 200) -> list[ReportRow]:
         "GET", TABLE,
         params={"select": "*", "order": "created_at.desc", "limit": str(limit)},
     ) or []
+
+
+def get_report(report_id: str) -> Optional[ReportRow]:
+    """Single report by id — the same id shown to the citizen as their
+    "reference number" after submitting (see CitizenReportForm), used both
+    for the citizen's own status lookup and as the officer PATCH target."""
+    rows = _request("GET", TABLE, params={"select": "*", "id": f"eq.{report_id}", "limit": "1"}) or []
+    return rows[0] if rows else None
+
+
+def update_report(
+    report_id: str, *, status: Optional[str] = None, officer_note: Optional[str] = None,
+    assigned_to: Optional[str] = None, updated_by: Optional[str] = None,
+) -> Optional[ReportRow]:
+    """Closed-loop verification: an officer moves a report through
+    pending -> verified/rejected -> resolved, optionally leaving a note and
+    assigning it to a specific officer for follow-up (task assignment).
+    Only the fields actually passed are changed — omitting a field leaves it
+    as-is, so e.g. reassigning doesn't require re-sending the status. Returns
+    None if report_id doesn't match any row (caller turns that into a 404)."""
+    from datetime import datetime, timezone
+
+    body: dict = {}
+    if status is not None:
+        body["status"] = status
+    if officer_note is not None:
+        body["officer_note"] = officer_note
+    if assigned_to is not None:
+        body["assigned_to"] = assigned_to
+    if updated_by is not None:
+        body["updated_by"] = updated_by
+    if not body:
+        return get_report(report_id)
+    body["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    rows = _request(
+        "PATCH", TABLE,
+        params={"id": f"eq.{report_id}"},
+        body=body,
+        prefer="return=representation",
+    ) or []
+    return rows[0] if rows else None

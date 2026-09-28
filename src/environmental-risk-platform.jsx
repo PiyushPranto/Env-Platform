@@ -867,6 +867,11 @@ function useCitizenReports() {
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Bumped after an officer action (verify/resolve/assign/etc.) to refetch
+  // the list — simpler than threading a full refetch function through
+  // every caller, and avoids duplicating the fetch logic below.
+  const [reloadToken, setReloadToken] = useState(0);
+  const refetch = () => setReloadToken((n) => n + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -891,9 +896,42 @@ function useCitizenReports() {
     }
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadToken]);
 
-  return { reports, configured, loading, error };
+  return { reports, configured, loading, error, refetch };
+}
+
+// Officers who can be assigned a citizen report for follow-up (task
+// assignment — see PATCH /deforestation/citizen-reports/{id}). Always
+// includes the 3 demo accounts, so this is usable even before any officer
+// has registered for real.
+function useOfficersList() {
+  const [officers, setOfficers] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/auth/officers`)
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setOfficers(data.officers || []); })
+      .catch(() => {}); // non-critical — assignment dropdown just stays empty
+    return () => { cancelled = true; };
+  }, []);
+  return officers;
+}
+
+// Aggregated, anonymized citizen-report counts per district — the
+// "community transparency feed" on the citizen side (see
+// GET /deforestation/community-stats).
+function useCommunityStats() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/deforestation/community-stats`)
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setStats(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return stats;
 }
 
 // ---------------------------------------------------------------------------
@@ -1210,7 +1248,18 @@ const GOVT_I18N = {
     citizenReportsTitle: "Tree-cutting reported by citizens",
     reportCount: (n) => `${n} report${n === 1 ? "" : "s"}`,
     contactLabel: "contact",
-    citizenReportsSub: "Unverified — a helpful extra signal alongside the satellite model, not a confirmed field finding.",
+    citizenReportsSub: "Starts as an unverified tip alongside the satellite model — use the status controls below to verify, assign, or resolve each one.",
+    statusAll: "All",
+    reportStatusLabel: (s) => ({ pending: "Pending", verified: "Verified", resolved: "Resolved", rejected: "Rejected" }[s] || s),
+    statusLabel: "Status:",
+    assignToLabel: "Assign to:",
+    assignedToLabel: "Assigned",
+    unassigned: "Unassigned",
+    officerNoteLabel: "Officer note",
+    saveNote: "Save note",
+    saving: "Saving…",
+    manageOpen: "Manage",
+    manageClose: "Close",
     loadingCitizenReports: "Loading citizen reports…",
     couldntLoadCitizenReports: "Couldn't load citizen reports.",
     reportsNotSetUp: "Citizen reporting isn't set up yet on the backend.",
@@ -1356,7 +1405,18 @@ const GOVT_I18N = {
     citizenReportsTitle: "নাগরিকদের রিপোর্ট করা গাছ কাটা",
     reportCount: (n) => `${n} টি রিপোর্ট`,
     contactLabel: "যোগাযোগ",
-    citizenReportsSub: "যাচাই করা হয়নি — স্যাটেলাইট মডেলের পাশাপাশি একটি সহায়ক অতিরিক্ত তথ্য, নিশ্চিত মাঠ পর্যায়ের তথ্য নয়।",
+    citizenReportsSub: "শুরুতে যাচাই-বিহীন তথ্য হিসেবে থাকে, স্যাটেলাইট মডেলের পাশাপাশি — নিচের status control দিয়ে verify, assign, বা resolve করুন।",
+    statusAll: "সব",
+    reportStatusLabel: (s) => ({ pending: "অপেক্ষমাণ", verified: "যাচাইকৃত", resolved: "সমাধান হয়েছে", rejected: "প্রত্যাখ্যাত" }[s] || s),
+    statusLabel: "Status:",
+    assignToLabel: "যাকে assign করবেন:",
+    assignedToLabel: "Assigned",
+    unassigned: "Unassigned",
+    officerNoteLabel: "অফিসার নোট",
+    saveNote: "নোট সংরক্ষণ করুন",
+    saving: "সংরক্ষণ হচ্ছে…",
+    manageOpen: "Manage",
+    manageClose: "বন্ধ করুন",
     loadingCitizenReports: "নাগরিকদের রিপোর্ট লোড হচ্ছে…",
     couldntLoadCitizenReports: "নাগরিকদের রিপোর্ট লোড করা যায়নি।",
     reportsNotSetUp: "নাগরিক রিপোর্টিং এখনো ব্যাকএন্ডে সেট আপ করা হয়নি।",
@@ -1399,7 +1459,7 @@ const GOVT_I18N = {
   },
 };
 
-function GovtDashboard({ role, onLogout }) {
+function GovtDashboard({ role, officerId, onLogout }) {
   const [lang, setLang] = useState("en");
   const gt = GOVT_I18N[lang];
   const [activeModule, setActiveModule] = useState("heat");
@@ -1418,6 +1478,7 @@ function GovtDashboard({ role, onLogout }) {
   const floodNational = useNationalFloodData();
   const deforestation = useDeforestationData();
   const citizenReports = useCitizenReports();
+  const officersList = useOfficersList();
 
   const activeLoading =
     activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
@@ -1692,6 +1753,8 @@ function GovtDashboard({ role, onLogout }) {
             selectedDistrict={selectedDistrict}
             setSelectedDistrict={setSelectedDistrict}
             citizenReports={citizenReports}
+            officerId={officerId}
+            officersList={officersList}
             lang={lang}
             search={search}
           />
@@ -2267,9 +2330,136 @@ function downloadWorklistCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
-function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, lang, search }) {
+// Status pill colors — same red/amber/green-family language as everywhere
+// else in the app, plus a neutral "pending" and a distinct "rejected".
+const REPORT_STATUS_TONE = {
+  pending: { bg: "bg-stone-700/60", text: "text-stone-300" },
+  verified: { bg: "bg-amber-950/40", text: "text-amber-400" },
+  resolved: { bg: "bg-emerald-950/40", text: "text-emerald-400" },
+  rejected: { bg: "bg-red-950/40", text: "text-red-400" },
+};
+
+// One citizen report, with officer controls (status / assignment / note)
+// when an officerId is available — this is the closed-loop verification +
+// task-assignment feature: a report is no longer just a read-only line, an
+// officer can actually act on it, and that action is what the citizen's own
+// status lookup (ReportStatusLookup, citizen side) later shows them.
+function ReportManageRow({ r, officerId, officersList, lang, gt, onUpdated }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState(r.officer_note || "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const status = r.status || "pending";
+  const tone = REPORT_STATUS_TONE[status] || REPORT_STATUS_TONE.pending;
+  const assignedOfficer = officersList.find((o) => o.officer_id === r.assigned_to);
+
+  async function patchReport(fields) {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports/${r.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updated_by: officerId, ...fields }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Update failed (${res.status})`);
+      onUpdated(body.report);
+    } catch (err) {
+      setSaveError(err.message || "Update failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="p-2 rounded-lg hover:bg-stone-800/60">
+      <div className="flex items-start gap-2.5">
+        <IconBadge icon={AlertTriangle} tone="amber" size={12} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-xs text-stone-200">
+              <span className="font-medium">{r.district}</span> — {r.description}
+            </p>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ${tone.bg} ${tone.text}`}>
+              {gt.reportStatusLabel(status)}
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-500 mt-0.5">
+            {new Date(r.created_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {r.contact ? ` · ${gt.contactLabel}: ${r.contact}` : ""}
+            {assignedOfficer ? ` · ${gt.assignedToLabel}: ${assignedOfficer.name}` : ""}
+            {" #"}{r.id}
+          </p>
+          {r.officer_note && !open && (
+            <p className="text-[11px] text-stone-400 mt-1 italic">"{r.officer_note}"</p>
+          )}
+          {officerId && (
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="text-[10px] text-emerald-400 hover:text-emerald-300 mt-1"
+            >
+              {open ? gt.manageClose : gt.manageOpen}
+            </button>
+          )}
+          {open && (
+            <div className="mt-2 p-2.5 bg-stone-900/60 border border-stone-700 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-[10px] text-stone-400">{gt.statusLabel}</label>
+                <select
+                  value={status}
+                  disabled={saving}
+                  onChange={(e) => patchReport({ status: e.target.value })}
+                  className="bg-stone-800 border border-stone-700 rounded-lg px-2 py-1 text-[11px] text-stone-200 disabled:opacity-60"
+                >
+                  {["pending", "verified", "resolved", "rejected"].map((s) => (
+                    <option key={s} value={s}>{gt.reportStatusLabel(s)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-[10px] text-stone-400">{gt.assignToLabel}</label>
+                <select
+                  value={r.assigned_to || ""}
+                  disabled={saving}
+                  onChange={(e) => patchReport({ assigned_to: e.target.value || null })}
+                  className="bg-stone-800 border border-stone-700 rounded-lg px-2 py-1 text-[11px] text-stone-200 disabled:opacity-60"
+                >
+                  <option value="">{gt.unassigned}</option>
+                  {officersList.map((o) => (
+                    <option key={o.officer_id} value={o.officer_id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-stone-400">{gt.officerNoteLabel}</label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg px-2 py-1.5 text-[11px] text-stone-200 resize-none"
+                />
+                <button
+                  onClick={() => patchReport({ officer_note: note })}
+                  disabled={saving}
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300"
+                >
+                  {saving ? gt.saving : gt.saveNote}
+                </button>
+              </div>
+              {saveError && <p className="text-[10px] text-red-400">{saveError}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, officerId, officersList, lang, search }) {
   const gt = GOVT_I18N[lang];
   const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
+  const [reportStatusFilter, setReportStatusFilter] = useState("all");
 
   if (loading || error || !districts) {
     return (
@@ -2457,6 +2647,26 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
           )}
         </div>
         <p className="text-xs text-stone-400 mb-3">{gt.citizenReportsSub}</p>
+
+        {citizenReports?.reports && citizenReports.reports.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+            {["all", "pending", "verified", "resolved", "rejected"].map((s) => {
+              const count = s === "all" ? citizenReports.reports.length : citizenReports.reports.filter((r) => (r.status || "pending") === s).length;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setReportStatusFilter(s)}
+                  className={`text-[10px] px-2 py-1 rounded-full transition-colors ${
+                    reportStatusFilter === s ? "bg-emerald-600/25 text-emerald-300" : "bg-stone-800 text-stone-400 hover:text-stone-200"
+                  }`}
+                >
+                  {s === "all" ? gt.statusAll : gt.reportStatusLabel(s)} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {citizenReports?.loading ? (
           <p className="text-xs text-stone-400 py-4">{gt.loadingCitizenReports}</p>
         ) : citizenReports?.error ? (
@@ -2466,21 +2676,20 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         ) : !citizenReports?.reports || citizenReports.reports.length === 0 ? (
           <p className="text-xs text-stone-400 py-4">{gt.noCitizenReports}</p>
         ) : (
-          <div className="space-y-2.5 max-h-64 overflow-y-auto">
-            {citizenReports.reports.map((r) => (
-              <div key={r.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-stone-800/60">
-                <IconBadge icon={AlertTriangle} tone="amber" size={12} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-stone-200">
-                    <span className="font-medium">{r.district}</span> — {r.description}
-                  </p>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    {new Date(r.created_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    {r.contact ? ` · ${gt.contactLabel}: ${r.contact}` : ""}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-1 max-h-96 overflow-y-auto">
+            {citizenReports.reports
+              .filter((r) => reportStatusFilter === "all" || (r.status || "pending") === reportStatusFilter)
+              .map((r) => (
+                <ReportManageRow
+                  key={r.id}
+                  r={r}
+                  officerId={officerId}
+                  officersList={officersList || []}
+                  lang={lang}
+                  gt={gt}
+                  onUpdated={() => citizenReports.refetch()}
+                />
+              ))}
           </div>
         )}
       </div>
@@ -2542,6 +2751,22 @@ const CITIZEN_I18N = {
     reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
     reportError: "Couldn't submit your report. Please try again shortly.",
     reportTooShort: "Please add a few more words describing what you saw.",
+    reportStatusLabel: (s) => ({ pending: "Pending", verified: "Verified", resolved: "Resolved", rejected: "Rejected" }[s] || s),
+    statusCheckTitle: "Check a report's status",
+    statusCheckHint: "Enter the reference number you were given after submitting a report.",
+    statusCheckPlaceholder: "Reference number",
+    statusCheckButton: "Check status",
+    statusCheckSending: "Checking…",
+    statusCheckNotFound: "No report found with that reference number.",
+    statusCheckNotConfigured: "Status lookup isn't available yet — this feature needs one more setup step on the backend.",
+    statusCheckError: "Couldn't check status. Please try again shortly.",
+    statusCheckSubmittedLabel: "Submitted:",
+    statusCheckUpdatedLabel: "Last updated:",
+    statusCheckNoteLabel: "Officer note:",
+    communityStatsTitle: "Reporting activity in this district",
+    communityStatsHint: "How many tree-cutting reports have been submitted here, and what's happened to them.",
+    communityStatsTotal: "total reports",
+    communityStatsEmpty: "No reports yet for this district.",
     alertSubscribeTitle: "Get alerted automatically",
     alertSubscribeHint: "Don't wait to check the app — get an email the moment your area's risk actually goes up. No account needed.",
     alertEmailPlaceholder: "Your email address",
@@ -2624,6 +2849,22 @@ const CITIZEN_I18N = {
     reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
     reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
     reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
+    reportStatusLabel: (s) => ({ pending: "অপেক্ষমাণ", verified: "যাচাইকৃত", resolved: "সমাধান হয়েছে", rejected: "প্রত্যাখ্যাত" }[s] || s),
+    statusCheckTitle: "রিপোর্টের অবস্থা দেখুন",
+    statusCheckHint: "রিপোর্ট জমা দেওয়ার পর যে রেফারেন্স নাম্বারটি পেয়েছিলেন সেটি লিখুন।",
+    statusCheckPlaceholder: "রেফারেন্স নাম্বার",
+    statusCheckButton: "অবস্থা দেখুন",
+    statusCheckSending: "খোঁজা হচ্ছে…",
+    statusCheckNotFound: "এই রেফারেন্স নাম্বারে কোনো রিপোর্ট পাওয়া যায়নি।",
+    statusCheckNotConfigured: "অবস্থা দেখার সুবিধা এখনো চালু হয়নি — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    statusCheckError: "অবস্থা জানা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    statusCheckSubmittedLabel: "জমা দেওয়া হয়েছে:",
+    statusCheckUpdatedLabel: "সর্বশেষ হালনাগাদ:",
+    statusCheckNoteLabel: "কর্মকর্তার মন্তব্য:",
+    communityStatsTitle: "এই জেলায় রিপোর্টিং কার্যক্রম",
+    communityStatsHint: "এখানে কতগুলো গাছ কাটার রিপোর্ট জমা হয়েছে, এবং সেগুলোর কী হয়েছে।",
+    communityStatsTotal: "মোট রিপোর্ট",
+    communityStatsEmpty: "এই জেলার জন্য এখনো কোনো রিপোর্ট নেই।",
     alertSubscribeTitle: "স্বয়ংক্রিয় সতর্কতা পান",
     alertSubscribeHint: "অ্যাপ চেক করার জন্য অপেক্ষা করবেন না — আপনার এলাকার ঝুঁকি সত্যিই বাড়লে সাথে সাথে ইমেইল পাবেন। কোনো অ্যাকাউন্ট লাগবে না।",
     alertEmailPlaceholder: "আপনার ইমেইল ঠিকানা",
@@ -2849,6 +3090,161 @@ function CitizenReportForm({ district, lang }) {
           </button>
         </form>
       )}
+    </div>
+  );
+}
+
+// Closed-loop status check: a citizen can look up what happened to their own
+// report using the reference number shown after submitting (see
+// CitizenReportForm above) — no login needed, same low-friction design as
+// submitting the report itself. Independent of the currently-selected
+// district, since a citizen may be checking on a report they filed earlier
+// for somewhere else. Reads GET /deforestation/citizen-reports/{id}.
+function ReportStatusLookup({ lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [refId, setRefId] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | found | not_found | not_configured | error
+  const [report, setReport] = useState(null);
+  const [errorDetail, setErrorDetail] = useState("");
+
+  async function handleCheck(e) {
+    e.preventDefault();
+    const id = refId.trim();
+    if (!id) return;
+    setStatus("sending");
+    setErrorDetail("");
+    setReport(null);
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports/${encodeURIComponent(id)}`);
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (res.status === 404) {
+        setStatus("not_found");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(body.detail || "");
+        setStatus("error");
+        return;
+      }
+      const body = await res.json();
+      setReport(body.report);
+      setStatus("found");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  const tone = report ? (REPORT_STATUS_TONE[report.status || "pending"] || REPORT_STATUS_TONE.pending) : null;
+  const dateFmt = { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" };
+  const locale = lang === "bn" ? "bn-BD" : "en-GB";
+
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Search} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.statusCheckTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.statusCheckHint}</p>
+
+      <form onSubmit={handleCheck} className="flex gap-2">
+        <input
+          value={refId}
+          onChange={(e) => setRefId(e.target.value)}
+          placeholder={t.statusCheckPlaceholder}
+          className="flex-1 min-w-0 bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+        />
+        <button
+          type="submit"
+          disabled={status === "sending" || !refId.trim()}
+          className="bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium px-3 rounded-lg transition-colors shrink-0"
+        >
+          {status === "sending" ? t.statusCheckSending : t.statusCheckButton}
+        </button>
+      </form>
+
+      {status === "not_found" && <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckNotFound}</p>}
+      {status === "not_configured" && <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckNotConfigured}</p>}
+      {status === "error" && (
+        <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckError}{errorDetail ? ` (${errorDetail})` : ""}</p>
+      )}
+
+      {status === "found" && report && (
+        <div className="mt-3 pt-3 border-t border-stone-700/60 space-y-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-stone-200 font-medium">{report.district}</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ${tone.bg} ${tone.text}`}>
+              {t.reportStatusLabel(report.status || "pending")}
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-400">
+            {t.statusCheckSubmittedLabel} {new Date(report.created_at).toLocaleString(locale, dateFmt)}
+          </p>
+          {report.updated_at && (
+            <p className="text-[11px] text-stone-400">
+              {t.statusCheckUpdatedLabel} {new Date(report.updated_at).toLocaleString(locale, dateFmt)}
+            </p>
+          )}
+          {report.officer_note && (
+            <p className="text-[11px] text-stone-300 mt-1">{t.statusCheckNoteLabel} {report.officer_note}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Community transparency feed (citizen side): aggregated, anonymized report
+// counts for the citizen's own district — see GET /deforestation/community-stats.
+// Deliberately shows only counts, never any individual report's description
+// or contact — that stays government-side (ReportManageRow).
+function CommunityStatsCard({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const stats = useCommunityStats();
+  if (!stats || !stats.configured || !district) return null;
+
+  const bucket = stats.districts?.[district];
+  if (!bucket || !bucket.total) {
+    return (
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+        <div className="flex items-center gap-2.5 mb-1">
+          <IconBadge icon={Users} tone="teal" size={13} />
+          <h3 className="text-sm font-medium text-stone-100">{t.communityStatsTitle}</h3>
+        </div>
+        <p className="text-[11px] text-stone-400">{t.communityStatsEmpty}</p>
+      </div>
+    );
+  }
+
+  const rows = ["pending", "verified", "resolved", "rejected"];
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Users} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.communityStatsTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.communityStatsHint}</p>
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span className="text-lg font-semibold text-stone-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          {bucket.total}
+        </span>
+        <span className="text-[11px] text-stone-400">{t.communityStatsTotal}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {rows.map((key) => {
+          const tone = REPORT_STATUS_TONE[key];
+          return (
+            <div key={key} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${tone.bg}`}>
+              <span className={`text-[11px] ${tone.text}`}>{t.reportStatusLabel(key)}</span>
+              <span className={`text-xs font-medium tabular-nums ${tone.text}`}>{bucket[key] || 0}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -3532,7 +3928,9 @@ function CitizenDashboard({ onLogout }) {
                   )}
 
                   {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
+                  {selectedDistrict && <CommunityStatsCard district={selectedDistrict} lang={lang} />}
                 </div>
+                <ReportStatusLookup lang={lang} />
               </>
             )}
           </>
@@ -3608,7 +4006,7 @@ function GovtLogin({ onBack, onLogin }) {
       }
 
       const data = await res.json();
-      onLogin(data.role || role);
+      onLogin({ role: data.role || role, officerId: data.officer_id || officerId });
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -3653,7 +4051,7 @@ function GovtLogin({ onBack, onLogin }) {
 
       // Instant access: a successful registration logs the new officer
       // straight in, same as the login flow.
-      onLogin(body.role || regRole);
+      onLogin({ role: body.role || regRole, officerId: body.officer_id || regOfficerId.trim() });
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {
@@ -3869,6 +4267,7 @@ function RoleSelect({ onSelect }) {
 export default function App() {
   const [view, setView] = useState("select"); // select | govt-login | govt | citizen
   const [role, setRole] = useState(null);
+  const [officerId, setOfficerId] = useState(null);
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -3880,10 +4279,13 @@ export default function App() {
         <RoleSelect onSelect={(v) => setView(v === "govt" ? "govt-login" : "citizen")} />
       )}
       {view === "govt-login" && (
-        <GovtLogin onBack={() => setView("select")} onLogin={(r) => { setRole(r); setView("govt"); }} />
+        <GovtLogin
+          onBack={() => setView("select")}
+          onLogin={({ role: r, officerId: oid }) => { setRole(r); setOfficerId(oid); setView("govt"); }}
+        />
       )}
       {view === "govt" && (
-        <GovtDashboard role={role} onLogout={() => setView("select")} />
+        <GovtDashboard role={role} officerId={officerId} onLogout={() => setView("select")} />
       )}
       {view === "citizen" && (
         <CitizenDashboard onLogout={() => setView("select")} />

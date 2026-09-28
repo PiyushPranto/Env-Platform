@@ -123,6 +123,16 @@ def get_officer(officer_id: str) -> Optional[OfficerRow]:
     return rows[0] if rows else None
 
 
+def list_officers() -> list[dict]:
+    """officer_id/name/role only — deliberately NEVER password_hash/salt.
+    Used to populate the "assign to" dropdown for the citizen-report task
+    assignment feature (see index.py's /auth/officers), not for anything
+    security-sensitive."""
+    return _request(
+        "GET", TABLE, params={"select": "officer_id,name,role", "order": "name.asc"},
+    ) or []
+
+
 def create_officer(officer_id: str, name: str, role: str, password: str) -> OfficerRow:
     """Raises SupabaseError (including on a duplicate officer_id, which
     Postgres rejects via the table's UNIQUE constraint — see REGISTRATION.md)

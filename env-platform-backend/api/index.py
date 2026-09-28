@@ -18,7 +18,7 @@ into /flood/risk + /flood/trend), /deforestation/ndvi, /deforestation/detect
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 import csv
 import io
 import json
@@ -70,6 +70,30 @@ DEMO_USERS = {
     "city_admin": {"password": "city_admin_400", "role": "City Administrator"},
     "field_officer": {"password": "field_officer_400", "role": "Field Officer"},
 }
+
+DEMO_USERS_DISPLAY_NAME = {
+    "env_project": "Environmental Analyst (demo)",
+    "city_admin": "City Administrator (demo)",
+    "field_officer": "Field Officer (demo)",
+}
+
+
+def _is_valid_officer(officer_id: str) -> bool:
+    """True for a demo account or a real registered officer. Used to gate
+    the report-verification/assignment endpoints below — this project has
+    no real session/token auth (see LoginRequest's simple officer_id+password
+    check above), so this is a plausibility check, not a security boundary:
+    it stops an obviously-wrong officer_id from being recorded as who made
+    a change, consistent with the rest of this app's honestly-simple,
+    thesis-scope auth rather than pretending to be production-grade."""
+    if officer_id in DEMO_USERS:
+        return True
+    if not officers_db.is_configured():
+        return False
+    try:
+        return officers_db.get_officer(officer_id) is not None
+    except officers_db.SupabaseError:
+        return False
 
 
 @app.post("/auth/login")
@@ -155,6 +179,25 @@ def register(request: RegisterRequest):
     }
 
 
+@app.get("/auth/officers")
+def list_officers():
+    """officer_id/name/role for every officer who can be assigned a citizen
+    report (task assignment — see PATCH /deforestation/citizen-reports/{id}
+    below). Always includes the 3 demo accounts (so assignment is testable
+    even before Supabase/registration is set up) plus any real registered
+    officers. Never returns password_hash/salt."""
+    officers = [
+        {"officer_id": oid, "name": DEMO_USERS_DISPLAY_NAME.get(oid, oid), "role": u["role"], "demo": True}
+        for oid, u in DEMO_USERS.items()
+    ]
+    if officers_db.is_configured():
+        try:
+            officers += [{**o, "demo": False} for o in officers_db.list_officers()]
+        except officers_db.SupabaseError:
+            pass  # demo accounts alone are still a usable (if incomplete) list
+    return {"officers": officers}
+
+
 # Allow the deployed frontend (and local dev) to call this API from the browser.
 # Tighten allow_origins to the exact Vercel frontend URL before the real defense demo.
 app.add_middleware(
@@ -185,7 +228,9 @@ def root():
             "/deforestation/districts", "/deforestation/worklist", "/deforestation/citizen-cards",
             "/deforestation/timeseries", "/deforestation/restoration-priority",
             "/deforestation/loss-by-year", "/deforestation/model-metrics",
-            "/deforestation/citizen-reports",
+            "/deforestation/citizen-reports", "/deforestation/citizen-reports/{report_id}",
+            "/deforestation/community-stats",
+            "/auth/officers",
             "/alerts/subscribe", "/alerts/unsubscribe",
             "/model/refresh-status",
             "/data/export", "/data/export.csv",
@@ -440,6 +485,88 @@ def list_citizen_reports():
     except citizen_reports_db.SupabaseError as e:
         raise HTTPException(status_code=503, detail=f"Couldn't load reports: {e}")
     return {"configured": True, "reports": reports}
+
+
+@app.get("/deforestation/citizen-reports/{report_id}")
+def get_citizen_report(report_id: str):
+    """Closed-loop status check: the citizen who submitted a report can look
+    up what happened to it using the reference number they were shown after
+    submitting (see CitizenReportForm) — no login needed, same low-friction
+    design as the report form itself. Same fields as the government
+    worklist above (this doesn't create a new privacy boundary — the report
+    was already visible in full there)."""
+    if not citizen_reports_db.is_configured():
+        raise HTTPException(status_code=503, detail="Citizen reports aren't set up yet.")
+    try:
+        report = citizen_reports_db.get_report(report_id)
+    except citizen_reports_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't look up report: {e}")
+    if not report:
+        raise HTTPException(status_code=404, detail="No report found with that reference number.")
+    return {"report": report}
+
+
+class ReportUpdateRequest(BaseModel):
+    updated_by: str = Field(min_length=1, max_length=64, description="officer_id making this change")
+    status: Optional[Literal["pending", "verified", "resolved", "rejected"]] = None
+    officer_note: Optional[str] = Field(default=None, max_length=1000)
+    assigned_to: Optional[str] = Field(default=None, max_length=64)
+
+
+@app.patch("/deforestation/citizen-reports/{report_id}")
+def update_citizen_report(report_id: str, request: ReportUpdateRequest):
+    """Closed-loop verification + task assignment: an officer moves a report
+    through pending -> verified/rejected -> resolved, optionally leaving a
+    note and/or assigning it to a specific officer for follow-up. Only the
+    fields actually sent are changed. See _is_valid_officer's docstring for
+    why `updated_by` is checked but this isn't real session auth."""
+    if not citizen_reports_db.is_configured():
+        raise HTTPException(status_code=503, detail="Citizen reports aren't set up yet.")
+    if not _is_valid_officer(request.updated_by):
+        raise HTTPException(status_code=403, detail="updated_by must be a known officer_id.")
+    if request.assigned_to and not _is_valid_officer(request.assigned_to):
+        raise HTTPException(status_code=400, detail="assigned_to must be a known officer_id.")
+    try:
+        report = citizen_reports_db.update_report(
+            report_id,
+            status=request.status,
+            officer_note=request.officer_note,
+            assigned_to=request.assigned_to,
+            updated_by=request.updated_by,
+        )
+    except citizen_reports_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't update report: {e}")
+    if not report:
+        raise HTTPException(status_code=404, detail="No report found with that reference number.")
+    return {"updated": True, "report": report}
+
+
+@app.get("/deforestation/community-stats")
+def community_stats():
+    """Aggregated, anonymized citizen-report counts per district — the
+    "community transparency feed": a citizen can see how much reporting
+    activity and government follow-up has happened in their own area,
+    without exposing any individual report's description/contact. Computed
+    from the exact same rows the government worklist reads — nothing new is
+    tracked, just counted and grouped here."""
+    if not citizen_reports_db.is_configured():
+        return {"configured": False, "districts": {}, "totals": {}}
+    try:
+        reports = citizen_reports_db.list_reports(limit=5000)
+    except citizen_reports_db.SupabaseError as e:
+        raise HTTPException(status_code=503, detail=f"Couldn't load reports: {e}")
+
+    by_district: dict[str, dict[str, int]] = {}
+    totals = {"total": 0, "pending": 0, "verified": 0, "resolved": 0, "rejected": 0}
+    for r in reports:
+        d = r.get("district") or "Unknown"
+        status = r.get("status") or "pending"
+        bucket = by_district.setdefault(d, {"total": 0, "pending": 0, "verified": 0, "resolved": 0, "rejected": 0})
+        bucket["total"] += 1
+        bucket[status] = bucket.get(status, 0) + 1
+        totals["total"] += 1
+        totals[status] = totals.get(status, 0) + 1
+    return {"configured": True, "districts": by_district, "totals": totals}
 
 
 # ---------------------------------------------------------------------------
