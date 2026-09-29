@@ -510,6 +510,158 @@ function forecastIcon(code, rainMm) {
   return Sun;
 }
 
+// ---------------------------------------------------------------------------
+// Practical, actionable features built the same way as the live flood layer
+// above: the trained model's own data (heat risk tier, flood risk
+// projection) combined with a genuinely live Open-Meteo fetch, turned into
+// a concrete answer to "what do I actually do today" rather than another
+// raw number. Three pieces:
+//   1. Heat — real hour-by-hour safe/avoid outdoor-work windows for TODAY,
+//      from Open-Meteo's hourly "feels like" forecast (not the daily
+//      max/min already fetched above, which can't say WHEN in the day it's
+//      worst).
+//   2. Flood — "how many days until this district's live 7-day projection
+//      crosses the same alert threshold scripts/send_alerts.py already
+//      uses" instead of a bare percentage the reader has to interpret.
+//   3. A combined "today" advisory that reads both of the above (plus the
+//      district's live rainfall_mm the projection already carries) into a
+//      couple of plain sentences.
+// All three are pure client-side computation over data already being
+// fetched elsewhere in this file — no new backend endpoint needed.
+// ---------------------------------------------------------------------------
+
+// Bands for Open-Meteo's hourly "apparent_temperature" (feels-like, already
+// folds in humidity/wind — no separate heat-index formula needed). These are
+// a standard heat-safety simplification (roughly BMD/WHO outdoor-exertion
+// guidance in Celsius), deliberately separate from the trained model's own
+// risk_category tertile, which scores a whole season's composite rather
+// than one day's hours — disclosed as such in the UI copy, not conflated.
+const HEAT_SAFE_C = 32;
+const HEAT_DANGER_C = 38;
+
+// Same threshold scripts/send_alerts.py's FLOOD_ALERT_THRESHOLD uses for
+// "high enough to warn about" — reused here so "days until alert level"
+// means the same thing as the early-warning emails, not a second, competing
+// definition of "alert."
+const FLOOD_ALERT_THRESHOLD = 0.5;
+
+function useHourlyHeatToday(lat, lon) {
+  const [hours, setHours] = useState(null); // [{ hour: 0-23, apparent: number|null }]
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (lat == null || lon == null) {
+      setHours(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          latitude: lat,
+          longitude: lon,
+          hourly: "apparent_temperature",
+          timezone: "Asia/Dhaka",
+          forecast_days: "1",
+        });
+        const res = await fetch(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+        if (!res.ok) throw new Error("Open-Meteo hourly forecast request failed");
+        const data = await res.json();
+        const h = data.hourly || {};
+        const rows = (h.time || []).map((t, i) => ({
+          hour: new Date(t).getHours(),
+          apparent: h.apparent_temperature?.[i] ?? null,
+        }));
+        if (!cancelled) setHours(rows);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Couldn't load today's hourly forecast");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [lat, lon]);
+
+  return { hours, loading, error };
+}
+
+function heatBand(apparentC) {
+  if (apparentC == null) return "unknown";
+  if (apparentC >= HEAT_DANGER_C) return "danger";
+  if (apparentC >= HEAT_SAFE_C) return "caution";
+  return "safe";
+}
+
+// Collapses today's 24 hourly readings into the peak feels-like temp/hour
+// and contiguous "avoid outdoor work" / "safe" windows, so the UI can say
+// "avoid 12pm-4pm" instead of forcing the reader to scan 24 numbers.
+function summarizeHeatHours(hours) {
+  if (!hours || hours.length === 0) return null;
+  let peak = hours[0];
+  for (const h of hours) {
+    if (h.apparent != null && (peak.apparent == null || h.apparent > peak.apparent)) peak = h;
+  }
+  function windowsFor(band) {
+    const out = [];
+    let start = null;
+    hours.forEach((h, i) => {
+      const b = heatBand(h.apparent);
+      if (b === band) {
+        if (start === null) start = h.hour;
+      } else if (start !== null) {
+        out.push({ start, end: hours[i - 1].hour });
+        start = null;
+      }
+    });
+    if (start !== null) out.push({ start, end: hours[hours.length - 1].hour });
+    return out;
+  }
+  return {
+    peakApparent: peak.apparent,
+    peakHour: peak.hour,
+    dangerWindows: windowsFor("danger"),
+    safeWindows: windowsFor("safe"),
+  };
+}
+
+// "12pm" / "12pm–4pm" style formatting for an hour or hour range, in either
+// language — used by the heat safe-hours summary and nowhere else, so kept
+// local rather than added to the shared date-formatting utilities.
+function fmtHour(hour, lang) {
+  if (lang === "bn") {
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    const suffix = hour < 12 ? "AM" : "PM";
+    const bnDigits = String(h12).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
+    return `${bnDigits}${suffix}`;
+  }
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}${hour < 12 ? "am" : "pm"}`;
+}
+
+function fmtHourWindow(win, lang) {
+  const dash = lang === "bn" ? "–" : "–";
+  return win.start === win.end ? fmtHour(win.start, lang) : `${fmtHour(win.start, lang)}${dash}${fmtHour((win.end + 1) % 24, lang)}`;
+}
+
+function fmtHourWindows(wins, lang) {
+  return wins.map((w) => fmtHourWindow(w, lang)).join(lang === "bn" ? ", " : ", ");
+}
+
+// "How many days until this district's live 7-day flood projection crosses
+// the alert threshold" — the same daily[] array FloodProjectionStrip already
+// renders as a bar chart, read instead as a concrete countdown. daily[0] is
+// always today (see flood_projection_export.py).
+function floodAlertCountdown(daily) {
+  if (!daily || daily.length === 0) return null;
+  const idx = daily.findIndex((d) => d.predicted_risk >= FLOOD_ALERT_THRESHOLD);
+  if (idx === -1) return { crosses: false, horizonDays: daily.length };
+  return { crosses: true, daysAhead: idx, date: daily[idx].date, risk: daily[idx].predicted_risk };
+}
+
 function LiveForecastStrip({ forecast, lang, title, hint }) {
   const { days, loading, error } = forecast;
   if (loading) return null;
@@ -1269,6 +1421,8 @@ const GOVT_I18N = {
     earlyWarningHint: "Same trained classifier, scored day-by-day against the real published weather forecast (not the 90-day average used for the ranking below). A district here has its worst predicted day still ahead of it this week.",
     earlyWarningEmpty: "No district is currently projected to trend upward over the next 7 days.",
     earlyWarningPeak: (pct) => `peaks around ${pct}% this week`,
+    earlyWarningCountdownToday: "already at alert level today",
+    earlyWarningCountdownDays: (n) => `alert level in ${n}d`,
     noDeltaYet: "First refresh recorded — nothing to compare against yet.",
     fieldNoticeFlood: "Trained on real flood-event records for the years shown. A district-day is genuinely a flood only about 3–5% of the time, so the model is deliberately tuned to catch more real floods even at the cost of some false alarms — the right tradeoff for early warning.",
     citizenReportsEyebrow: "Citizen reports",
@@ -1426,6 +1580,8 @@ const GOVT_I18N = {
     earlyWarningHint: "একই trained classifier, কিন্তু real আবহাওয়া পূর্বাভাসের উপর day-by-day চালানো (নিচের র‍্যাংকিং-এ ব্যবহৃত ৯০ দিনের average নয়)। এখানে থাকা জেলার সবচেয়ে খারাপ predicted দিনটি এখনো এই সপ্তাহে আসেনি।",
     earlyWarningEmpty: "আপাতত পরের ৭ দিনে কোনো জেলার ঝুঁকি বাড়ার প্রক্ষেপণ নেই।",
     earlyWarningPeak: (pct) => `এই সপ্তাহে প্রায় ${pct}% এ চূড়ায় উঠবে`,
+    earlyWarningCountdownToday: "আজই alert level এ পৌঁছেছে",
+    earlyWarningCountdownDays: (n) => `${n} দিনে alert level`,
     noDeltaYet: "প্রথম refresh রেকর্ড হয়েছে — তুলনা করার মতো আগের কিছু এখনো নেই।",
     fieldNoticeFlood: "প্রদর্শিত বছরগুলোর প্রকৃত বন্যার ঘটনার তথ্য দিয়ে প্রশিক্ষিত। একটি জেলা-দিন প্রকৃতপক্ষে বন্যা হয় মাত্র ৩–৫% সময়ে, তাই মডেলটি ইচ্ছাকৃতভাবে বেশি প্রকৃত বন্যা ধরার জন্য তৈরি, এমনকি কিছু ভুল সতর্কতার বিনিময়েও — আগাম সতর্কতার জন্য এটাই সঠিক পন্থা।",
     citizenReportsEyebrow: "নাগরিক রিপোর্ট",
@@ -2219,17 +2375,25 @@ function FloodNationalView({ national, lang, search }) {
             <p className="text-xs text-stone-400">{gt.earlyWarningEmpty}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {risingDistricts.map((d) => (
-                <div key={d.district_id} className="flex items-center gap-2 bg-stone-900/50 border border-stone-700/60 rounded-xl px-3 py-2">
-                  <TrendingUp size={13} className="text-red-400 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs text-stone-200 font-medium truncate">{d.district_name}</p>
-                    <p className="text-[10px] text-stone-500 tabular-nums">
-                      {gt.earlyWarningPeak(Math.round((d.peak_day?.predicted_risk || 0) * 100))}
-                    </p>
+              {risingDistricts.map((d) => {
+                const countdown = floodAlertCountdown(d.daily);
+                return (
+                  <div key={d.district_id} className="flex items-center gap-2 bg-stone-900/50 border border-stone-700/60 rounded-xl px-3 py-2">
+                    <TrendingUp size={13} className="text-red-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-stone-200 font-medium truncate">{d.district_name}</p>
+                      <p className="text-[10px] text-stone-500 tabular-nums">
+                        {gt.earlyWarningPeak(Math.round((d.peak_day?.predicted_risk || 0) * 100))}
+                      </p>
+                      {countdown?.crosses && (
+                        <p className="text-[10px] text-red-400 font-medium">
+                          {countdown.daysAhead === 0 ? gt.earlyWarningCountdownToday : gt.earlyWarningCountdownDays(countdown.daysAhead)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -2830,6 +2994,27 @@ const CITIZEN_I18N = {
     projectionFalling: "Falling — this week's forecast rain eases up, risk trends down.",
     projectionSteady: "Steady — no sharp change expected over the next 7 days.",
     districtPopulation: (n) => `${n} people live in this district (2022 census) — part of why it's ranked the way it is.`,
+    liveSafeHoursTitle: "Safe hours to work outside — today",
+    liveSafeHoursHint: "From today's live hour-by-hour forecast for your district, not the seasonal average above.",
+    liveSafeHoursLoading: "Checking today's hourly forecast…",
+    liveSafeHoursError: "Couldn't load today's hourly forecast.",
+    liveSafeHoursPeakAt: (tempC, hourStr) => `Feels hottest around ${hourStr} — up to ${tempC}°C.`,
+    liveSafeHoursAvoid: (windowsStr) => `Avoid outdoor work: ${windowsStr}.`,
+    liveSafeHoursSafe: (windowsStr) => `Safest hours: ${windowsStr}.`,
+    liveSafeHoursAllSafe: "No unsafe hours expected today — normal precautions are enough.",
+    floodCountdownTitle: "When could this get worse?",
+    floodCountdownHint: "Same live 7-day flood projection above, read as a countdown to the alert level government alerts use.",
+    floodCountdownToday: "Already at alert-level flood risk today — take precautions now.",
+    floodCountdownDays: (n, dateStr) => `Alert-level flood risk possible in ${n} day${n === 1 ? "" : "s"} (${dateStr}).`,
+    floodCountdownNone: "No alert-level flood risk expected in the next 7 days.",
+    todayAdvisoryTitle: "Today, for your area",
+    todayAdvisoryHint: "The trained flood/heat models, combined with today's live Open-Meteo forecast.",
+    todayAdvisoryFloodElevated: (pct, mm) =>
+      `Rain expected today (${mm}mm) and flood risk is elevated (${pct}%) — avoid low-lying areas and keep an eye on updates.`,
+    todayAdvisoryFloodLow: "Little rain expected today — flood risk stays low.",
+    todayAdvisoryHeatDanger: (tempC, windowsStr) =>
+      `It'll get hot today (feels like up to ${tempC}°C) — avoid outdoor work ${windowsStr}.`,
+    todayAdvisoryHeatOk: "No extreme heat expected today.",
   },
   bn: {
     appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
@@ -2928,6 +3113,27 @@ const CITIZEN_I18N = {
     projectionFalling: "কমছে — এই সপ্তাহের পূর্বাভাসে বৃষ্টি কমছে, ঝুঁকি নিম্নমুখী।",
     projectionSteady: "স্থিতিশীল — পরের ৭ দিনে বড় কোনো পরিবর্তনের আশঙ্কা নেই।",
     districtPopulation: (n) => `এই জেলায় ${n} জন মানুষ বসবাস করে (২০২২ census) — এটাও এই ranking-এর একটা কারণ।`,
+    liveSafeHoursTitle: "বাইরে কাজ করার নিরাপদ সময় — আজকে",
+    liveSafeHoursHint: "উপরের মৌসুমি গড় নয়, বরং আপনার জেলার আজকের লাইভ ঘণ্টাভিত্তিক পূর্বাভাস থেকে।",
+    liveSafeHoursLoading: "আজকের ঘণ্টাভিত্তিক পূর্বাভাস দেখা হচ্ছে…",
+    liveSafeHoursError: "আজকের ঘণ্টাভিত্তিক পূর্বাভাস লোড করা যায়নি।",
+    liveSafeHoursPeakAt: (tempC, hourStr) => `${hourStr} নাগাদ সবচেয়ে গরম অনুভূত হবে — সর্বোচ্চ ${tempC}°C।`,
+    liveSafeHoursAvoid: (windowsStr) => `বাইরের কাজ এড়িয়ে চলুন: ${windowsStr}।`,
+    liveSafeHoursSafe: (windowsStr) => `সবচেয়ে নিরাপদ সময়: ${windowsStr}।`,
+    liveSafeHoursAllSafe: "আজ কোনো অনিরাপদ সময় নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।",
+    floodCountdownTitle: "কখন আরও খারাপ হতে পারে?",
+    floodCountdownHint: "উপরের একই লাইভ ৭-দিনের বন্যা প্রক্ষেপণ, সরকারের সতর্কতা-ইমেইলে ব্যবহৃত alert level পর্যন্ত একটা countdown হিসেবে দেখানো।",
+    floodCountdownToday: "আজই বিপদসীমা মাত্রার বন্যার ঝুঁকি রয়েছে — এখনই সতর্কতা নিন।",
+    floodCountdownDays: (n, dateStr) => `${n} দিনের মধ্যে বিপদসীমা মাত্রার বন্যার ঝুঁকি হতে পারে (${dateStr})।`,
+    floodCountdownNone: "পরের ৭ দিনে বিপদসীমা মাত্রার বন্যার ঝুঁকির আশঙ্কা নেই।",
+    todayAdvisoryTitle: "আজকে, আপনার এলাকার জন্য",
+    todayAdvisoryHint: "trained flood/heat model, আজকের লাইভ Open-Meteo পূর্বাভাসের সাথে মিলিয়ে।",
+    todayAdvisoryFloodElevated: (pct, mm) =>
+      `আজ বৃষ্টি হতে পারে (${mm}mm) এবং বন্যার ঝুঁকি বেড়েছে (${pct}%) — নিচু এলাকা এড়িয়ে চলুন এবং হালনাগাদ তথ্যে নজর রাখুন।`,
+    todayAdvisoryFloodLow: "আজ সামান্য বৃষ্টি হতে পারে — বন্যার ঝুঁকি কম থাকবে।",
+    todayAdvisoryHeatDanger: (tempC, windowsStr) =>
+      `আজ গরম বেশি থাকবে (অনুভূত তাপমাত্রা সর্বোচ্চ ${tempC}°C) — ${windowsStr} বাইরের কাজ এড়িয়ে চলুন।`,
+    todayAdvisoryHeatOk: "আজ অস্বাভাবিক গরমের আশঙ্কা নেই।",
   },
 };
 
@@ -3013,6 +3219,146 @@ function heatAdvisory(category, lang) {
   };
   const byLang = copy[lang] || copy.en;
   return byLang[category] || byLang.Medium;
+}
+
+// Today's real hour-by-hour safe/avoid-outdoor-work windows — see
+// useHourlyHeatToday/summarizeHeatHours above. Deliberately separate from
+// the static heatAdvisory() text above it (which is keyed only to the
+// season-long risk_category tertile and can't say WHEN today is worst);
+// this is the live complement, same relationship as LiveForecastStrip is to
+// the trained flood/heat scores elsewhere in this file.
+function LiveSafeHoursCard({ lat, lon, lang, t }) {
+  const { hours, loading, error } = useHourlyHeatToday(lat, lon);
+  const summary = useMemo(() => summarizeHeatHours(hours), [hours]);
+
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Sun} tone="amber" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.liveSafeHoursTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-3">{t.liveSafeHoursHint}</p>
+
+      {loading && <p className="text-xs text-stone-400">{t.liveSafeHoursLoading}</p>}
+      {error && !loading && <p className="text-xs text-amber-400">{t.liveSafeHoursError}</p>}
+
+      {summary && !loading && !error && (
+        <div className="space-y-2">
+          <div className="flex gap-0.5 h-6" title={t.liveSafeHoursHint}>
+            {(hours || []).map((h) => {
+              const band = heatBand(h.apparent);
+              const color =
+                band === "danger" ? "bg-red-500" : band === "caution" ? "bg-amber-500" : band === "safe" ? "bg-emerald-500" : "bg-stone-700";
+              return (
+                <div
+                  key={h.hour}
+                  className={`flex-1 rounded-sm ${color}`}
+                  title={`${fmtHour(h.hour, lang)}: ${h.apparent != null ? Math.round(h.apparent) + "°C" : "—"}`}
+                />
+              );
+            })}
+          </div>
+          <p className="text-xs text-stone-300 leading-relaxed">
+            {t.liveSafeHoursPeakAt(Math.round(summary.peakApparent ?? 0), fmtHour(summary.peakHour, lang))}
+          </p>
+          {summary.dangerWindows.length > 0 ? (
+            <p className="text-xs text-red-300 leading-relaxed">{t.liveSafeHoursAvoid(fmtHourWindows(summary.dangerWindows, lang))}</p>
+          ) : (
+            <p className="text-xs text-emerald-300 leading-relaxed">{t.liveSafeHoursAllSafe}</p>
+          )}
+          {summary.dangerWindows.length > 0 && summary.safeWindows.length > 0 && (
+            <p className="text-xs text-emerald-300/90 leading-relaxed">{t.liveSafeHoursSafe(fmtHourWindows(summary.safeWindows, lang))}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "How many days until this district's live flood projection crosses the
+// alert threshold" — same daily[] FloodProjectionStrip charts, read as a
+// concrete countdown instead of a row of bars the citizen has to interpret.
+function FloodCountdownCard({ daily, lang, t }) {
+  const countdown = useMemo(() => floodAlertCountdown(daily), [daily]);
+  if (!countdown) return null;
+
+  const dateStr =
+    countdown.crosses && countdown.daysAhead > 0
+      ? new Date(countdown.date + "T00:00:00").toLocaleDateString(lang === "bn" ? "bn-BD" : "en-GB", {
+          weekday: "long", day: "numeric", month: "short",
+        })
+      : "";
+  const tone = !countdown.crosses ? "emerald" : countdown.daysAhead <= 2 ? "red" : "amber";
+  const toneClasses = {
+    emerald: { bg: "bg-emerald-950/30", border: "border-emerald-900/40", text: "text-emerald-300", badge: "teal" },
+    amber: { bg: "bg-amber-950/30", border: "border-amber-900/40", text: "text-amber-300", badge: "amber" },
+    red: { bg: "bg-red-950/30", border: "border-red-900/40", text: "text-red-300", badge: "red" },
+  }[tone];
+
+  return (
+    <div className={`${toneClasses.bg} border ${toneClasses.border} rounded-2xl p-4 shadow-sm shadow-black/20`}>
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={AlertTriangle} tone={toneClasses.badge} size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.floodCountdownTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-2">{t.floodCountdownHint}</p>
+      <p className={`text-sm font-medium ${toneClasses.text} leading-relaxed`}>
+        {!countdown.crosses
+          ? t.floodCountdownNone
+          : countdown.daysAhead === 0
+          ? t.floodCountdownToday
+          : t.floodCountdownDays(countdown.daysAhead, dateStr)}
+      </p>
+    </div>
+  );
+}
+
+// One combined, plain-language "what do I do today" card — reads the same
+// live flood projection (today's row: predicted_risk + the real
+// rainfall_mm Open-Meteo already reported for it) and the same live hourly
+// heat summary above into 1-2 short sentences per hazard, instead of
+// leaving the citizen to mentally combine two separate risk scores
+// themselves. Renders nothing until at least one of the two live fetches
+// has something to say (each hazard's line is independently optional).
+function TodayAdvisoryCard({ floodDaily, heatHours, lang, t }) {
+  const floodToday = floodDaily && floodDaily[0];
+  const heatSummary = useMemo(() => summarizeHeatHours(heatHours), [heatHours]);
+  if (!floodToday && !heatSummary) return null;
+
+  const floodElevated = floodToday && floodToday.predicted_risk >= FLOOD_ALERT_THRESHOLD;
+  const heatDanger = heatSummary && heatSummary.dangerWindows.length > 0;
+
+  const lines = [];
+  if (floodToday) {
+    lines.push(
+      floodElevated
+        ? t.todayAdvisoryFloodElevated(Math.round(floodToday.predicted_risk * 100), Math.round(floodToday.rainfall_mm || 0))
+        : t.todayAdvisoryFloodLow
+    );
+  }
+  if (heatSummary) {
+    lines.push(
+      heatDanger
+        ? t.todayAdvisoryHeatDanger(Math.round(heatSummary.peakApparent || 0), fmtHourWindows(heatSummary.dangerWindows, lang))
+        : t.todayAdvisoryHeatOk
+    );
+  }
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-b from-emerald-950/20 to-stone-800/30 border border-emerald-900/30 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={ShieldCheck} tone="teal" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.todayAdvisoryTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-2">{t.todayAdvisoryHint}</p>
+      <div className="space-y-1.5">
+        {lines.map((line, i) => (
+          <p key={i} className="text-xs text-stone-200 leading-relaxed">{line}</p>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // A citizen "I saw tree-cutting here" report — genuinely different from
@@ -3566,6 +3912,9 @@ function CitizenDashboard({ onLogout }) {
   // rather than a restatement of the trained models.
   const centroid = DISTRICT_CENTROIDS[selectedDistrict];
   const localForecast = useLocalForecast(centroid?.[0], centroid?.[1]);
+  // Today's real hour-by-hour forecast for the same centroid — feeds the
+  // live safe-hours card and the combined "today" advisory below.
+  const { hours: hourlyHeatToday } = useHourlyHeatToday(centroid?.[0], centroid?.[1]);
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-100">
@@ -3643,6 +3992,8 @@ function CitizenDashboard({ onLogout }) {
             ) : (
               <>
                 <p className="text-[11px] text-stone-500 -mb-1">{t.hubHint}</p>
+
+                <TodayAdvisoryCard floodDaily={selectedProjection?.daily} heatHours={hourlyHeatToday} lang={lang} t={t} />
 
                 {/* Always-visible color legend — the same red/amber/green scale
                     is used everywhere in this app, so once someone learns it
@@ -3791,12 +4142,10 @@ function CitizenDashboard({ onLogout }) {
                     <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
                       <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
                       <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
-                      {advisory.safeHours && (
-                        <p className="text-xs text-emerald-300/90 leading-relaxed mt-2 pt-2 border-t border-stone-700">{advisory.safeHours}</p>
-                      )}
                     </div>
 
                     <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                    <LiveSafeHoursCard lat={centroid?.[0]} lon={centroid?.[1]} lang={lang} t={t} />
                   </div>
 
                   {selectedHeat.risk_category === "High" && <EmergencyHelplineCard t={t} />}
@@ -3887,6 +4236,7 @@ function CitizenDashboard({ onLogout }) {
                         <div className="space-y-4">
                           <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
                           <FloodProjectionStrip projection={selectedProjection} lang={lang} t={t} />
+                          <FloodCountdownCard daily={selectedProjection?.daily} lang={lang} t={t} />
                         </div>
                       </div>
 
