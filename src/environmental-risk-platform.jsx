@@ -9,6 +9,14 @@ import {
   UserPlus, ShieldAlert, Info, Send, Volume2, VolumeX, Languages, Share2, Phone, Type,
   CloudRain, Sun, Cloud,
 } from "lucide-react";
+import { geoMercator, geoPath } from "d3-geo";
+// Real Bangladesh district boundaries (ADM2, 64 districts) — simplified from
+// geoBoundaries' open BGD ADM2 release. `properties.shapeName` on every
+// feature matches the district `name` field the backend already sends
+// (heat_risk.json / DISTRICT_CENTROIDS) exactly, 1:1, 64/64 — verified by
+// diffing the two name sets when this was put together, so no renaming
+// lookup table is needed to join risk data onto the shapes.
+import BD_DISTRICTS_GEOJSON from "./data/bd-districts.json";
 
 // ---------------------------------------------------------------------------
 // Backend base URL
@@ -1090,22 +1098,126 @@ function useCommunityStats() {
 // Shared bits
 // ---------------------------------------------------------------------------
 
-function HeatGrid({ grid, compact, colorFn = tempToColor, labelFn = (t) => (t === null || t === undefined ? "No data" : `${t.toFixed(0)}C`) }) {
-  const cell = compact ? 26 : 34;
+// Builds a d3-geo mercator projection fitted to the given GeoJSON
+// feature/FeatureCollection, sized to width x height with `padding` on every
+// side, and returns a path generator for it. Memoized on the geography's
+// identity so it isn't recomputed on every render.
+function useGeoPath(geography, width, height, padding = 12) {
+  return useMemo(() => {
+    const projection = geoMercator().fitExtent(
+      [[padding, padding], [width - padding, height - padding]],
+      geography
+    );
+    return geoPath(projection);
+  }, [geography, width, height, padding]);
+}
+
+// Real, to-scale outline of all 64 districts, each colored by whatever
+// per-district value the caller supplies — replaces the old abstract 7x9
+// color grid (which had no relationship to Bangladesh's actual shape) with
+// the country's real geography. Clicking a district behaves exactly like
+// picking it from the ranking list next to it.
+function BangladeshDistrictMap({ valueByDistrict, colorFn, labelFn, onSelect, selectedName, compact }) {
+  const width = compact ? 220 : 340;
+  const height = compact ? 280 : 440;
+  const path = useGeoPath(BD_DISTRICTS_GEOJSON, width, height);
+  const [hover, setHover] = useState(null); // { name, value, x, y }
+
   return (
-    <div className="inline-block rounded-xl overflow-hidden border border-stone-700 shadow-lg shadow-black/30 ring-1 ring-black/20">
-      {grid.map((row, ri) => (
-        <div key={ri} className="flex">
-          {row.map((t, ci) => (
-            <div
-              key={ci}
-              title={labelFn(t)}
-              style={{ width: cell, height: cell, background: colorFn(t) }}
-              className="border border-stone-900/40 transition-transform duration-150 hover:scale-[1.12] hover:z-10 hover:shadow-lg"
+    <div className="relative inline-block">
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="max-w-full h-auto">
+        {BD_DISTRICTS_GEOJSON.features.map((f) => {
+          const name = f.properties.shapeName;
+          const value = valueByDistrict[name];
+          const isSelected = selectedName === name;
+          return (
+            <path
+              key={name}
+              d={path(f)}
+              fill={colorFn(value)}
+              stroke={isSelected ? "#34d399" : "rgba(10,10,9,0.55)"}
+              strokeWidth={isSelected ? 1.75 : 0.5}
+              className={onSelect ? "cursor-pointer transition-[filter] duration-150 hover:brightness-125" : undefined}
+              onClick={onSelect ? () => onSelect(name) : undefined}
+              onMouseEnter={(e) => setHover({ name, value, x: e.clientX, y: e.clientY })}
+              onMouseMove={(e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
+              onMouseLeave={() => setHover(null)}
             />
-          ))}
+          );
+        })}
+      </svg>
+      {hover && (
+        <div
+          className="pointer-events-none fixed z-50 bg-stone-900 border border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 text-xs"
+          style={{ left: hover.x + 14, top: hover.y + 14 }}
+        >
+          <div className="text-stone-100 font-medium">{hover.name}</div>
+          <div className="text-stone-400">{labelFn(hover.value)}</div>
         </div>
-      ))}
+      )}
+    </div>
+  );
+}
+
+// Dhaka's real district outline with the existing block-averaged flood-risk
+// grid clipped inside it. There's no per-cell geocoding in the underlying
+// 1,650-point survey (see dhakaGridNote), so a cell still can't be placed at
+// its literal coordinate — but framing the same grid inside Dhaka's actual
+// shape, instead of a bare rectangle, reads as a map rather than a swatch.
+function DhakaFloodMap({ grid, colorFn, labelFn }) {
+  const width = 320, height = 320;
+  const dhakaFeature = useMemo(
+    () => BD_DISTRICTS_GEOJSON.features.find((f) => f.properties.shapeName === "Dhaka"),
+    []
+  );
+  const path = useGeoPath(dhakaFeature || BD_DISTRICTS_GEOJSON, width, height, 16);
+  const [hover, setHover] = useState(null);
+
+  if (!dhakaFeature) return null;
+
+  const [[x0, y0], [x1, y1]] = path.bounds(dhakaFeature);
+  const rows = grid.length;
+  const cols = grid[0]?.length || 0;
+  const cellW = (x1 - x0) / cols;
+  const cellH = (y1 - y0) / rows;
+  const clipId = "dhaka-flood-clip";
+  const outline = path(dhakaFeature);
+
+  return (
+    <div className="relative inline-block">
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="max-w-full h-auto">
+        <defs>
+          <clipPath id={clipId}>
+            <path d={outline} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          {grid.map((row, ri) =>
+            row.map((v, ci) => (
+              <rect
+                key={`${ri}-${ci}`}
+                x={x0 + ci * cellW}
+                y={y0 + ri * cellH}
+                width={cellW + 0.6}
+                height={cellH + 0.6}
+                fill={colorFn(v)}
+                onMouseEnter={(e) => setHover({ v, x: e.clientX, y: e.clientY })}
+                onMouseMove={(e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                onMouseLeave={() => setHover(null)}
+              />
+            ))
+          )}
+        </g>
+        <path d={outline} fill="none" stroke="#78716c" strokeWidth={1.5} />
+      </svg>
+      {hover && (
+        <div
+          className="pointer-events-none fixed z-50 bg-stone-900 border border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 text-xs text-stone-100"
+          style={{ left: hover.x + 14, top: hover.y + 14 }}
+        >
+          {labelFn(hover.v)}
+        </div>
+      )}
     </div>
   );
 }
@@ -1383,7 +1495,8 @@ const GOVT_I18N = {
     compositeSeason: "Composite season",
     surfaceTempTitle: "Surface temperature — nationwide",
     surfaceTempSub: "Satellite-measured ground temperature (MODIS LST composite), Mar–May 2026",
-    gridNote: "Each square is the average for that area; blank squares simply have no data (usually water).",
+    gridNote: "Each district is colored by its own average surface temperature — hover or tap a district for its exact reading.",
+    noData: "No data",
     priorityRanking: "Priority ranking",
     heatMitigationTitle: "Heat mitigation priority",
     heatMitigationSub: "Districts most in need of cooling measures, highest first.",
@@ -1543,7 +1656,8 @@ const GOVT_I18N = {
     compositeSeason: "সমন্বিত মৌসুম",
     surfaceTempTitle: "ভূপৃষ্ঠের তাপমাত্রা — সারাদেশ",
     surfaceTempSub: "স্যাটেলাইট থেকে পরিমাপ করা ভূপৃষ্ঠের তাপমাত্রা (MODIS LST), মার্চ–মে ২০২৬",
-    gridNote: "প্রতিটি বর্গ ওই এলাকার গড় মান দেখায়; ফাঁকা বর্গে কোনো তথ্য নেই (সাধারণত পানি)।",
+    gridNote: "প্রতিটি জেলা তার নিজস্ব গড় ভূপৃষ্ঠ তাপমাত্রা অনুযায়ী রঙিন — নির্দিষ্ট মান দেখতে জেলার উপর হোভার বা ট্যাপ করুন।",
+    noData: "তথ্য নেই",
     priorityRanking: "অগ্রাধিকার তালিকা",
     heatMitigationTitle: "তাপ প্রশমন অগ্রাধিকার",
     heatMitigationSub: "যেসব জেলায় শীতলীকরণ ব্যবস্থা সবচেয়ে বেশি প্রয়োজন, উপরে সবচেয়ে জরুরিটা।",
@@ -2045,10 +2159,16 @@ function GovtDashboard({ role, officerId, onLogout }) {
                     <span>30°C</span>
                   </div>
                 </div>
-                {heatGrid ? (
+                {heatDistricts ? (
                   <>
                     <div className="flex items-center justify-center py-4">
-                      <HeatGrid grid={heatGrid} />
+                      <BangladeshDistrictMap
+                        valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
+                        colorFn={tempToColor}
+                        labelFn={(v) => (v === null || v === undefined ? gt.noData : `${v.toFixed(1)}°C`)}
+                        onSelect={(name) => setSelectedHeatDistrict(heatDistricts.find((d) => d.name === name) || null)}
+                        selectedName={selectedHeatDistrict?.name}
+                      />
                     </div>
                     <p className="text-[11px] text-stone-500 text-center">{gt.gridNote}</p>
                   </>
@@ -2246,7 +2366,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
           <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.dhakaFloodTitle}</h3>
           <p className="text-xs text-stone-400 mt-0.5 mb-4">{gt.dhakaFloodSub}</p>
           <div className="flex items-center justify-center py-4">
-            {grid && <HeatGrid grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `${(v * 100).toFixed(0)}%`} />}
+            {grid && <DhakaFloodMap grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `${(v * 100).toFixed(0)}%`} />}
           </div>
           <p className="text-[11px] text-stone-500 text-center">{gt.dhakaGridNote}</p>
         </div>
@@ -2938,6 +3058,7 @@ const CITIZEN_I18N = {
     heatwaveWatchOne: "1 location nationally is forecast to see heatwave-level heat in the next 7 days.",
     heatwaveWatchMany: "locations nationally are forecast to see heatwave-level heat in the next 7 days.",
     heatMapTitle: "Heat map — nationwide",
+    noData: "No data",
     currentTemp: "Surface temp, your district",
     healthAdvisoryTitle: "Health advisory",
     floodRiskTitle: "Flood risk —",
@@ -3057,6 +3178,7 @@ const CITIZEN_I18N = {
     heatwaveWatchOne: "সারাদেশে ১টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
     heatwaveWatchMany: "টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
     heatMapTitle: "তাপ মানচিত্র — সারাদেশ",
+    noData: "তথ্য নেই",
     currentTemp: "ভূপৃষ্ঠের তাপমাত্রা, আপনার জেলা",
     healthAdvisoryTitle: "স্বাস্থ্য পরামর্শ",
     floodRiskTitle: "বন্যার ঝুঁকি —",
@@ -4152,9 +4274,15 @@ function CitizenDashboard({ onLogout }) {
                           {tierLabel(selectedHeat.risk_category, lang)}
                         </span>
                       </div>
-                      {heatGrid ? (
+                      {heatDistricts ? (
                         <div className="flex justify-center">
-                          <HeatGrid grid={heatGrid} compact />
+                          <BangladeshDistrictMap
+                            compact
+                            valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
+                            colorFn={tempToColor}
+                            labelFn={(v) => (v === null || v === undefined ? t.noData : `${v.toFixed(1)}°C`)}
+                            selectedName={selectedDistrict}
+                          />
                         </div>
                       ) : (
                         <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
