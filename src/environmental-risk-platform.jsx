@@ -1036,6 +1036,33 @@ function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
   );
 }
 
+// Same card look as Kpi above (same classes, same label/value/sub layout)
+// but as one wide box rather than one of the 2/4-column grid — used for the
+// heat/flood "this recomputes on a schedule" live-refresh notice, which
+// used to be a long explanatory sentence in a thin strip. Kept short and
+// scannable on purpose: just the cadence as the headline, the last-refreshed
+// time as the sub-line, and a small live pulse on the icon.
+function LiveRefreshBox({ label, value, dateStr }) {
+  return (
+    <div className="bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-stone-400 font-medium">{label}</span>
+        <span className="relative shrink-0">
+          <IconBadge icon={Radar} tone="teal" size={14} />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
+          </span>
+        </span>
+      </div>
+      <div className="text-2xl font-semibold tracking-tight text-emerald-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {value}
+      </div>
+      <div className="text-xs text-stone-400">{dateStr}</div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Report modal (stands in for PDF/Excel export)
 // ---------------------------------------------------------------------------
@@ -1175,8 +1202,10 @@ const GOVT_I18N = {
     kpiHeatwaveWatches: "Heatwave watches",
     kpiHeatwaveLive: "live, rechecked every 3 days",
     kpiHeatwaveNotRun: "automation hasn't run yet",
-    liveHeatBanner: (dateStr) =>
-      `Live — heatwave watch rechecked every 3 days against real weather forecasts (satellite heat-risk layer is a fixed Mar–May 2026 seasonal composite). Last refreshed ${dateStr}.`,
+    liveRefreshLabel: "Live monitoring",
+    liveRefreshHeat: "Rechecked every 3 days",
+    liveRefreshFlood: "Rescored every 3 days",
+    liveRefreshLastUpdated: (dateStr) => `Last refreshed ${dateStr}`,
     compositeSeason: "Composite season",
     surfaceTempTitle: "Surface temperature — nationwide",
     surfaceTempSub: "Satellite-measured ground temperature (MODIS LST composite), Mar–May 2026",
@@ -1223,8 +1252,6 @@ const GOVT_I18N = {
     kpiPopulationTopPriority: "Population, top-20 priority",
     kpiPopulationTopPrioritySub: "real 2022 census, summed",
     popLabel: (n) => `pop. ${n}`,
-    liveFloodBanner: (window, dateStr) =>
-      `Live — risk rescored every 3 days from real rainfall${window ? ` through ${window}` : ""}. Last refreshed ${dateStr}.`,
     mitigationPriority: "Mitigation priority",
     top20of64: "Top 20 of 64 districts",
     rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (2022 census)",
@@ -1332,8 +1359,10 @@ const GOVT_I18N = {
     kpiHeatwaveWatches: "তাপপ্রবাহ সতর্কতা",
     kpiHeatwaveLive: "লাইভ, প্রতি ৩ দিন পরপর হালনাগাদ",
     kpiHeatwaveNotRun: "অটোমেশন এখনো চলেনি",
-    liveHeatBanner: (dateStr) =>
-      `লাইভ — প্রকৃত আবহাওয়া পূর্বাভাসের ভিত্তিতে প্রতি ৩ দিন পরপর তাপপ্রবাহ সতর্কতা হালনাগাদ করা হয় (স্যাটেলাইট তাপ-ঝুঁকি স্তরটি মার্চ–মে ২০২৬ মৌসুমের একটি নির্দিষ্ট সমন্বয়)। সর্বশেষ হালনাগাদ ${dateStr}।`,
+    liveRefreshLabel: "লাইভ পর্যবেক্ষণ",
+    liveRefreshHeat: "প্রতি ৩ দিন পরপর হালনাগাদ",
+    liveRefreshFlood: "প্রতি ৩ দিন পরপর পুনর্মূল্যায়ন",
+    liveRefreshLastUpdated: (dateStr) => `সর্বশেষ হালনাগাদ ${dateStr}`,
     compositeSeason: "সমন্বিত মৌসুম",
     surfaceTempTitle: "ভূপৃষ্ঠের তাপমাত্রা — সারাদেশ",
     surfaceTempSub: "স্যাটেলাইট থেকে পরিমাপ করা ভূপৃষ্ঠের তাপমাত্রা (MODIS LST), মার্চ–মে ২০২৬",
@@ -1380,8 +1409,6 @@ const GOVT_I18N = {
     kpiPopulationTopPriority: "জনসংখ্যা, শীর্ষ-২০ অগ্রাধিকার",
     kpiPopulationTopPrioritySub: "real ২০২২ census, যোগফল",
     popLabel: (n) => `জনসংখ্যা ${n}`,
-    liveFloodBanner: (window, dateStr) =>
-      `লাইভ — প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে প্রতি ৩ দিন পরপর ঝুঁকি পুনর্মূল্যায়ন করা হয়${window ? ` — ${window} পর্যন্ত` : ""}। সর্বশেষ হালনাগাদ ${dateStr}।`,
     mitigationPriority: "প্রশমন অগ্রাধিকার",
     top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
     rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (২০২২ census)",
@@ -1801,22 +1828,15 @@ function GovtDashboard({ role, officerId, onLogout }) {
             <p className="text-[10px] text-stone-500 -mt-4">{gt.kpiUhiGloss}</p>
 
             {heatAlerts?.generated_at && (
-              <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
-                <span className="relative shrink-0">
-                  <IconBadge icon={Radar} tone="teal" size={14} />
-                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
-                  </span>
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
-                  {gt.liveHeatBanner(
-                    new Date(heatAlerts.generated_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
-                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                    })
-                  )}
-                </span>
-              </div>
+              <LiveRefreshBox
+                label={gt.liveRefreshLabel}
+                value={gt.liveRefreshHeat}
+                dateStr={gt.liveRefreshLastUpdated(
+                  new Date(heatAlerts.generated_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })
+                )}
+              />
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2170,23 +2190,15 @@ function FloodNationalView({ national, lang, search }) {
       </div>
 
       {summary.last_refreshed_at && (
-        <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
-          <span className="relative shrink-0">
-            <IconBadge icon={Radar} tone="teal" size={14} />
-            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
-            </span>
-          </span>
-          <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
-            {gt.liveFloodBanner(
-              summary.live_prediction_window?.end_date,
-              new Date(summary.last_refreshed_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
-                day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-              })
-            )}
-          </span>
-        </div>
+        <LiveRefreshBox
+          label={gt.liveRefreshLabel}
+          value={gt.liveRefreshFlood}
+          dateStr={gt.liveRefreshLastUpdated(
+            new Date(summary.last_refreshed_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+            })
+          )}
+        />
       )}
 
       <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
