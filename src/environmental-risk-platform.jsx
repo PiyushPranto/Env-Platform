@@ -1146,12 +1146,32 @@ function Eyebrow({ children, tone = "orange" }) {
 // Shown in place of module content while real data is loading, or if it
 // failed to load — used by Flood and Deforestation, which (unlike Heat)
 // have no hardcoded demo fallback to quietly fall back to.
+// Skeleton placeholder shaped like the dashboard it's standing in for (a row
+// of KPI cards plus a wider chart card) rather than a spinner or bare text —
+// it shows the person the layout that's about to fill in, which reads as
+// faster and feels less like a dead page than a centered "Loading…" message.
+function SkeletonCard({ className = "" }) {
+  return (
+    <div className={`bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 animate-pulse ${className}`}>
+      <div className="h-3 w-2/3 bg-stone-700/60 rounded-full mb-4" />
+      <div className="h-6 w-1/2 bg-stone-700/50 rounded-full mb-3" />
+      <div className="h-2.5 w-1/3 bg-stone-700/40 rounded-full" />
+    </div>
+  );
+}
+
 function DataStateNotice({ loading, error, label }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-stone-400 py-16 justify-center">
-        <span className="w-2 h-2 rounded-full bg-stone-400 animate-pulse" />
-        Loading {label}…
+      <div className="animate-fade-in" aria-live="polite" aria-busy="true">
+        <span className="sr-only">Loading {label}…</span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonCard className="mt-4 h-40" />
       </div>
     );
   }
@@ -1234,7 +1254,7 @@ function ReportModal({ districts, alerts, onClose }) {
             <IconBadge icon={FileText} tone="orange" size={14} />
             <span className="text-sm font-medium">National heat risk report</span>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded-lg p-1.5 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded-lg p-1.5 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -1330,6 +1350,7 @@ const GOVT_I18N = {
     navAir: "Air pollution (coming soon)",
     navForest: "Deforestation",
     signOut: "Sign out",
+    menu: "Menu",
     searchPlaceholder: "Search by district, upazila or ward",
     loadingLiveData: "Loading live data…",
     couldntLoad: "Couldn't load",
@@ -1488,6 +1509,7 @@ const GOVT_I18N = {
     navAir: "বায়ু দূষণ (শীঘ্রই আসছে)",
     navForest: "বন উজাড়",
     signOut: "সাইন আউট",
+    menu: "মেনু",
     searchPlaceholder: "জেলা, উপজেলা বা ওয়ার্ড দিয়ে খুঁজুন",
     loadingLiveData: "লাইভ তথ্য লোড হচ্ছে…",
     couldntLoad: "লোড করা যায়নি",
@@ -1735,7 +1757,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
             </div>
             <div className="text-[11px] text-stone-400 mt-2 pl-0.5">{gt.govtDashboard} · <span className="text-stone-300">{role}</span></div>
           </div>
-          <button onClick={() => setMobileNavOpen(false)} className="md:hidden text-stone-400 hover:text-stone-200 p-1">
+          <button onClick={() => setMobileNavOpen(false)} aria-label={gt.close} className="md:hidden text-stone-400 hover:text-stone-200 p-1">
             <X size={18} />
           </button>
         </div>
@@ -1788,11 +1810,19 @@ function GovtDashboard({ role, officerId, onLogout }) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <div className="sticky top-0 z-10 border-b border-stone-700/80 bg-stone-900/80 backdrop-blur-md px-3 md:px-6 py-3 md:py-3.5 flex items-center gap-2 md:gap-4 flex-wrap">
-          <button onClick={() => setMobileNavOpen(true)} className="md:hidden text-stone-300 hover:text-stone-100 p-1 shrink-0">
+          <button onClick={() => setMobileNavOpen(true)} aria-label={gt.menu} className="md:hidden text-stone-300 hover:text-stone-100 p-1 shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
             </svg>
           </button>
+          {/* On mobile the sidebar (which shows the current module via a
+              highlighted row) is hidden behind the drawer, so without this
+              there's no on-screen sign of which module you're looking at
+              until you open the menu. Desktop already has the sidebar for
+              that, so this stays mobile-only. */}
+          <span className="md:hidden text-sm font-medium text-stone-200 truncate shrink-0 max-w-[7.5rem]">
+            {activeModule === "heat" ? gt.navHeat : gt[OTHER_MODULES.find((m) => m.key === activeModule)?.labelKey]}
+          </span>
           <div className="relative flex-1 min-w-[120px] max-w-sm">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
@@ -1816,6 +1846,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
           )}
           <button
             onClick={() => setShowReport(true)}
+            aria-label={gt.generateReport}
             className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white shadow-lg shadow-emerald-950/30 transition-all duration-150 shrink-0"
           >
             <FileText size={14} /> <span className="hidden sm:inline">{gt.generateReport}</span>
@@ -1827,6 +1858,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
           <div className="relative">
             <button
               onClick={() => setOpenDataOpen((v) => !v)}
+              aria-label={gt.openData}
               className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg border border-stone-700 text-stone-300 hover:bg-stone-800 hover:text-stone-100 transition-colors shrink-0"
             >
               <Download size={14} /> <span className="hidden sm:inline">{gt.openData}</span>
@@ -1866,6 +1898,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
                 onClick={() => setNotifOpen((v) => !v)}
                 className="relative flex items-center justify-center text-stone-400 hover:bg-stone-800 hover:text-stone-200 rounded-lg p-1.5 md:p-2 transition-colors"
                 title={gt.notifications}
+                aria-label={gt.notifications}
               >
                 <Bell size={16} />
                 {notifications.length > 0 && (
@@ -1906,6 +1939,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
               onClick={() => setLang(lang === "en" ? "bn" : "en")}
               className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
               title={lang === "en" ? "বাংলা" : "English"}
+              aria-label={lang === "en" ? "বাংলা" : "English"}
             >
               <Languages size={15} />
               <span className="hidden md:inline">{lang === "en" ? "বাংলা" : "English"}</span>
@@ -1914,6 +1948,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
               onClick={onLogout}
               className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
               title={gt.signOut}
+              aria-label={gt.signOut}
             >
               <LogOut size={15} /> <span className="hidden md:inline">{gt.signOut}</span>
             </button>
@@ -2066,7 +2101,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
                   </span>
                   <div className="text-[10px] text-stone-500 mt-1">{gt.ndviGloss} · {gt.suhiGloss}</div>
                 </div>
-                <button onClick={() => setSelectedHeatDistrict(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+                <button onClick={() => setSelectedHeatDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
                   <X size={15} />
                 </button>
               </div>
@@ -2249,7 +2284,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
               <div className="text-[11px] text-stone-500 mt-0.5">{selectedArea.area}</div>
             )}
           </div>
-          <button onClick={() => setSelectedArea(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+          <button onClick={() => setSelectedArea(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -2727,7 +2762,7 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
               {selectedDistrict.protected_loss_km2 > 0 && ` · ${selectedDistrict.protected_loss_km2.toFixed(1)} km² ${gt.protectedShort}`}
             </span>
           </div>
-          <button onClick={() => setSelectedDistrict(null)} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+          <button onClick={() => setSelectedDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -3914,6 +3949,7 @@ function CitizenDashboard({ onLogout }) {
           <button
             onClick={onLogout}
             title={t.back}
+            aria-label={t.back}
             className="shrink-0 text-stone-400 hover:text-stone-200 p-1 -ml-1 rounded-lg hover:bg-stone-800 transition-colors"
           >
             <ArrowLeft size={16} />
@@ -3929,6 +3965,7 @@ function CitizenDashboard({ onLogout }) {
           <button
             onClick={() => setLargeText((v) => !v)}
             title={largeText ? t.largeTextOff : t.largeTextOn}
+            aria-label={largeText ? t.largeTextOff : t.largeTextOn}
             className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors border ${
               largeText
                 ? "text-emerald-300 border-emerald-700/60 bg-emerald-900/20"

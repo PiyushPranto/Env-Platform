@@ -44,6 +44,23 @@ body {
   color: #fff7ed;
 }
 
+/* Visible keyboard-focus ring for anything interactive. Text inputs already
+   get their own emerald focus ring via Tailwind classes; this covers every
+   button, link and control that doesn't set its own focus style, so
+   keyboard/switch users always have a visible indicator of where they are.
+   :focus-visible (not plain :focus) keeps this out of the way for mouse/touch
+   clicks and only shows it for keyboard navigation. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(52, 211, 153, 0.7); /* emerald-400 */
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;
