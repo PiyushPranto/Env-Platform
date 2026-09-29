@@ -1424,7 +1424,6 @@ const GOVT_I18N = {
     earlyWarningCountdownToday: "already at alert level today",
     earlyWarningCountdownDays: (n) => `alert level in ${n}d`,
     noDeltaYet: "First refresh recorded — nothing to compare against yet.",
-    fieldNoticeFlood: "Trained on real flood-event records for the years shown. A district-day is genuinely a flood only about 3–5% of the time, so the model is deliberately tuned to catch more real floods even at the cost of some false alarms — the right tradeoff for early warning.",
     citizenReportsEyebrow: "Citizen reports",
     citizenReportsTitle: "Tree-cutting reported by citizens",
     reportCount: (n) => `${n} report${n === 1 ? "" : "s"}`,
@@ -1583,7 +1582,6 @@ const GOVT_I18N = {
     earlyWarningCountdownToday: "আজই alert level এ পৌঁছেছে",
     earlyWarningCountdownDays: (n) => `${n} দিনে alert level`,
     noDeltaYet: "প্রথম refresh রেকর্ড হয়েছে — তুলনা করার মতো আগের কিছু এখনো নেই।",
-    fieldNoticeFlood: "প্রদর্শিত বছরগুলোর প্রকৃত বন্যার ঘটনার তথ্য দিয়ে প্রশিক্ষিত। একটি জেলা-দিন প্রকৃতপক্ষে বন্যা হয় মাত্র ৩–৫% সময়ে, তাই মডেলটি ইচ্ছাকৃতভাবে বেশি প্রকৃত বন্যা ধরার জন্য তৈরি, এমনকি কিছু ভুল সতর্কতার বিনিময়েও — আগাম সতর্কতার জন্য এটাই সঠিক পন্থা।",
     citizenReportsEyebrow: "নাগরিক রিপোর্ট",
     citizenReportsTitle: "নাগরিকদের রিপোর্ট করা গাছ কাটা",
     reportCount: (n) => `${n} টি রিপোর্ট`,
@@ -2356,13 +2354,6 @@ function FloodNationalView({ national, lang, search }) {
           )}
         />
       )}
-
-      <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex items-start gap-3">
-        <IconBadge icon={Info} tone="amber" size={14} />
-        <p className="text-xs text-amber-200/90 leading-relaxed">
-          {gt.fieldNoticeFlood}
-        </p>
-      </div>
 
       {projection && (
         <div className="bg-gradient-to-b from-red-950/30 to-stone-800/30 border border-red-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
