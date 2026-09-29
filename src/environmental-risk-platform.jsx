@@ -102,6 +102,28 @@ function riskScoreToColor(v) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
+// Forest-cover color scale for the deforestation district map: a 0-100%
+// scale, red (bare) through amber to a deep green (still substantially
+// forested) — the reverse sense of the heat/flood scales (here, more is
+// good), which is exactly why it's its own scale rather than reusing one.
+function forestPctToColor(pct) {
+  if (pct === null || pct === undefined) return "rgb(68,64,60)"; // stone-700 — "no data"
+  const stops = [
+    { t: 0, c: [190, 40, 30] },
+    { t: 20, c: [210, 170, 40] },
+    { t: 40, c: [90, 150, 90] },
+    { t: 60, c: [16, 120, 70] },
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (pct >= stops[i].t && pct <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const range = hi.t - lo.t || 1;
+  const f = Math.max(0, Math.min(1, (pct - lo.t) / range));
+  const c = lo.c.map((val, i) => Math.round(val + (hi.c[i] - val) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
 // Deforestation priority-tier colors, shared across the district ranking
 // list, worklist and restoration list so "High" always reads the same way.
 function tierColor(tier) {
@@ -1539,6 +1561,9 @@ const GOVT_I18N = {
     kpiPopulationTopPriority: "Population, top-20 priority",
     kpiPopulationTopPrioritySub: "real 2022 census, summed",
     popLabel: (n) => `pop. ${n}`,
+    floodMapEyebrow: "Nationwide",
+    floodMapTitle: "Flood risk — all 64 districts",
+    floodMapSub: "This week's live predicted risk, from real rainfall.",
     mitigationPriority: "Mitigation priority",
     top20of64: "Top 20 of 64 districts",
     rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (2022 census)",
@@ -1588,6 +1613,9 @@ const GOVT_I18N = {
     kpiLossPatches: "Loss patches mapped",
     kpiLossPatchesSub: "≥0.25 km², 2017–2023",
     forestNotice: "This counts all tree cover — including home gardens and plantations, not only official forest land — so don't compare it to the Forest Department's own 11–15% figure. The nationwide year-by-year trend and a loss forecast are deliberately left off this dashboard: the underlying data disagreed with itself too much to trust a forecast built on it. The district ranking and loss map below did pass every check.",
+    forestMapEyebrow: "Nationwide",
+    forestMapTitle: "Tree cover — all 64 districts",
+    forestMapSub: "Current forest cover as a share of each district's land area, 2024.",
     rankedByLoss: "Ranked by loss",
     districtRanking64: "District ranking — 64 districts",
     restorationPriority: "Restoration priority",
@@ -1700,6 +1728,9 @@ const GOVT_I18N = {
     kpiPopulationTopPriority: "জনসংখ্যা, শীর্ষ-২০ অগ্রাধিকার",
     kpiPopulationTopPrioritySub: "real ২০২২ census, যোগফল",
     popLabel: (n) => `জনসংখ্যা ${n}`,
+    floodMapEyebrow: "সারাদেশ",
+    floodMapTitle: "বন্যার ঝুঁকি — সব ৬৪ জেলা",
+    floodMapSub: "এই সপ্তাহের লাইভ predicted ঝুঁকি, real বৃষ্টিপাত অনুযায়ী।",
     mitigationPriority: "প্রশমন অগ্রাধিকার",
     top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
     rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (২০২২ census)",
@@ -1749,6 +1780,9 @@ const GOVT_I18N = {
     kpiLossPatches: "চিহ্নিত ক্ষতিগ্রস্ত এলাকা",
     kpiLossPatchesSub: "≥০.২৫ বর্গ কিমি, ২০১৭–২০২৩",
     forestNotice: "এখানে সব ধরনের গাছপালার আচ্ছাদন গণনা করা হয়েছে — বাড়ির বাগান ও বাগান-বনসহ, শুধু সরকারি বনভূমি নয় — তাই এটিকে বন অধিদপ্তরের ১১–১৫% হিসাবের সাথে তুলনা করবেন না। সারাদেশের বছরভিত্তিক প্রবণতা ও ক্ষতির পূর্বাভাস ইচ্ছাকৃতভাবে এই ড্যাশবোর্ডে দেখানো হয়নি — মূল তথ্যের মধ্যেই যথেষ্ট অসামঞ্জস্য ছিল বলে তার উপর ভিত্তি করে পূর্বাভাসকে নির্ভরযোগ্য মনে করা যায়নি। নিচের জেলা তালিকা ও ক্ষতির মানচিত্র সব যাচাই পার হয়েছে।",
+    forestMapEyebrow: "সারাদেশ",
+    forestMapTitle: "গাছপালার আচ্ছাদন — সব ৬৪ জেলা",
+    forestMapSub: "প্রতিটি জেলার জমির তুলনায় বর্তমান বন আচ্ছাদনের অংশ, ২০২৪।",
     rankedByLoss: "ক্ষতির ভিত্তিতে সাজানো",
     districtRanking64: "জেলা তালিকা — ৬৪ জেলা",
     restorationPriority: "পুনরুদ্ধার অগ্রাধিকার",
@@ -2512,6 +2546,30 @@ function FloodNationalView({ national, lang, search }) {
         />
       )}
 
+      {priority && priority.length > 0 && (
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Eyebrow>{gt.floodMapEyebrow}</Eyebrow>
+              <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.floodMapTitle}</h3>
+              <p className="text-xs text-stone-400 mt-0.5">{gt.floodMapSub}</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
+              <span>0%</span>
+              <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
+              <span>100%</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-center py-4">
+            <BangladeshDistrictMap
+              valueByDistrict={Object.fromEntries(priority.map((d) => [d.district_name, d.avg_predicted_risk]))}
+              colorFn={riskScoreToColor}
+              labelFn={(v) => (v === null || v === undefined ? gt.noData : `${(v * 100).toFixed(0)}%`)}
+            />
+          </div>
+        </div>
+      )}
+
       {projection && (
         <div className="bg-gradient-to-b from-red-950/30 to-stone-800/30 border border-red-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
           <div className="flex items-center gap-2.5 mb-1">
@@ -2817,6 +2875,30 @@ function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistric
         <Kpi label={gt.kpiAccelerating} value={alertCount} sub={gt.kpiAcceleratingSub} icon={AlertTriangle} tone="orange" />
         <Kpi label={gt.kpiAvgTreeCover} value={`${avgForestPct.toFixed(1)}%`} sub={gt.kpiAvgTreeCoverSub} tone="teal" />
         <Kpi label={gt.kpiLossPatches} value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub={gt.kpiLossPatchesSub} />
+      </div>
+
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Eyebrow tone="teal">{gt.forestMapEyebrow}</Eyebrow>
+            <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.forestMapTitle}</h3>
+            <p className="text-xs text-stone-400 mt-0.5">{gt.forestMapSub}</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
+            <span>0%</span>
+            <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(190,40,30), rgb(210,170,40), rgb(16,120,70))" }} />
+            <span>60%+</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-4">
+          <BangladeshDistrictMap
+            valueByDistrict={Object.fromEntries(districts.map((d) => [d.district, d.forest_pct_now]))}
+            colorFn={forestPctToColor}
+            labelFn={(v) => (v === null || v === undefined ? gt.noData : `${v.toFixed(1)}%`)}
+            onSelect={(name) => setSelectedDistrict(districts.find((d) => d.district === name) || null)}
+            selectedName={selectedDistrict?.district}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
