@@ -1612,7 +1612,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
               <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
             </svg>
           </button>
-          <div className="relative flex-1 min-w-[120px] max-w-sm order-1">
+          <div className="relative flex-1 min-w-[120px] max-w-sm">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               value={search}
@@ -1623,56 +1623,16 @@ function GovtDashboard({ role, officerId, onLogout }) {
           </div>
           <div className="flex-1 hidden md:block" />
           {activeLoading && (
-            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-stone-400 order-2">
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-stone-400">
               <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-pulse" /> {gt.loadingLiveData}
             </span>
           )}
           {activeError && !activeLoading && (
-            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full order-2" title={activeError}>
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={activeError}>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               {gt.couldntLoad}
             </span>
           )}
-          <div className="relative">
-            <button
-              onClick={() => setNotifOpen((v) => !v)}
-              className="relative text-stone-400 hover:text-stone-200 transition-colors"
-            >
-              <Bell size={17} />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-stone-900" />
-              )}
-            </button>
-            {notifOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
-                  <div className="px-4 py-3 border-b border-stone-700 text-xs font-medium text-stone-200">
-                    {gt.notifications} {notifications.length > 0 ? `(${notifications.length})` : ""}
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <p className="px-4 py-6 text-xs text-stone-400 text-center">{gt.noActiveAlerts}</p>
-                    ) : (
-                      notifications.map((n, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setActiveModule(n.module);
-                            if (n.module === "flood") setFloodTab("national");
-                            setNotifOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-xs text-stone-200 hover:bg-stone-700/70 border-b border-stone-700/60 last:border-0 transition-colors"
-                        >
-                          {n.text}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
           <button
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white shadow-lg shadow-emerald-950/30 transition-all duration-150 shrink-0"
@@ -1716,8 +1676,51 @@ function GovtDashboard({ role, officerId, onLogout }) {
 
           {/* Language + sign-out — moved from the sidebar footer to the
               top-right of the header per team feedback, so they're visible
-              without opening the mobile nav drawer. */}
+              without opening the mobile nav drawer. Notifications lives here
+              too now, grouped with the other utility icons rather than
+              floating on its own next to the loading/error status text. */}
           <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-stone-700/80 shrink-0">
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative flex items-center justify-center text-stone-400 hover:bg-stone-800 hover:text-stone-200 rounded-lg p-1.5 md:p-2 transition-colors"
+                title={gt.notifications}
+              >
+                <Bell size={16} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-stone-900" />
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
+                    <div className="px-4 py-3 border-b border-stone-700 text-xs font-medium text-stone-200">
+                      {gt.notifications} {notifications.length > 0 ? `(${notifications.length})` : ""}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <p className="px-4 py-6 text-xs text-stone-400 text-center">{gt.noActiveAlerts}</p>
+                      ) : (
+                        notifications.map((n, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setActiveModule(n.module);
+                              if (n.module === "flood") setFloodTab("national");
+                              setNotifOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs text-stone-200 hover:bg-stone-700/70 border-b border-stone-700/60 last:border-0 transition-colors"
+                          >
+                            {n.text}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <button
               onClick={() => setLang(lang === "en" ? "bn" : "en")}
               className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
@@ -1799,9 +1802,12 @@ function GovtDashboard({ role, officerId, onLogout }) {
 
             {heatAlerts?.generated_at && (
               <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
-                <span className="relative flex h-3 w-3 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+                <span className="relative shrink-0">
+                  <IconBadge icon={Radar} tone="teal" size={14} />
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
+                  </span>
                 </span>
                 <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
                   {gt.liveHeatBanner(
@@ -2165,9 +2171,12 @@ function FloodNationalView({ national, lang, search }) {
 
       {summary.last_refreshed_at && (
         <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-900/40 rounded-2xl px-4 py-3 shadow-sm shadow-black/10">
-          <span className="relative flex h-3 w-3 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+          <span className="relative shrink-0">
+            <IconBadge icon={Radar} tone="teal" size={14} />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
+            </span>
           </span>
           <span className="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed">
             {gt.liveFloodBanner(
