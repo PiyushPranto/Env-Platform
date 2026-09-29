@@ -46,8 +46,8 @@ const WHATSAPP_SANDBOX_JOIN_CODE = "join your-sandbox-code";
 
 const OTHER_MODULES = [
   { key: "flood", labelKey: "navFlood", icon: Droplets, locked: false },
-  { key: "air", labelKey: "navAir", icon: Wind, locked: true },
   { key: "forest", labelKey: "navForest", icon: TreeDeciduous, locked: false },
+  { key: "air", labelKey: "navAir", icon: Wind, locked: true },
 ];
 
 function tempToColor(t) {
@@ -1347,7 +1347,7 @@ const GOVT_I18N = {
     govtDashboard: "Government dashboard",
     navHeat: "Heat monitoring",
     navFlood: "Flood monitoring",
-    navAir: "Air pollution (coming soon)",
+    navAir: "Air pollution (future work)",
     navForest: "Deforestation",
     signOut: "Sign out",
     menu: "Menu",
@@ -1507,7 +1507,7 @@ const GOVT_I18N = {
     govtDashboard: "সরকারি ড্যাশবোর্ড",
     navHeat: "তাপ পর্যবেক্ষণ",
     navFlood: "বন্যা পর্যবেক্ষণ",
-    navAir: "বায়ু দূষণ (শীঘ্রই আসছে)",
+    navAir: "বায়ু দূষণ (ভবিষ্যৎ কাজ)",
     navForest: "বন উজাড়",
     signOut: "সাইন আউট",
     menu: "মেনু",
