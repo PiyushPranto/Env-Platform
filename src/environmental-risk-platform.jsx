@@ -1375,6 +1375,7 @@ const GOVT_I18N = {
     kpiHeatwaveWatches: "Heatwave watches",
     kpiHeatwaveLive: "live, rechecked every 3 days",
     kpiHeatwaveNotRun: "automation hasn't run yet",
+    kpiHeatwaveNone: "None active",
     liveRefreshLabel: "Live monitoring",
     liveRefreshHeat: "Rechecked every 3 days",
     liveRefreshFlood: "Rescored every 3 days",
@@ -1534,6 +1535,7 @@ const GOVT_I18N = {
     kpiHeatwaveWatches: "তাপপ্রবাহ সতর্কতা",
     kpiHeatwaveLive: "লাইভ, প্রতি ৩ দিন পরপর হালনাগাদ",
     kpiHeatwaveNotRun: "অটোমেশন এখনো চলেনি",
+    kpiHeatwaveNone: "এই মুহূর্তে কোনোটি নেই",
     liveRefreshLabel: "লাইভ পর্যবেক্ষণ",
     liveRefreshHeat: "প্রতি ৩ দিন পরপর হালনাগাদ",
     liveRefreshFlood: "প্রতি ৩ দিন পরপর পুনর্মূল্যায়ন",
@@ -2008,7 +2010,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
               <Kpi label={gt.kpiUhi} value={suhiDistrictCount} sub={gt.kpiUhiSub} icon={Users} />
               <Kpi
                 label={gt.kpiHeatwaveWatches}
-                value={activeAlerts.length}
+                value={activeAlerts.length > 0 ? activeAlerts.length : gt.kpiHeatwaveNone}
                 sub={heatAlerts?.generated_at ? gt.kpiHeatwaveLive : gt.kpiHeatwaveNotRun}
                 icon={Bell}
                 tone={activeAlerts.length ? "red" : "slate"}
