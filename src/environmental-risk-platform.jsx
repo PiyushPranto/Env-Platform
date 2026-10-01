@@ -58,18 +58,19 @@ const OTHER_MODULES = [
   { key: "air", labelKey: "navAir", icon: Wind, locked: true },
 ];
 
-function tempToColor(t) {
+// Shared teal -> green -> amber -> orange -> red interpolation, stretched
+// across [domainMin, domainMax]. Every heat color comes through here so the
+// five-stop "shape" of the scale (what the legend bar always shows) stays
+// identical everywhere — only where domainMin/domainMax sit changes.
+function tempColorForDomain(t, domainMin, domainMax) {
   if (t === null || t === undefined) return "rgb(68,64,60)"; // stone-700 — "no data" cell
-  // Legend range is 20-30°C (per team review) — stretched proportionally
-  // from the previous 25-30 breakpoints so the real Mar-May 2026 composite's
-  // actual range (~23.9-28.1C across all 64 districts) still differentiates
-  // meaningfully across the whole scale instead of clamping near one end.
+  const span = domainMax - domainMin || 1;
   const stops = [
-    { t: 20, c: [45, 130, 130] },
-    { t: 23, c: [90, 150, 90] },
-    { t: 26, c: [210, 170, 40] },
-    { t: 28, c: [225, 120, 30] },
-    { t: 30, c: [190, 40, 30] },
+    { t: domainMin, c: [45, 130, 130] },
+    { t: domainMin + span * 0.3, c: [90, 150, 90] },
+    { t: domainMin + span * 0.6, c: [210, 170, 40] },
+    { t: domainMin + span * 0.8, c: [225, 120, 30] },
+    { t: domainMax, c: [190, 40, 30] },
   ];
   let lo = stops[0], hi = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -79,6 +80,36 @@ function tempToColor(t) {
   const f = Math.max(0, Math.min(1, (t - lo.t) / range));
   const c = lo.c.map((v, i) => Math.round(v + (hi.c[i] - v) * f));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Fixed-range fallback (used only before real data has loaded, or if a
+// dataset is ever empty) — kept for backward compatibility.
+function tempToColor(t) {
+  return tempColorForDomain(t, 20, 30);
+}
+
+// Fits the color scale to the ACTUAL spread of whatever temperatures are
+// being shown, instead of a fixed 20-30°C range. Bangladesh's Mar-May
+// satellite composite only ever spans roughly 24-28°C across all 64
+// districts — on a fixed 20-30°C scale that real ~4°C spread occupies only
+// the middle 40% of the gradient, which is what made every district look
+// like nearly the same shade of yellow-green on the map (supervisor
+// feedback: "colors aren't differentiating"). Padding a bit past the real
+// min/max and rounding to a clean half-degree keeps the legend numbers tidy
+// instead of showing something like "24.07°C".
+function makeTempColorScale(values) {
+  const nums = (values || []).filter((v) => typeof v === "number" && !Number.isNaN(v));
+  if (nums.length === 0) return { colorFn: tempToColor, domainMin: 20, domainMax: 30 };
+  const rawMin = Math.min(...nums);
+  const rawMax = Math.max(...nums);
+  const pad = Math.max(0.5, (rawMax - rawMin) * 0.12);
+  const domainMin = Math.floor((rawMin - pad) * 2) / 2;
+  const domainMax = Math.ceil((rawMax + pad) * 2) / 2;
+  return {
+    colorFn: (t) => tempColorForDomain(t, domainMin, domainMax),
+    domainMin,
+    domainMax,
+  };
 }
 
 // Flood-risk grid color scale: same emerald->amber->red family as the heat
@@ -1832,6 +1863,10 @@ function GovtDashboard({ role, officerId, onLogout }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
+  const heatColorScale = useMemo(
+    () => makeTempColorScale((heatDistricts || []).map((d) => d.lst_c)),
+    [heatDistricts]
+  );
   const floodDhaka = useFloodDhakaData();
   const floodNational = useNationalFloodData();
   const deforestation = useDeforestationData();
@@ -2193,9 +2228,9 @@ function GovtDashboard({ role, officerId, onLogout }) {
                     <p className="text-xs text-stone-400 mt-0.5">{gt.surfaceTempSub}</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
-                    <span>20°C</span>
+                    <span>{heatColorScale.domainMin}°C</span>
                     <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
-                    <span>30°C</span>
+                    <span>{heatColorScale.domainMax}°C</span>
                   </div>
                 </div>
                 {heatDistricts ? (
@@ -2203,7 +2238,7 @@ function GovtDashboard({ role, officerId, onLogout }) {
                     <div className="flex items-center justify-center py-4">
                       <BangladeshDistrictMap
                         valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
-                        colorFn={tempToColor}
+                        colorFn={heatColorScale.colorFn}
                         labelFn={(v) => (v === null || v === undefined ? gt.noData : `${v.toFixed(1)}°C`)}
                         onSelect={(name) => setSelectedHeatDistrict(heatDistricts.find((d) => d.name === name) || null)}
                         selectedName={selectedHeatDistrict?.name}
@@ -4082,6 +4117,10 @@ function DistrictPicker({ value, options, onChange, lang }) {
 
 function CitizenDashboard({ onLogout }) {
   const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
+  const heatColorScale = useMemo(
+    () => makeTempColorScale((heatDistricts || []).map((d) => d.lst_c)),
+    [heatDistricts]
+  );
   const { citizenCards, districts: forestDistricts } = useDeforestationData();
   const { severity, summary, projection, loading: floodLoading, error: floodError } = useNationalFloodData();
   const [lang, setLang] = useState("en");
@@ -4397,7 +4436,7 @@ function CitizenDashboard({ onLogout }) {
                           <BangladeshDistrictMap
                             compact
                             valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
-                            colorFn={tempToColor}
+                            colorFn={heatColorScale.colorFn}
                             labelFn={(v) => (v === null || v === undefined ? t.noData : `${v.toFixed(1)}°C`)}
                             selectedName={selectedDistrict}
                           />
