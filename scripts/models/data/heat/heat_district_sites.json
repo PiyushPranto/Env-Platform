@@ -1,0 +1,322 @@
+[
+  {
+    "name": "Bagerhat",
+    "lat": 22.3744,
+    "lon": 89.739
+  },
+  {
+    "name": "Bandarban",
+    "lat": 21.8042,
+    "lon": 92.3638
+  },
+  {
+    "name": "Barguna",
+    "lat": 22.143,
+    "lon": 90.1191
+  },
+  {
+    "name": "Barisal",
+    "lat": 22.8199,
+    "lon": 90.3685
+  },
+  {
+    "name": "Bhola",
+    "lat": 22.437,
+    "lon": 90.7319
+  },
+  {
+    "name": "Bogra",
+    "lat": 24.8246,
+    "lon": 89.3791
+  },
+  {
+    "name": "Brahamanbaria",
+    "lat": 23.953,
+    "lon": 91.0826
+  },
+  {
+    "name": "Chandpur",
+    "lat": 23.2622,
+    "lon": 90.7509
+  },
+  {
+    "name": "Chittagong",
+    "lat": 22.4368,
+    "lon": 91.8469
+  },
+  {
+    "name": "Chuadanga",
+    "lat": 23.6079,
+    "lon": 88.8482
+  },
+  {
+    "name": "Comilla",
+    "lat": 23.4371,
+    "lon": 91.032
+  },
+  {
+    "name": "Cox's Bazar",
+    "lat": 21.486,
+    "lon": 92.0679
+  },
+  {
+    "name": "Dhaka",
+    "lat": 23.7879,
+    "lon": 90.2516
+  },
+  {
+    "name": "Dinajpur",
+    "lat": 25.6313,
+    "lon": 88.7859
+  },
+  {
+    "name": "Faridpur",
+    "lat": 23.4774,
+    "lon": 89.8369
+  },
+  {
+    "name": "Feni",
+    "lat": 23.0012,
+    "lon": 91.4095
+  },
+  {
+    "name": "Gaibandha",
+    "lat": 25.2997,
+    "lon": 89.5068
+  },
+  {
+    "name": "Gazipur",
+    "lat": 24.1059,
+    "lon": 90.4432
+  },
+  {
+    "name": "Gopalganj",
+    "lat": 23.1043,
+    "lon": 89.8989
+  },
+  {
+    "name": "Habiganj",
+    "lat": 24.368,
+    "lon": 91.4297
+  },
+  {
+    "name": "Jamalpur",
+    "lat": 24.9724,
+    "lon": 89.8468
+  },
+  {
+    "name": "Jessore",
+    "lat": 23.09,
+    "lon": 89.1784
+  },
+  {
+    "name": "Jhalokati",
+    "lat": 22.5736,
+    "lon": 90.1841
+  },
+  {
+    "name": "Jhenaidah",
+    "lat": 23.4899,
+    "lon": 89.0889
+  },
+  {
+    "name": "Joypurhat",
+    "lat": 25.0937,
+    "lon": 89.0822
+  },
+  {
+    "name": "Khagrachhari",
+    "lat": 23.1634,
+    "lon": 91.9523
+  },
+  {
+    "name": "Khulna",
+    "lat": 22.4701,
+    "lon": 89.4461
+  },
+  {
+    "name": "Kishoreganj",
+    "lat": 24.3768,
+    "lon": 90.9428
+  },
+  {
+    "name": "Kurigram",
+    "lat": 25.794,
+    "lon": 89.6921
+  },
+  {
+    "name": "Kushtia",
+    "lat": 23.9258,
+    "lon": 89.0156
+  },
+  {
+    "name": "Lakshmipur",
+    "lat": 22.8566,
+    "lon": 90.8589
+  },
+  {
+    "name": "Lalmonirhat",
+    "lat": 26.0622,
+    "lon": 89.2391
+  },
+  {
+    "name": "Madaripur",
+    "lat": 23.2207,
+    "lon": 90.1627
+  },
+  {
+    "name": "Magura",
+    "lat": 23.443,
+    "lon": 89.4343
+  },
+  {
+    "name": "Manikganj",
+    "lat": 23.8416,
+    "lon": 89.9504
+  },
+  {
+    "name": "Maulvibazar",
+    "lat": 24.4727,
+    "lon": 91.8965
+  },
+  {
+    "name": "Meherpur",
+    "lat": 23.7939,
+    "lon": 88.7132
+  },
+  {
+    "name": "Munshiganj",
+    "lat": 23.5265,
+    "lon": 90.4188
+  },
+  {
+    "name": "Mymensingh",
+    "lat": 24.6978,
+    "lon": 90.428
+  },
+  {
+    "name": "Naogaon",
+    "lat": 24.9021,
+    "lon": 88.7505
+  },
+  {
+    "name": "Narail",
+    "lat": 23.1306,
+    "lon": 89.579
+  },
+  {
+    "name": "Narayanganj",
+    "lat": 23.7401,
+    "lon": 90.5746
+  },
+  {
+    "name": "Narsingdi",
+    "lat": 24.0037,
+    "lon": 90.7746
+  },
+  {
+    "name": "Natore",
+    "lat": 24.3808,
+    "lon": 89.0864
+  },
+  {
+    "name": "Nawabganj",
+    "lat": 24.7229,
+    "lon": 88.2687
+  },
+  {
+    "name": "Netrakona",
+    "lat": 24.8683,
+    "lon": 90.8445
+  },
+  {
+    "name": "Nilphamari",
+    "lat": 26.0211,
+    "lon": 88.9367
+  },
+  {
+    "name": "Noakhali",
+    "lat": 22.7264,
+    "lon": 91.1239
+  },
+  {
+    "name": "Pabna",
+    "lat": 24.0533,
+    "lon": 89.3842
+  },
+  {
+    "name": "Panchagarh",
+    "lat": 26.2858,
+    "lon": 88.5761
+  },
+  {
+    "name": "Patuakhali",
+    "lat": 22.2124,
+    "lon": 90.3995
+  },
+  {
+    "name": "Pirojpur",
+    "lat": 22.5344,
+    "lon": 89.9936
+  },
+  {
+    "name": "Rajbari",
+    "lat": 23.7284,
+    "lon": 89.563
+  },
+  {
+    "name": "Rajshahi",
+    "lat": 24.4676,
+    "lon": 88.6545
+  },
+  {
+    "name": "Rangamati",
+    "lat": 22.8263,
+    "lon": 92.2789
+  },
+  {
+    "name": "Rangpur",
+    "lat": 25.6437,
+    "lon": 89.2392
+  },
+  {
+    "name": "Satkhira",
+    "lat": 22.3786,
+    "lon": 89.139
+  },
+  {
+    "name": "Shariatpur",
+    "lat": 23.2436,
+    "lon": 90.4166
+  },
+  {
+    "name": "Sherpur",
+    "lat": 25.081,
+    "lon": 90.0739
+  },
+  {
+    "name": "Sirajganj",
+    "lat": 24.392,
+    "lon": 89.5999
+  },
+  {
+    "name": "Sunamganj",
+    "lat": 24.9375,
+    "lon": 91.3449
+  },
+  {
+    "name": "Sylhet",
+    "lat": 24.9175,
+    "lon": 91.9933
+  },
+  {
+    "name": "Tangail",
+    "lat": 24.3561,
+    "lon": 89.9987
+  },
+  {
+    "name": "Thakurgaon",
+    "lat": 25.9901,
+    "lon": 88.3454
+  }
+]
