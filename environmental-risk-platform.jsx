@@ -4717,20 +4717,6 @@ function GovtLogin({ onBack, onLogin }) {
     setError("");
   }
 
-  // Separate, clearly-labeled demo shortcut (rendered below the real sign-in
-  // form, not baked into it) — fills the two fields with one role's demo
-  // credentials so a reviewer can try each role without being told the
-  // password out loud, but still has to look at what got filled in and
-  // press Sign in themselves, same as any real login.
-  function fillDemo(demoRole) {
-    const creds = ROLE_CREDENTIALS[demoRole];
-    if (!creds) return;
-    setRole(demoRole);
-    setOfficerId(creds.officer_id);
-    setPassword(creds.password);
-    setError("");
-  }
-
   async function handleLoginSubmit(e) {
     e.preventDefault();
     setError("");
@@ -4847,22 +4833,6 @@ function GovtLogin({ onBack, onLogin }) {
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
-
-            <div className="mt-4 pt-3 border-t border-dashed border-stone-700">
-              <p className="text-[11px] text-stone-500 text-center mb-2">Reviewer demo access — fills the fields above, does not sign in automatically</p>
-              <div className="flex gap-1.5">
-                {REGISTERABLE_ROLES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => fillDemo(r)}
-                    className="flex-1 text-[11px] text-stone-400 hover:text-emerald-300 border border-stone-700 hover:border-emerald-500/40 rounded-lg py-1.5 px-1 transition-colors"
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="border-t border-stone-700 mt-4 pt-4 text-center">
               <button
