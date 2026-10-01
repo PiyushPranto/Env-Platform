@@ -2484,6 +2484,7 @@ function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
 function FloodNationalView({ national, lang, search }) {
   const gt = GOVT_I18N[lang];
   const { severity, priority, summary, projection, loading, error } = national;
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   // Early-warning list: districts whose 7-day FORWARD projection (the same
   // frozen classifier, scored against Open-Meteo's real forecast rather
@@ -2571,6 +2572,8 @@ function FloodNationalView({ national, lang, search }) {
               valueByDistrict={Object.fromEntries(priority.map((d) => [d.district_name, d.avg_predicted_risk]))}
               colorFn={riskScoreToColor}
               labelFn={(v) => (v === null || v === undefined ? gt.noData : `${(v * 100).toFixed(0)}%`)}
+              onSelect={(name) => setSelectedDistrict((priority || []).find((d) => d.district_name === name) || null)}
+              selectedName={selectedDistrict?.district_name}
             />
           </div>
         </div>
@@ -2645,8 +2648,14 @@ function FloodNationalView({ national, lang, search }) {
               const prevRisk = sev?.previous_avg_predicted_risk;
               const hasDelta = typeof prevRisk === "number";
               const delta = hasDelta ? d.avg_predicted_risk - prevRisk : null;
+              const isSelected = selectedDistrict?.district_id === d.district_id;
               return (
-                <div key={d.district_id} className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-stone-800/80 transition-colors">
+                <button
+                  key={d.district_id}
+                  type="button"
+                  onClick={() => setSelectedDistrict(isSelected ? null : d)}
+                  className={`w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg text-left transition-colors ${isSelected ? `bg-stone-700/70 ring-1 ${c.ring}` : "hover:bg-stone-800/80"}`}
+                >
                   <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
                   <span className="flex-1 min-w-0">
@@ -2674,7 +2683,7 @@ function FloodNationalView({ national, lang, search }) {
                     <span className="shrink-0 text-[10px] text-stone-600 w-16 text-right" title={gt.noDeltaYet}>—</span>
                   )}
                   <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">{(d.avg_predicted_risk * 100).toFixed(1)}%</span>
-                </div>
+                </button>
               );
             })
             )}
@@ -2682,6 +2691,27 @@ function FloodNationalView({ national, lang, search }) {
           <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, searchedPriority.length - 20))}</p>
         </div>
       </div>
+
+      {selectedDistrict && (() => {
+        const sev = severityByDistrict[selectedDistrict.district_id];
+        const tier = sev?.severity_tier || "Moderate";
+        const c = tierColor(tier);
+        return (
+          <div className={`rounded-2xl p-4 border ${c.bg} border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+            <IconBadge icon={AlertTriangle} tone={tier === "Severe" || tier === "High" ? "red" : tier === "Moderate" ? "amber" : "teal"} />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-stone-100 font-medium">{selectedDistrict.district_name}</span>
+              <span className="text-xs text-stone-400 ml-2">
+                {gt.colLiveRisk} {(selectedDistrict.avg_predicted_risk * 100).toFixed(1)}% · {tierLabel(tier, lang)}
+                {typeof selectedDistrict.population_2022 === "number" && ` · ${gt.popLabel(selectedDistrict.population_2022.toLocaleString())}`}
+              </span>
+            </div>
+            <button onClick={() => setSelectedDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+              <X size={15} />
+            </button>
+          </div>
+        );
+      })()}
     </>
   );
 }
