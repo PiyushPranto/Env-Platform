@@ -1321,7 +1321,7 @@ function DataStateNotice({ loading, error, label }) {
   return null;
 }
 
-function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
+function Kpi({ label, value, sub, icon: Icon, tone = "slate", hint }) {
   const toneMap = {
     slate: "text-stone-100",
     orange: "text-emerald-400",
@@ -1329,7 +1329,10 @@ function Kpi({ label, value, sub, icon: Icon, tone = "slate" }) {
     teal: "text-emerald-400",
   };
   return (
-    <div className="group bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30">
+    <div
+      title={hint}
+      className="group bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30"
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs text-stone-400 font-medium">{label}</span>
         {Icon && <IconBadge icon={Icon} tone={tone === "slate" ? "slate" : tone} size={14} />}
@@ -1558,8 +1561,9 @@ const GOVT_I18N = {
     kpiValidatedAucSub: "real ground-truth test year",
     kpiTopPriority: "Top priority district",
     kpiTopPrioritySub: "highest mitigation priority",
-    kpiPopulationTopPriority: "Population, top-20 priority",
-    kpiPopulationTopPrioritySub: "real 2022 census, summed",
+    kpiPopulationTopPriority: "People in the highest-risk districts",
+    kpiPopulationTopPrioritySub: "top 20 of 64 districts, 2022 census",
+    kpiPopulationTopPriorityHint: "Adds up the real 2022 census population of whichever 20 districts currently rank highest for flood risk. Each district's population never changes — only the list of which 20 districts make the cut can, since that ranking is recalculated every 3 days from live rainfall.",
     popLabel: (n) => `pop. ${n}`,
     floodMapEyebrow: "Nationwide",
     floodMapTitle: "Flood risk — all 64 districts",
@@ -1725,8 +1729,9 @@ const GOVT_I18N = {
     kpiValidatedAucSub: "প্রকৃত গ্রাউন্ড-ট্রুথ পরীক্ষার বছর",
     kpiTopPriority: "শীর্ষ অগ্রাধিকার জেলা",
     kpiTopPrioritySub: "সর্বোচ্চ প্রশমন অগ্রাধিকার",
-    kpiPopulationTopPriority: "জনসংখ্যা, শীর্ষ-২০ অগ্রাধিকার",
-    kpiPopulationTopPrioritySub: "real ২০২২ census, যোগফল",
+    kpiPopulationTopPriority: "সবচেয়ে ঝুঁকিপূর্ণ জেলাগুলোর মানুষ",
+    kpiPopulationTopPrioritySub: "৬৪ জেলার মধ্যে শীর্ষ ২০টি, ২০২২ census",
+    kpiPopulationTopPriorityHint: "যে ২০টি জেলা এই মুহূর্তে বন্যার ঝুঁকিতে সবচেয়ে উপরে আছে, তাদের real ২০২২ census জনসংখ্যা যোগ করা হয়েছে। প্রতিটি জেলার জনসংখ্যা কখনো বদলায় না — শুধু কোন ২০টি জেলা এই তালিকায় থাকবে সেটা বদলাতে পারে, কারণ এই ranking প্রতি ৩ দিনে live বৃষ্টিপাত দিয়ে আবার হিসাব করা হয়।",
     popLabel: (n) => `জনসংখ্যা ${n}`,
     floodMapEyebrow: "সারাদেশ",
     floodMapTitle: "বন্যার ঝুঁকি — সব ৬৪ জেলা",
@@ -2529,6 +2534,7 @@ function FloodNationalView({ national, lang, search }) {
           label={gt.kpiPopulationTopPriority}
           value={populationInTopPriority > 0 ? formatPopulation(populationInTopPriority) : "—"}
           sub={gt.kpiPopulationTopPrioritySub}
+          hint={gt.kpiPopulationTopPriorityHint}
           icon={Users}
           tone="amber"
         />
