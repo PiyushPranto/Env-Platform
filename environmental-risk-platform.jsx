@@ -112,25 +112,20 @@ function makeTempColorScale(values) {
   };
 }
 
-// Flood-risk grid color scale: same emerald->amber->red family as the heat
-// scale, keyed to a 0-1 risk score with 0.7 as the alert threshold (matches
-// dhaka-flood-model-summary.md's own color system).
+// Flood-risk map color scale: three flat bands -- Low/good = green,
+// Moderate = orange, High/Severe = red -- matching the same
+// emerald/amber/red reading used for every other tier badge in this app
+// (tierColor/RISK_LEVEL_BADGE_TONE above) instead of a continuous
+// gradient that doesn't map onto those same three colors. Thresholds
+// (0.4, 0.7) are unchanged from the scale this replaces, and 0.7 still
+// matches dhaka-flood-model-summary.md's own alert threshold -- only the
+// interpolation between them is gone, so a reading right at the boundary
+// doesn't look ambiguous on the map.
 function riskScoreToColor(v) {
-  const stops = [
-    { t: 0, c: [45, 130, 130] },
-    { t: 0.4, c: [90, 150, 90] },
-    { t: 0.7, c: [210, 170, 40] },
-    { t: 0.85, c: [225, 120, 30] },
-    { t: 1, c: [190, 40, 30] },
-  ];
-  let lo = stops[0], hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (v >= stops[i].t && v <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
-  }
-  const range = hi.t - lo.t || 1;
-  const f = Math.max(0, Math.min(1, (v - lo.t) / range));
-  const c = lo.c.map((val, i) => Math.round(val + (hi.c[i] - val) * f));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
+  if (v === null || v === undefined || Number.isNaN(v)) return "rgb(87,83,78)"; // stone-600, no data
+  if (v < 0.4) return "rgb(16,185,129)"; // emerald-500 -- Low
+  if (v < 0.7) return "rgb(245,158,11)"; // amber-500 -- Moderate
+  return "rgb(239,68,68)"; // red-500 -- High / Severe
 }
 
 // Forest-cover color scale for the deforestation district map: a 0-100%
@@ -1599,6 +1594,9 @@ const GOVT_I18N = {
     floodMapEyebrow: "Nationwide",
     floodMapTitle: "Flood risk — all 64 districts",
     floodMapSub: "This week's live predicted risk, from real rainfall.",
+    floodLegendLow: "Low",
+    floodLegendModerate: "Moderate",
+    floodLegendHigh: "High / Severe",
     mitigationPriority: "Mitigation priority",
     top20of64: "Top 20 of 64 districts",
     rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (WorldPop 2020)",
@@ -1767,6 +1765,9 @@ const GOVT_I18N = {
     floodMapEyebrow: "সারাদেশ",
     floodMapTitle: "বন্যার ঝুঁকি — সব ৬৪ জেলা",
     floodMapSub: "এই সপ্তাহের লাইভ predicted ঝুঁকি, real বৃষ্টিপাত অনুযায়ী।",
+    floodLegendLow: "কম",
+    floodLegendModerate: "মাঝারি",
+    floodLegendHigh: "উচ্চ / তীব্র",
     mitigationPriority: "প্রশমন অগ্রাধিকার",
     top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
     rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (WorldPop ২০২০)",
@@ -2597,10 +2598,16 @@ function FloodNationalView({ national, lang, search }) {
               <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.floodMapTitle}</h3>
               <p className="text-xs text-stone-400 mt-0.5">{gt.floodMapSub}</p>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
-              <span>0%</span>
-              <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
-              <span>100%</span>
+            <div className="flex items-center gap-3 text-[11px] text-stone-400 flex-wrap">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {gt.floodLegendLow}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {gt.floodLegendModerate}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {gt.floodLegendHigh}
+              </span>
             </div>
           </div>
           <div className="flex items-center justify-center py-4">
@@ -3212,6 +3219,10 @@ const CITIZEN_I18N = {
     heatwaveWatchOne: "1 location nationally is forecast to see heatwave-level heat in the next 7 days.",
     heatwaveWatchMany: "locations nationally are forecast to see heatwave-level heat in the next 7 days.",
     heatMapTitle: "Heat map — nationwide",
+    floodMapTitleCitizen: "Flood map — nationwide",
+    floodLegendLow: "Low",
+    floodLegendModerate: "Moderate",
+    floodLegendHigh: "High / Severe",
     noData: "No data",
     currentTemp: "Surface temp, your district",
     healthAdvisoryTitle: "Health advisory",
@@ -3332,6 +3343,10 @@ const CITIZEN_I18N = {
     heatwaveWatchOne: "সারাদেশে ১টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
     heatwaveWatchMany: "টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
     heatMapTitle: "তাপ মানচিত্র — সারাদেশ",
+    floodMapTitleCitizen: "বন্যার মানচিত্র — সারাদেশ",
+    floodLegendLow: "কম",
+    floodLegendModerate: "মাঝারি",
+    floodLegendHigh: "উচ্চ / তীব্র",
     noData: "তথ্য নেই",
     currentTemp: "ভূপৃষ্ঠের তাপমাত্রা, আপনার জেলা",
     healthAdvisoryTitle: "স্বাস্থ্য পরামর্শ",
@@ -4502,6 +4517,38 @@ function CitizenDashboard({ onLogout }) {
                         saveLabel={t.saveCard}
                         saveFilename={`flood-risk-${selectedFlood.district_name}.txt`}
                       />
+
+                      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-medium text-stone-100">{t.floodMapTitleCitizen}</h3>
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tierLabel(tier, lang)}</span>
+                        </div>
+                        {severity && severity.length > 0 ? (
+                          <div className="flex justify-center">
+                            <BangladeshDistrictMap
+                              compact
+                              valueByDistrict={Object.fromEntries(severity.map((d) => [d.district_name, d.avg_predicted_risk]))}
+                              colorFn={riskScoreToColor}
+                              labelFn={(v) => (v === null || v === undefined ? t.noData : `${(v * 100).toFixed(0)}%`)}
+                              selectedName={selectedFlood.district_name}
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
+                        )}
+                        <div className="flex items-center gap-3 text-[11px] text-stone-400 flex-wrap mt-3 pt-3 border-t border-stone-700">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {t.floodLegendLow}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {t.floodLegendModerate}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {t.floodLegendHigh}
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
                           <div className="flex items-center justify-between mb-1">
