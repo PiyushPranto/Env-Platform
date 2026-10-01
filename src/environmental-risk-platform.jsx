@@ -4647,9 +4647,13 @@ function GovtLogin({ onBack, onLogin }) {
   const [mode, setMode] = useState("login"); // "login" | "register"
 
   // --- login state ---
+  // Officer ID / password start blank, same as a real sign-in page — the
+  // server (not a locally-selected role) decides the account's role on a
+  // successful login (see handleLoginSubmit's `data.role`). "role" here is
+  // only a last-resort fallback if a response is ever missing one.
   const [role, setRole] = useState("Environmental Analyst");
-  const [officerId, setOfficerId] = useState(ROLE_CREDENTIALS["Environmental Analyst"].officer_id);
-  const [password, setPassword] = useState(ROLE_CREDENTIALS["Environmental Analyst"].password);
+  const [officerId, setOfficerId] = useState("");
+  const [password, setPassword] = useState("");
 
   // --- register state ---
   const [regName, setRegName] = useState("");
@@ -4666,13 +4670,17 @@ function GovtLogin({ onBack, onLogin }) {
     setError("");
   }
 
-  function handleRoleChange(newRole) {
-    setRole(newRole);
-    const creds = ROLE_CREDENTIALS[newRole];
-    if (creds) {
-      setOfficerId(creds.officer_id);
-      setPassword(creds.password);
-    }
+  // Separate, clearly-labeled demo shortcut (rendered below the real sign-in
+  // form, not baked into it) — fills the two fields with one role's demo
+  // credentials so a reviewer can try each role without being told the
+  // password out loud, but still has to look at what got filled in and
+  // press Sign in themselves, same as any real login.
+  function fillDemo(demoRole) {
+    const creds = ROLE_CREDENTIALS[demoRole];
+    if (!creds) return;
+    setRole(demoRole);
+    setOfficerId(creds.officer_id);
+    setPassword(creds.password);
     setError("");
   }
 
@@ -4764,19 +4772,14 @@ function GovtLogin({ onBack, onLogin }) {
             </h2>
             <p className="text-xs text-stone-400 mt-1 mb-5">Role-based access to environmental monitoring and decision support</p>
 
-            <label className="text-xs text-stone-300">Role</label>
-            <select
-              value={role}
-              onChange={(e) => handleRoleChange(e.target.value)}
-              className={inputClass}
-            >
-              {REGISTERABLE_ROLES.map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-
             <label className="text-xs text-stone-300">Officer ID</label>
-            <input value={officerId} onChange={(e) => setOfficerId(e.target.value)} className={inputClass} />
+            <input
+              value={officerId}
+              onChange={(e) => setOfficerId(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. env_project"
+              autoComplete="username"
+            />
 
             <label className="text-xs text-stone-300">Password</label>
             <input
@@ -4784,6 +4787,8 @@ function GovtLogin({ onBack, onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
+              placeholder="••••••••"
+              autoComplete="current-password"
             />
 
             {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
@@ -4795,7 +4800,22 @@ function GovtLogin({ onBack, onLogin }) {
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
-            <p className="text-[11px] text-stone-500 mt-3 text-center">Role selects the matching demo credentials automatically</p>
+
+            <div className="mt-4 pt-3 border-t border-dashed border-stone-700">
+              <p className="text-[11px] text-stone-500 text-center mb-2">Reviewer demo access — fills the fields above, does not sign in automatically</p>
+              <div className="flex gap-1.5">
+                {REGISTERABLE_ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => fillDemo(r)}
+                    className="flex-1 text-[11px] text-stone-400 hover:text-emerald-300 border border-stone-700 hover:border-emerald-500/40 rounded-lg py-1.5 px-1 transition-colors"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="border-t border-stone-700 mt-4 pt-4 text-center">
               <button
