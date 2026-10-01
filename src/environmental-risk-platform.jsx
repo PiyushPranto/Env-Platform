@@ -1593,15 +1593,15 @@ const GOVT_I18N = {
     kpiTopPriority: "Top priority district",
     kpiTopPrioritySub: "highest mitigation priority",
     kpiPopulationTopPriority: "People in the highest-risk districts",
-    kpiPopulationTopPrioritySub: "top 20 of 64 districts, 2022 census",
-    kpiPopulationTopPriorityHint: "Adds up the real 2022 census population of whichever 20 districts currently rank highest for flood risk. Each district's population never changes — only the list of which 20 districts make the cut can, since that ranking is recalculated every 3 days from live rainfall.",
+    kpiPopulationTopPrioritySub: "top 20 of 64 districts, WorldPop 2020",
+    kpiPopulationTopPriorityHint: "Adds up the WorldPop 2020 gridded population estimate of whichever 20 districts currently rank highest for flood risk. Each district's population never changes — only the list of which 20 districts make the cut can, since that ranking is recalculated every 3 days from live rainfall.",
     popLabel: (n) => `pop. ${n}`,
     floodMapEyebrow: "Nationwide",
     floodMapTitle: "Flood risk — all 64 districts",
     floodMapSub: "This week's live predicted risk, from real rainfall.",
     mitigationPriority: "Mitigation priority",
     top20of64: "Top 20 of 64 districts",
-    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (2022 census)",
+    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (WorldPop 2020)",
     badgeVsPercent: "The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.",
     moreDistricts: (n) => `+${n} more districts, ranked, in the full export.`,
     scoreDeltaTooltip: (prev, curr) =>
@@ -1761,15 +1761,15 @@ const GOVT_I18N = {
     kpiTopPriority: "শীর্ষ অগ্রাধিকার জেলা",
     kpiTopPrioritySub: "সর্বোচ্চ প্রশমন অগ্রাধিকার",
     kpiPopulationTopPriority: "সবচেয়ে ঝুঁকিপূর্ণ জেলাগুলোর মানুষ",
-    kpiPopulationTopPrioritySub: "৬৪ জেলার মধ্যে শীর্ষ ২০টি, ২০২২ census",
-    kpiPopulationTopPriorityHint: "যে ২০টি জেলা এই মুহূর্তে বন্যার ঝুঁকিতে সবচেয়ে উপরে আছে, তাদের real ২০২২ census জনসংখ্যা যোগ করা হয়েছে। প্রতিটি জেলার জনসংখ্যা কখনো বদলায় না — শুধু কোন ২০টি জেলা এই তালিকায় থাকবে সেটা বদলাতে পারে, কারণ এই ranking প্রতি ৩ দিনে live বৃষ্টিপাত দিয়ে আবার হিসাব করা হয়।",
+    kpiPopulationTopPrioritySub: "৬৪ জেলার মধ্যে শীর্ষ ২০টি, WorldPop ২০২০",
+    kpiPopulationTopPriorityHint: "যে ২০টি জেলা এই মুহূর্তে বন্যার ঝুঁকিতে সবচেয়ে উপরে আছে, তাদের WorldPop ২০২০ gridded জনসংখ্যা estimate যোগ করা হয়েছে। প্রতিটি জেলার জনসংখ্যা কখনো বদলায় না — শুধু কোন ২০টি জেলা এই তালিকায় থাকবে সেটা বদলাতে পারে, কারণ এই ranking প্রতি ৩ দিনে live বৃষ্টিপাত দিয়ে আবার হিসাব করা হয়।",
     popLabel: (n) => `জনসংখ্যা ${n}`,
     floodMapEyebrow: "সারাদেশ",
     floodMapTitle: "বন্যার ঝুঁকি — সব ৬৪ জেলা",
     floodMapSub: "এই সপ্তাহের লাইভ predicted ঝুঁকি, real বৃষ্টিপাত অনুযায়ী।",
     mitigationPriority: "প্রশমন অগ্রাধিকার",
     top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
-    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (২০২২ census)",
+    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (WorldPop ২০২০)",
     badgeVsPercent: "ব্যাজটি ঐতিহাসিক তীব্রতা (অতীতের বন্যার মাত্রা) দেখায় — % হলো এই সপ্তাহের লাইভ পূর্বাভাসিত ঝুঁকি। একটি জেলার ইতিহাসে মারাত্মক বন্যা থাকতে পারে কিন্তু এই সপ্তাহ শান্ত, অথবা উল্টোটাও হতে পারে — তাই দুটো ভিন্ন হতে পারে।",
     moreDistricts: (n) => `সম্পূর্ণ এক্সপোর্টে আরও ${n} টি জেলা, ক্রমানুসারে।`,
     scoreDeltaTooltip: (prev, curr) =>
@@ -2551,11 +2551,12 @@ function FloodNationalView({ national, lang, search }) {
   const topPriority = searchedPriority.slice(0, 20);
   const observedYears = summary.observed_years || [];
   const proxyYears = summary.proxy_years || [];
-  // Real 2022 census population summed across the top-20 priority districts —
-  // the actual number the population-weighted exposure term (see
-  // rankedByScore / summary.exposure_metric) is now grounded in, surfaced
-  // directly rather than left implicit in the score.
-  const populationInTopPriority = topPriority.reduce((sum, d) => sum + (d.population_2022 || 0), 0);
+  // WorldPop 2020 population (summed within FAO GAUL district boundaries —
+  // same figures the thesis report's own Section H discloses) across the
+  // top-20 priority districts — the actual number the population-weighted
+  // exposure term (see rankedByScore / summary.exposure_metric) is now
+  // grounded in, surfaced directly rather than left implicit in the score.
+  const populationInTopPriority = topPriority.reduce((sum, d) => sum + (d.population || 0), 0);
   const formatPopulation = (n) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : String(n);
 
@@ -2695,9 +2696,9 @@ function FloodNationalView({ national, lang, search }) {
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm text-stone-200 truncate">{d.district_name}</span>
-                    {typeof d.population_2022 === "number" && (
+                    {typeof d.population === "number" && (
                       <span className="block text-[9px] text-stone-500 tabular-nums">
-                        {gt.popLabel(d.population_2022.toLocaleString())}
+                        {gt.popLabel(d.population.toLocaleString())}
                       </span>
                     )}
                   </span>
@@ -2738,7 +2739,7 @@ function FloodNationalView({ national, lang, search }) {
               <span className="text-sm text-stone-100 font-medium">{selectedDistrict.district_name}</span>
               <span className="text-xs text-stone-400 ml-2">
                 {gt.colLiveRisk} {(selectedDistrict.avg_predicted_risk * 100).toFixed(1)}% · {tierLabel(tier, lang)}
-                {typeof selectedDistrict.population_2022 === "number" && ` · ${gt.popLabel(selectedDistrict.population_2022.toLocaleString())}`}
+                {typeof selectedDistrict.population === "number" && ` · ${gt.popLabel(selectedDistrict.population.toLocaleString())}`}
               </span>
             </div>
             <button onClick={() => setSelectedDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
@@ -3295,7 +3296,7 @@ const CITIZEN_I18N = {
     projectionRising: (day, pct) => `Rising — ${day || "later this week"} looks worst, around ${pct}% predicted risk.`,
     projectionFalling: "Falling — this week's forecast rain eases up, risk trends down.",
     projectionSteady: "Steady — no sharp change expected over the next 7 days.",
-    districtPopulation: (n) => `${n} people live in this district (2022 census) — part of why it's ranked the way it is.`,
+    districtPopulation: (n) => `${n} people live in this district (WorldPop 2020 estimate) — part of why it's ranked the way it is.`,
     liveSafeHoursTitle: "Safe hours to work outside — today",
     liveSafeHoursHint: "From today's live hour-by-hour forecast for your district, not the seasonal average above.",
     liveSafeHoursLoading: "Checking today's hourly forecast…",
@@ -3415,7 +3416,7 @@ const CITIZEN_I18N = {
     projectionRising: (day, pct) => `বাড়ছে — ${day || "এই সপ্তাহের পরের দিকে"} সবচেয়ে খারাপ, প্রায় ${pct}% predicted risk।`,
     projectionFalling: "কমছে — এই সপ্তাহের পূর্বাভাসে বৃষ্টি কমছে, ঝুঁকি নিম্নমুখী।",
     projectionSteady: "স্থিতিশীল — পরের ৭ দিনে বড় কোনো পরিবর্তনের আশঙ্কা নেই।",
-    districtPopulation: (n) => `এই জেলায় ${n} জন মানুষ বসবাস করে (২০২২ census) — এটাও এই ranking-এর একটা কারণ।`,
+    districtPopulation: (n) => `এই জেলায় ${n} জন মানুষ বসবাস করে (WorldPop ২০২০ estimate) — এটাও এই ranking-এর একটা কারণ।`,
     liveSafeHoursTitle: "বাইরে কাজ করার নিরাপদ সময় — আজকে",
     liveSafeHoursHint: "উপরের মৌসুমি গড় নয়, বরং আপনার জেলার আজকের লাইভ ঘণ্টাভিত্তিক পূর্বাভাস থেকে।",
     liveSafeHoursLoading: "আজকের ঘণ্টাভিত্তিক পূর্বাভাস দেখা হচ্ছে…",
@@ -4522,9 +4523,9 @@ function CitizenDashboard({ onLogout }) {
                               </span>
                             )}
                           </p>
-                          {typeof selectedFlood.population_2022 === "number" && (
+                          {typeof selectedFlood.population === "number" && (
                             <p className="text-[11px] text-stone-500 mb-3 -mt-2">
-                              {t.districtPopulation(selectedFlood.population_2022.toLocaleString())}
+                              {t.districtPopulation(selectedFlood.population.toLocaleString())}
                             </p>
                           )}
                           {typeof selectedFlood.previous_avg_predicted_risk === "number" && (

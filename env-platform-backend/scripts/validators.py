@@ -137,7 +137,7 @@ def _check_flood_national_severity(data: Any) -> None:
         if not isinstance(row, dict):
             raise ValidationError(f"flood_national_severity.json[{i}] is not an object")
         _require(row, "district_id", "district_name", "avg_predicted_risk", "severity_tier", "historical_magnitude",
-                  "population_2022", where=f"flood_national_severity.json[{i}]: ")
+                  "population", where=f"flood_national_severity.json[{i}]: ")
 
 
 def _check_flood_national_priority(data: Any) -> None:
@@ -147,7 +147,7 @@ def _check_flood_national_priority(data: Any) -> None:
         if not isinstance(row, dict):
             raise ValidationError(f"flood_national_priority.json[{i}] is not an object")
         _require(row, "district_id", "district_name", "priority_rank", "priority_score", "avg_predicted_risk",
-                  "area_km2", "population_2022", where=f"flood_national_priority.json[{i}]: ")
+                  "area_km2", "population", where=f"flood_national_priority.json[{i}]: ")
 
 
 def _check_flood_national_summary(data: Any) -> None:
