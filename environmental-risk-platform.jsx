@@ -1,0 +1,5002 @@
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import {
+  Thermometer, Droplets, Wind, TreeDeciduous, AlertTriangle, MapPin,
+  Download, LogOut, Users, ShieldCheck, Bell, Search, TrendingUp, TrendingDown, Minus,
+  FileText, X, Lock, ChevronRight, Radar, Building2, Sprout, ArrowLeft,
+  UserPlus, ShieldAlert, Info, Send, Volume2, VolumeX, Languages, Share2, Phone, Type,
+  CloudRain, Sun, Cloud,
+} from "lucide-react";
+import { geoMercator, geoPath } from "d3-geo";
+// Real Bangladesh district boundaries (ADM2, 64 districts) — simplified from
+// geoBoundaries' open BGD ADM2 release. `properties.shapeName` on every
+// feature matches the district `name` field the backend already sends
+// (heat_risk.json / DISTRICT_CENTROIDS) exactly, 1:1, 64/64 — verified by
+// diffing the two name sets when this was put together, so no renaming
+// lookup table is needed to join risk data onto the shapes.
+import BD_DISTRICTS_GEOJSON from "./data/bd-districts.json";
+
+// ---------------------------------------------------------------------------
+// Backend base URL
+// ---------------------------------------------------------------------------
+// Set VITE_API_URL in Vercel (env-platform project) -> Settings -> Environment
+// Variables, e.g. VITE_API_URL=https://env-platform-u7jb.vercel.app
+// Falls back to the known backend domain if the env var isn't set, so it still
+// works even if you forget to add it.
+const API_BASE =
+  import.meta.env.VITE_API_URL || "https://env-platform-u7jb.vercel.app";
+
+// WhatsApp alerts (optional, demo-only — see ALERTS-SETUP.md Part 3):
+// Twilio's free Sandbox requires the recipient to first send a fixed
+// "join <code-words>" message to a fixed Sandbox number before the backend
+// can message them back. Both values are specific to whoever's Twilio
+// account is wired up in scripts/send_alerts.py — replace
+// WHATSAPP_SANDBOX_JOIN_CODE below with the exact words Twilio's console
+// shows you (Console -> Messaging -> Try it out -> Send a WhatsApp message)
+// once you set that up; until then this is a harmless placeholder shown in
+// the UI's instructions text, not a real credential.
+const WHATSAPP_SANDBOX_NUMBER = "+1 415 523 8886";
+const WHATSAPP_SANDBOX_JOIN_CODE = "join your-sandbox-code";
+
+// ---------------------------------------------------------------------------
+// Fallback / placeholder data (used only while loading or if a call fails,
+// so the UI never looks broken)
+// ---------------------------------------------------------------------------
+
+// Heat used to be an 8-ward Chattogram-only demo with hand-authored
+// fallback numbers. It's now real, national (64-district) data from
+// heat_model_project.ipynb — see useHeatData() below — so, like Flood
+// and Deforestation, there is no fake fallback dataset: a failed fetch
+// shows an explicit "couldn't load" state instead of quietly reusing old
+// Chattogram demo numbers for the whole country.
+
+const OTHER_MODULES = [
+  { key: "flood", labelKey: "navFlood", icon: Droplets, locked: false },
+  { key: "forest", labelKey: "navForest", icon: TreeDeciduous, locked: false },
+  { key: "air", labelKey: "navAir", icon: Wind, locked: true },
+];
+
+// Shared teal -> green -> amber -> orange -> red interpolation, stretched
+// across [domainMin, domainMax]. Every heat color comes through here so the
+// five-stop "shape" of the scale (what the legend bar always shows) stays
+// identical everywhere — only where domainMin/domainMax sit changes.
+function tempColorForDomain(t, domainMin, domainMax) {
+  if (t === null || t === undefined) return "rgb(68,64,60)"; // stone-700 — "no data" cell
+  const span = domainMax - domainMin || 1;
+  const stops = [
+    { t: domainMin, c: [45, 130, 130] },
+    { t: domainMin + span * 0.3, c: [90, 150, 90] },
+    { t: domainMin + span * 0.6, c: [210, 170, 40] },
+    { t: domainMin + span * 0.8, c: [225, 120, 30] },
+    { t: domainMax, c: [190, 40, 30] },
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (t >= stops[i].t && t <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const range = hi.t - lo.t || 1;
+  const f = Math.max(0, Math.min(1, (t - lo.t) / range));
+  const c = lo.c.map((v, i) => Math.round(v + (hi.c[i] - v) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Fixed-range fallback (used only before real data has loaded, or if a
+// dataset is ever empty) — kept for backward compatibility.
+function tempToColor(t) {
+  return tempColorForDomain(t, 20, 30);
+}
+
+// Fits the color scale to the ACTUAL spread of whatever temperatures are
+// being shown, instead of a fixed 20-30°C range. Bangladesh's Mar-May
+// satellite composite only ever spans roughly 24-28°C across all 64
+// districts — on a fixed 20-30°C scale that real ~4°C spread occupies only
+// the middle 40% of the gradient, which is what made every district look
+// like nearly the same shade of yellow-green on the map (supervisor
+// feedback: "colors aren't differentiating"). Padding a bit past the real
+// min/max and rounding to a clean half-degree keeps the legend numbers tidy
+// instead of showing something like "24.07°C".
+function makeTempColorScale(values) {
+  const nums = (values || []).filter((v) => typeof v === "number" && !Number.isNaN(v));
+  if (nums.length === 0) return { colorFn: tempToColor, domainMin: 20, domainMax: 30 };
+  const rawMin = Math.min(...nums);
+  const rawMax = Math.max(...nums);
+  const pad = Math.max(0.5, (rawMax - rawMin) * 0.12);
+  const domainMin = Math.floor((rawMin - pad) * 2) / 2;
+  const domainMax = Math.ceil((rawMax + pad) * 2) / 2;
+  return {
+    colorFn: (t) => tempColorForDomain(t, domainMin, domainMax),
+    domainMin,
+    domainMax,
+  };
+}
+
+// Flood-risk grid color scale: same emerald->amber->red family as the heat
+// scale, keyed to a 0-1 risk score with 0.7 as the alert threshold (matches
+// dhaka-flood-model-summary.md's own color system).
+function riskScoreToColor(v) {
+  const stops = [
+    { t: 0, c: [45, 130, 130] },
+    { t: 0.4, c: [90, 150, 90] },
+    { t: 0.7, c: [210, 170, 40] },
+    { t: 0.85, c: [225, 120, 30] },
+    { t: 1, c: [190, 40, 30] },
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (v >= stops[i].t && v <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const range = hi.t - lo.t || 1;
+  const f = Math.max(0, Math.min(1, (v - lo.t) / range));
+  const c = lo.c.map((val, i) => Math.round(val + (hi.c[i] - val) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Forest-cover color scale for the deforestation district map: a 0-100%
+// scale, red (bare) through amber to a deep green (still substantially
+// forested) — the reverse sense of the heat/flood scales (here, more is
+// good), which is exactly why it's its own scale rather than reusing one.
+function forestPctToColor(pct) {
+  if (pct === null || pct === undefined) return "rgb(68,64,60)"; // stone-700 — "no data"
+  const stops = [
+    { t: 0, c: [190, 40, 30] },
+    { t: 20, c: [210, 170, 40] },
+    { t: 40, c: [90, 150, 90] },
+    { t: 60, c: [16, 120, 70] },
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (pct >= stops[i].t && pct <= stops[i + 1].t) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const range = hi.t - lo.t || 1;
+  const f = Math.max(0, Math.min(1, (pct - lo.t) / range));
+  const c = lo.c.map((val, i) => Math.round(val + (hi.c[i] - val) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// Deforestation priority-tier colors, shared across the district ranking
+// list, worklist and restoration list so "High" always reads the same way.
+function tierColor(tier) {
+  if (tier === "Severe" || tier === "High") return { bg: "bg-red-950/40", text: "text-red-400", ring: "ring-red-500/30", dot: "bg-red-500" };
+  if (tier === "Moderate" || tier === "Medium") return { bg: "bg-amber-950/40", text: "text-amber-400", ring: "ring-amber-500/30", dot: "bg-amber-500" };
+  if (tier === "no forest") return { bg: "bg-stone-700/40", text: "text-stone-400", ring: "ring-stone-500/30", dot: "bg-stone-500" };
+  return { bg: "bg-emerald-950/40", text: "text-emerald-400", ring: "ring-emerald-500/30", dot: "bg-emerald-500" };
+}
+
+// Small "is this district's flood risk rising or falling since the last
+// 3-day refresh" indicator. Reads risk_trend, which the automation script
+// only sets once a previous run's output exists to compare against — so
+// this quietly renders nothing rather than guessing on the very first run.
+function RiskTrendBadge({ trend, size = 12 }) {
+  if (!trend) return null;
+  if (trend === "up") return <TrendingUp size={size} className="text-red-400" />;
+  if (trend === "down") return <TrendingDown size={size} className="text-emerald-400" />;
+  return <Minus size={size} className="text-stone-400" />;
+}
+
+// ---------------------------------------------------------------------------
+// Plain-language risk level: collapses every tier vocabulary this app uses
+// (heat's High/Medium/Low, flood's Severe/Moderate/Mild, deforestation's
+// High/Medium/Low priority) onto one 3-step scale — high/caution/safe — so
+// color alone tells a citizen the story without needing to read the tier
+// word itself. This is additive: the real tier word is still shown next to
+// it for anyone who can read it.
+// ---------------------------------------------------------------------------
+function riskLevel(tier) {
+  if (!tier) return null;
+  if (tier === "Severe" || tier === "High") return "high";
+  if (tier === "Moderate" || tier === "Medium") return "caution";
+  if (tier === "no forest") return "none";
+  return "safe"; // Low, Mild, or any other "good" tier
+}
+
+const RISK_LEVEL_BADGE_TONE = { high: "red", caution: "amber", safe: "teal", none: "slate" };
+
+// Bangla labels for the raw tier words the backend returns (always in
+// English) — used only for display when the citizen dashboard is set to
+// Bangla; the underlying data/logic is untouched.
+const TIER_BN = {
+  High: "উচ্চ", Medium: "মাঝারি", Low: "কম",
+  Severe: "মারাত্মক", Moderate: "মাঝারি", Mild: "মৃদু",
+  "no forest": "বন নেই",
+};
+function tierLabel(tier, lang) {
+  if (!tier) return tier;
+  return lang === "bn" ? TIER_BN[tier] || tier : tier;
+}
+
+// Reads a short plain-language sentence aloud with the browser's own
+// text-to-speech — no backend, no API key, and a real accessibility aid for
+// a citizen who can't read, not a cosmetic icon. Bangla voice availability
+// varies by device/browser, so this quietly no-ops rather than pretending
+// to work everywhere. Tracks its own "speaking" state so a second tap
+// actually stops the audio instead of just restarting the same clip —
+// window.speechSynthesis has no built-in toggle, so onend/onerror are what
+// bring the button back to its resting state when speech finishes on its
+// own (not just when the person taps stop).
+function SpeakButton({ text, lang, label, stopLabel }) {
+  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+  const [speaking, setSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (supported) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // no-op
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!supported || !text) return null;
+
+  function handleClick() {
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang === "bn" ? "bn-BD" : "en-US";
+      utter.rate = 0.95;
+      utter.onend = () => setSpeaking(false);
+      utter.onerror = () => setSpeaking(false);
+      window.speechSynthesis.speak(utter);
+      setSpeaking(true);
+    } catch {
+      // Some embedded/webview browsers throw on speech synthesis — fail
+      // silently rather than breaking the page over a nice-to-have.
+      setSpeaking(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border active:scale-[0.97] transition-all shrink-0 ${
+        speaking
+          ? "border-emerald-600 text-emerald-300 bg-emerald-900/20"
+          : "border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800"
+      }`}
+    >
+      {speaking ? <VolumeX size={13} /> : <Volume2 size={13} />} {speaking ? (stopLabel || label) : label}
+    </button>
+  );
+}
+
+// One-tap "warn someone else" — the actual point of an early-warning system
+// isn't just showing a number, it's getting that number to the people who
+// need it. navigator.share() opens the phone's own share sheet (WhatsApp,
+// SMS, Messenger — whatever the person already uses) on the mobile browsers
+// most citizens here will actually be using; wa.me is a plain, no-API-key
+// WhatsApp deep link used as the fallback on desktop browsers that don't
+// support the Web Share API. Never fails loudly — if both are unavailable
+// this quietly does nothing rather than showing a broken button.
+function shareRiskText(text) {
+  if (!text) return;
+  if (typeof navigator !== "undefined" && navigator.share) {
+    navigator.share({ text }).catch(() => {});
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  }
+}
+
+function ShareButton({ text, label }) {
+  if (!text) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => shareRiskText(text)}
+      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+    >
+      <Share2 size={13} /> {label}
+    </button>
+  );
+}
+
+// Save-for-offline — during an actual flood or heatwave, mobile signal is
+// exactly what tends to drop. A plain downloaded .txt file (no library,
+// works even with zero connectivity the moment after it's saved) lets
+// someone keep the safety steps and helpline numbers on their phone's
+// storage rather than needing to reload this page later.
+function downloadTextFile(filename, content) {
+  if (typeof window === "undefined" || !content) return;
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function SaveCardButton({ content, filename, label }) {
+  if (!content) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => downloadTextFile(filename, content)}
+      className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-stone-600 text-stone-300 hover:text-stone-100 hover:bg-stone-800 active:scale-[0.97] transition-all shrink-0"
+    >
+      <Download size={13} /> {label}
+    </button>
+  );
+}
+
+// Real, published national helplines (verified against the U.S. Embassy
+// Dhaka emergency-assistance page and Bangladesh government helpline
+// listings — not invented): 999 is the toll-free combined police/fire/
+// ambulance line reachable from any phone; 1098 and 109 are the standing
+// child and women's-affairs helplines; 333 is the general government
+// information/assistance line; 16123 is the Agriculture Information
+// Service, relevant when flood or heat has damaged crops or livestock.
+// tel: links dial directly on a phone browser — no app, no data needed.
+const EMERGENCY_HELPLINES = [
+  { number: "999", labelKey: "emergencyNational" },
+  { number: "333", labelKey: "emergencyGovtInfo" },
+  { number: "16123", labelKey: "emergencyAgri" },
+];
+
+function EmergencyHelplineCard({ t }) {
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2 mb-1">
+        <IconBadge icon={Phone} tone="red" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.emergencyHelplinesTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-3">{t.emergencyHint}</p>
+      <div className="space-y-1.5">
+        {EMERGENCY_HELPLINES.map((h) => (
+          <a
+            key={h.number}
+            href={`tel:${h.number}`}
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-800/80 active:scale-[0.99] transition-all"
+          >
+            <span className="shrink-0 text-sm font-semibold text-stone-100 tabular-nums w-14">{h.number}</span>
+            <span className="flex-1 min-w-0 text-xs text-stone-400 leading-snug">{t[h.labelKey]}</span>
+            <Phone size={13} className="text-emerald-400 shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A big icon + color "status at a glance" block for the top of each citizen
+// detail page — the color is the primary signal (red/amber/green, same
+// scale everywhere in the app), the icon says which module it is, and the
+// tier word and a Listen button are secondary support for whoever wants
+// them. Everything below this block (maps, charts, exact numbers) is
+// unchanged — this is a plain-language summary placed in front of it.
+function RiskHero({ icon: Icon, tier, title, sub, lang, speak, saveContent, listenLabel, stopListenLabel, shareLabel, saveLabel, saveFilename }) {
+  const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(tier)] || "slate";
+  const bg = tier ? tierColor(tier).bg : "bg-stone-800/40";
+  const hasActions = speak || shareLabel || saveLabel;
+  return (
+    <div className={`rounded-2xl p-4 border border-stone-700 shadow-sm shadow-black/20 ${bg}`}>
+      <div className="flex items-center gap-3.5">
+        <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+          <Icon size={26} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-semibold text-stone-50 truncate">{title}</div>
+          {sub && <div className="text-xs text-stone-300 mt-0.5 truncate">{sub}</div>}
+        </div>
+        {speak && <SpeakButton text={speak} lang={lang} label={listenLabel} stopLabel={stopListenLabel} />}
+      </div>
+      {hasActions && (shareLabel || saveLabel) && (
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-700/60 flex-wrap">
+          {shareLabel && <ShareButton text={speak} label={shareLabel} />}
+          {/* Saved file gets the fuller write-up (saveContent) when the
+              caller provides one — safety steps, helpline numbers, a
+              timestamp — rather than just the one-line speech text, so it's
+              actually useful read back offline later. Falls back to speak
+              for any caller that hasn't been updated. */}
+          {saveLabel && <SaveCardButton content={saveContent || speak} filename={saveFilename || "safety-info.txt"} label={saveLabel} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Builds the richer, multi-line text saved to disk by SaveCardButton: a
+// title, the real body content (safety steps / advisory / message — never
+// just the flattened one-line speech string), the real emergency helpline
+// numbers, and a save timestamp — so the file is actually useful read back
+// with zero connectivity, not just a restatement of what "Listen" already
+// said out loud.
+function buildSaveContent(title, bodyLines, lang) {
+  const stamp = new Date().toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+  const helplines = EMERGENCY_HELPLINES.map((h) => h.number).join(" / ");
+  return [
+    title,
+    "",
+    ...bodyLines,
+    "",
+    (lang === "bn" ? "জরুরি নম্বর: " : "Emergency numbers: ") + helplines,
+    (lang === "bn" ? "সংরক্ষণ করা হয়েছে: " : "Saved: ") + stamp,
+  ].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Live, per-district 7-day weather forecast — fetched directly from
+// Open-Meteo's free, keyless forecast API in the browser, for the exact
+// district centroid the citizen has selected. This is deliberately separate
+// from the trained models: heat_risk.json and the flood classifier score a
+// FROZEN satellite/historical composite, refreshed only every 3 days by the
+// backend automation, at district-average resolution. This is today's
+// actual short-range weather forecast for one real point on the map, live
+// every time the page loads — genuinely new information the models don't
+// carry, not a restatement of them. Centroid coordinates are the same real
+// per-district values scripts/models/data/flood_districts_static.csv
+// already uses to run the flood model itself, not invented for this.
+// ---------------------------------------------------------------------------
+
+const DISTRICT_CENTROIDS = {
+  "Barisal": [22.8199, 90.3685],
+  "Bhola": [22.437, 90.7319],
+  "Jhalokati": [22.5736, 90.1841],
+  "Patuakhali": [22.2124, 90.3995],
+  "Pirojpur": [22.5344, 89.9936],
+  "Bandarban": [21.8042, 92.3638],
+  "Brahamanbaria": [23.953, 91.0826],
+  "Chandpur": [23.2622, 90.7509],
+  "Chittagong": [22.4368, 91.8469],
+  "Comilla": [23.4371, 91.032],
+  "Cox's Bazar": [21.486, 92.0679],
+  "Feni": [23.0012, 91.4095],
+  "Khagrachhari": [23.1634, 91.9523],
+  "Lakshmipur": [22.8566, 90.8589],
+  "Noakhali": [22.7264, 91.1239],
+  "Rangamati": [22.8263, 92.2789],
+  "Dhaka": [23.7879, 90.2516],
+  "Faridpur": [23.4774, 89.8369],
+  "Gazipur": [24.1059, 90.4432],
+  "Gopalganj": [23.1043, 89.8989],
+  "Jamalpur": [24.9724, 89.8468],
+  "Kishoreganj": [24.3768, 90.9428],
+  "Madaripur": [23.2207, 90.1627],
+  "Manikganj": [23.8416, 89.9504],
+  "Munshiganj": [23.5265, 90.4188],
+  "Mymensingh": [24.6978, 90.428],
+  "Narayanganj": [23.7401, 90.5746],
+  "Narsingdi": [24.0037, 90.7746],
+  "Netrakona": [24.8683, 90.8445],
+  "Rajbari": [23.7284, 89.563],
+  "Shariatpur": [23.2436, 90.4166],
+  "Sherpur": [25.081, 90.0739],
+  "Tangail": [24.3561, 89.9987],
+  "Bagerhat": [22.3744, 89.739],
+  "Chuadanga": [23.6079, 88.8482],
+  "Jessore": [23.09, 89.1784],
+  "Jhenaidah": [23.4899, 89.0889],
+  "Khulna": [22.4701, 89.4461],
+  "Kushtia": [23.9258, 89.0156],
+  "Magura": [23.443, 89.4343],
+  "Meherpur": [23.7939, 88.7132],
+  "Narail": [23.1306, 89.579],
+  "Satkhira": [22.3786, 89.139],
+  "Habiganj": [24.368, 91.4297],
+  "Maulvibazar": [24.4727, 91.8965],
+  "Sunamganj": [24.9375, 91.3449],
+  "Sylhet": [24.9175, 91.9933],
+  "Bogra": [24.8246, 89.3791],
+  "Joypurhat": [25.0937, 89.0822],
+  "Naogaon": [24.9021, 88.7505],
+  "Natore": [24.3808, 89.0864],
+  "Nawabganj": [24.7229, 88.2687],
+  "Pabna": [24.0533, 89.3842],
+  "Rajshahi": [24.4676, 88.6545],
+  "Sirajganj": [24.392, 89.5999],
+  "Dinajpur": [25.6313, 88.7859],
+  "Gaibandha": [25.2997, 89.5068],
+  "Kurigram": [25.794, 89.6921],
+  "Lalmonirhat": [26.0622, 89.2391],
+  "Nilphamari": [26.0211, 88.9367],
+  "Panchagarh": [26.2858, 88.5761],
+  "Rangpur": [25.6437, 89.2392],
+  "Thakurgaon": [25.9901, 88.3454],
+  "Barguna": [22.143, 90.1191],
+};
+
+const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+
+function useLocalForecast(lat, lon) {
+  const [days, setDays] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (lat == null || lon == null) {
+      setDays(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          latitude: lat,
+          longitude: lon,
+          daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+          timezone: "Asia/Dhaka",
+          forecast_days: "7",
+        });
+        const res = await fetch(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+        if (!res.ok) throw new Error("Open-Meteo forecast request failed");
+        const data = await res.json();
+        const d = data.daily || {};
+        const rows = (d.time || []).map((date, i) => ({
+          date,
+          tmax: d.temperature_2m_max?.[i] ?? null,
+          tmin: d.temperature_2m_min?.[i] ?? null,
+          rain: d.precipitation_sum?.[i] ?? null,
+          code: d.weathercode?.[i] ?? null,
+        }));
+        if (!cancelled) setDays(rows);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Couldn't load the forecast");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [lat, lon]);
+
+  return { days, loading, error };
+}
+
+// WMO weather codes (the same scheme Open-Meteo returns) collapsed to 3
+// icons — precise enough for "will it rain" at a glance without a full
+// icon set.
+function forecastIcon(code, rainMm) {
+  if ((rainMm || 0) >= 1 || (code >= 51 && code <= 99)) return CloudRain;
+  if (code >= 1 && code <= 3) return Cloud;
+  return Sun;
+}
+
+// ---------------------------------------------------------------------------
+// Practical, actionable features built the same way as the live flood layer
+// above: the trained model's own data (heat risk tier, flood risk
+// projection) combined with a genuinely live Open-Meteo fetch, turned into
+// a concrete answer to "what do I actually do today" rather than another
+// raw number. Three pieces:
+//   1. Heat — real hour-by-hour safe/avoid outdoor-work windows for TODAY,
+//      from Open-Meteo's hourly "feels like" forecast (not the daily
+//      max/min already fetched above, which can't say WHEN in the day it's
+//      worst).
+//   2. Flood — "how many days until this district's live 7-day projection
+//      crosses the same alert threshold scripts/send_alerts.py already
+//      uses" instead of a bare percentage the reader has to interpret.
+//   3. A combined "today" advisory that reads both of the above (plus the
+//      district's live rainfall_mm the projection already carries) into a
+//      couple of plain sentences.
+// All three are pure client-side computation over data already being
+// fetched elsewhere in this file — no new backend endpoint needed.
+// ---------------------------------------------------------------------------
+
+// Bands for Open-Meteo's hourly "apparent_temperature" (feels-like, already
+// folds in humidity/wind — no separate heat-index formula needed). These are
+// a standard heat-safety simplification (roughly BMD/WHO outdoor-exertion
+// guidance in Celsius), deliberately separate from the trained model's own
+// risk_category tertile, which scores a whole season's composite rather
+// than one day's hours — disclosed as such in the UI copy, not conflated.
+const HEAT_SAFE_C = 32;
+const HEAT_DANGER_C = 38;
+
+// Same threshold scripts/send_alerts.py's FLOOD_ALERT_THRESHOLD uses for
+// "high enough to warn about" — reused here so "days until alert level"
+// means the same thing as the early-warning emails, not a second, competing
+// definition of "alert."
+const FLOOD_ALERT_THRESHOLD = 0.5;
+
+function useHourlyHeatToday(lat, lon) {
+  const [hours, setHours] = useState(null); // [{ hour: 0-23, apparent: number|null }]
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (lat == null || lon == null) {
+      setHours(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          latitude: lat,
+          longitude: lon,
+          hourly: "apparent_temperature",
+          timezone: "Asia/Dhaka",
+          forecast_days: "1",
+        });
+        const res = await fetch(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+        if (!res.ok) throw new Error("Open-Meteo hourly forecast request failed");
+        const data = await res.json();
+        const h = data.hourly || {};
+        const rows = (h.time || []).map((t, i) => ({
+          hour: new Date(t).getHours(),
+          apparent: h.apparent_temperature?.[i] ?? null,
+        }));
+        if (!cancelled) setHours(rows);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Couldn't load today's hourly forecast");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [lat, lon]);
+
+  return { hours, loading, error };
+}
+
+function heatBand(apparentC) {
+  if (apparentC == null) return "unknown";
+  if (apparentC >= HEAT_DANGER_C) return "danger";
+  if (apparentC >= HEAT_SAFE_C) return "caution";
+  return "safe";
+}
+
+// Collapses today's 24 hourly readings into the peak feels-like temp/hour
+// and contiguous "avoid outdoor work" / "safe" windows, so the UI can say
+// "avoid 12pm-4pm" instead of forcing the reader to scan 24 numbers.
+function summarizeHeatHours(hours) {
+  if (!hours || hours.length === 0) return null;
+  let peak = hours[0];
+  for (const h of hours) {
+    if (h.apparent != null && (peak.apparent == null || h.apparent > peak.apparent)) peak = h;
+  }
+  function windowsFor(band) {
+    const out = [];
+    let start = null;
+    hours.forEach((h, i) => {
+      const b = heatBand(h.apparent);
+      if (b === band) {
+        if (start === null) start = h.hour;
+      } else if (start !== null) {
+        out.push({ start, end: hours[i - 1].hour });
+        start = null;
+      }
+    });
+    if (start !== null) out.push({ start, end: hours[hours.length - 1].hour });
+    return out;
+  }
+  return {
+    peakApparent: peak.apparent,
+    peakHour: peak.hour,
+    dangerWindows: windowsFor("danger"),
+    safeWindows: windowsFor("safe"),
+  };
+}
+
+// "12pm" / "12pm–4pm" style formatting for an hour or hour range, in either
+// language — used by the heat safe-hours summary and nowhere else, so kept
+// local rather than added to the shared date-formatting utilities.
+function fmtHour(hour, lang) {
+  if (lang === "bn") {
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    const suffix = hour < 12 ? "AM" : "PM";
+    const bnDigits = String(h12).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
+    return `${bnDigits}${suffix}`;
+  }
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}${hour < 12 ? "am" : "pm"}`;
+}
+
+function fmtHourWindow(win, lang) {
+  const dash = lang === "bn" ? "–" : "–";
+  return win.start === win.end ? fmtHour(win.start, lang) : `${fmtHour(win.start, lang)}${dash}${fmtHour((win.end + 1) % 24, lang)}`;
+}
+
+function fmtHourWindows(wins, lang) {
+  return wins.map((w) => fmtHourWindow(w, lang)).join(lang === "bn" ? ", " : ", ");
+}
+
+// "How many days until this district's live 7-day flood projection crosses
+// the alert threshold" — the same daily[] array FloodProjectionStrip already
+// renders as a bar chart, read instead as a concrete countdown. daily[0] is
+// always today (see flood_projection_export.py).
+function floodAlertCountdown(daily) {
+  if (!daily || daily.length === 0) return null;
+  const idx = daily.findIndex((d) => d.predicted_risk >= FLOOD_ALERT_THRESHOLD);
+  if (idx === -1) return { crosses: false, horizonDays: daily.length };
+  return { crosses: true, daysAhead: idx, date: daily[idx].date, risk: daily[idx].predicted_risk };
+}
+
+function LiveForecastStrip({ forecast, lang, title, hint }) {
+  const { days, loading, error } = forecast;
+  if (loading) return null;
+  if (error || !days || days.length === 0) return null;
+  const dayName = (dateStr, idx) => {
+    if (idx === 0) return lang === "bn" ? "আজ" : "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { weekday: "short" });
+  };
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={CloudRain} tone="teal" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{title}</h3>
+      </div>
+      {hint && <p className="text-[11px] text-stone-500 mb-3">{hint}</p>}
+      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
+        {days.map((d, i) => {
+          const Icon = forecastIcon(d.code, d.rain);
+          return (
+            <div key={d.date} className="flex flex-col items-center gap-1 shrink-0 w-[13%] min-w-[46px] py-2 rounded-xl bg-stone-800/60">
+              <span className="text-[10px] text-stone-400">{dayName(d.date, i)}</span>
+              <Icon size={16} className={Icon === CloudRain ? "text-teal-400" : Icon === Cloud ? "text-stone-400" : "text-amber-400"} />
+              <span className="text-[11px] text-stone-100 font-medium tabular-nums">{d.tmax != null ? Math.round(d.tmax) : "—"}°</span>
+              <span className="text-[9px] text-stone-500 tabular-nums">{d.tmin != null ? Math.round(d.tmin) : "—"}°</span>
+              {d.rain != null && d.rain >= 1 && (
+                <span className="text-[9px] text-teal-400 tabular-nums">{Math.round(d.rain)}mm</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 7-day FORWARD flood risk projection — the same frozen classifier behind
+// avg_predicted_risk, scored day-by-day against Open-Meteo's real published
+// forecast (scripts/models/flood_projection_export.py / GET
+// /flood/national/projection) instead of a 90-day historical average. This
+// answers "which specific day this week looks worst", which the nowcast
+// deliberately can't (it's averaged over 90 days on purpose). Renders
+// nothing when the automation hasn't produced a projection yet — this is a
+// separate, newer model from the always-on nowcast above it, and its
+// absence is never treated as an error.
+function projectionRiskTone(risk) {
+  if (risk >= 0.6) return { bar: "bg-red-500", text: "text-red-400" };
+  if (risk >= 0.4) return { bar: "bg-emerald-500", text: "text-emerald-400" };
+  if (risk >= 0.2) return { bar: "bg-amber-500", text: "text-amber-400" };
+  return { bar: "bg-emerald-500", text: "text-emerald-400" };
+}
+
+function FloodProjectionStrip({ projection, lang, t }) {
+  if (!projection || !Array.isArray(projection.daily) || projection.daily.length === 0) return null;
+  const { daily, peak_day, projection_trend } = projection;
+  const dayName = (dateStr, idx) => {
+    if (idx === 0) return lang === "bn" ? "আজ" : "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { weekday: "short" });
+  };
+  const trendHeadline =
+    projection_trend === "rising"
+      ? t.projectionRising(peak_day?.date ? dayName(peak_day.date, daily.findIndex((d) => d.date === peak_day.date)) : "", Math.round((peak_day?.predicted_risk || 0) * 100))
+      : projection_trend === "falling"
+      ? t.projectionFalling
+      : t.projectionSteady;
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={TrendingUp} tone="red" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.projectionTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-1">{t.projectionHint}</p>
+      <p className={`text-xs font-medium mb-3 ${projection_trend === "rising" ? "text-red-400" : projection_trend === "falling" ? "text-emerald-400" : "text-stone-400"}`}>
+        {trendHeadline}
+      </p>
+      <div className="flex items-end gap-1.5 overflow-x-auto -mx-1 px-1 h-24">
+        {daily.map((d, i) => {
+          const tone = projectionRiskTone(d.predicted_risk);
+          const isPeak = peak_day && d.date === peak_day.date;
+          const pct = Math.round(d.predicted_risk * 100);
+          return (
+            <div key={d.date} className="flex flex-col items-center justify-end gap-1 shrink-0 w-[13%] min-w-[42px] h-full">
+              {isPeak && <AlertTriangle size={10} className="text-red-400" />}
+              <div className="flex-1 w-full flex items-end">
+                <div
+                  className={`w-full rounded-t-md ${tone.bar} ${isPeak ? "ring-2 ring-red-400/60" : ""}`}
+                  style={{ height: `${Math.max(6, pct)}%` }}
+                />
+              </div>
+              <span className={`text-[11px] font-medium tabular-nums ${tone.text}`}>{pct}%</span>
+              <span className="text-[9px] text-stone-500">{dayName(d.date, i)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Heat — real, national (64-district) output from heat_model_project.ipynb:
+// a Random Forest heat-risk composite, DBSCAN hotspot clusters, and
+// per-district SUHI intensity (MODIS LST/NDVI + JRC GHSL built-up
+// fraction, Mar-May 2026). Like Flood and Deforestation, there is no fake
+// fallback dataset — a failed fetch surfaces as an explicit error state.
+//
+// /heat/alerts is the one genuinely live piece: a 7-day heatwave forecast
+// (Open-Meteo + official BMD thresholds) for the model's own hotspot
+// sites, re-checked every 3 days by the same automation that re-scores
+// Flood. An empty alerts list is a normal, honest "no heatwave forecast
+// right now" result, not a broken feature.
+// ---------------------------------------------------------------------------
+
+function useHeatData() {
+  const [districts, setDistricts] = useState(null);
+  const [grid, setGrid] = useState(null);
+  const [trend, setTrend] = useState(null);
+  const [hotspots, setHotspots] = useState(null);
+  const [alerts, setAlerts] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [riskRes, gridRes, trendRes, hotspotsRes, alertsRes] = await Promise.all([
+          fetch(`${API_BASE}/heat/risk`),
+          fetch(`${API_BASE}/heat/grid`),
+          fetch(`${API_BASE}/heat/trend`),
+          fetch(`${API_BASE}/heat/hotspots`),
+          fetch(`${API_BASE}/heat/alerts`),
+        ]);
+        if (!riskRes.ok || !gridRes.ok || !trendRes.ok || !hotspotsRes.ok) {
+          throw new Error("One or more /heat endpoints failed");
+        }
+        const [riskData, gridData, trendData, hotspotsData] = await Promise.all([
+          riskRes.json(), gridRes.json(), trendRes.json(), hotspotsRes.json(),
+        ]);
+        // /heat/alerts always resolves (the backend returns a labeled
+        // not-yet-run payload rather than a 404), but treat a network
+        // failure on it as "no alert data" rather than failing the whole
+        // module over the one piece that's allowed to be briefly unready.
+        const alertsData = alertsRes.ok ? await alertsRes.json() : null;
+
+        if (cancelled) return;
+        setDistricts(riskData.wards || []);
+        setGrid(gridData.grid || null);
+        // heat_trend.json's field is named `month` for shape-compatibility
+        // with the old placeholder, but holds a year (2015-2026) — rename
+        // it here so the rest of the app deals in `year`, not a misleading name.
+        setTrend((trendData.trend || []).map((r) => ({ year: r.month, temp: r.temp, baseline: r.baseline, excluded: r.excluded })));
+        setHotspots(hotspotsData.features || []);
+        setAlerts(alertsData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load heat data:", err);
+          setError(err.message || "Failed to load heat data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { districts, grid, trend, hotspots, alerts, loading, error };
+}
+
+// ---------------------------------------------------------------------------
+// Flood — Dhaka (city-block, real data) and nationwide (64-district, real
+// trained model) are two separate, real datasets served by two separate
+// parts of the backend. Both hooks below fail soft: on any error the state
+// just stays null/empty and the UI shows an explicit "couldn't load" note
+// rather than inventing numbers, since (unlike Heat) no demo fallback
+// dataset exists for either of these.
+// ---------------------------------------------------------------------------
+
+function useFloodDhakaData() {
+  const [grid, setGrid] = useState(null);
+  const [trend, setTrend] = useState(null);
+  const [areas, setAreas] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [gridRes, trendRes, areasRes, summaryRes] = await Promise.all([
+          fetch(`${API_BASE}/flood/risk`),
+          fetch(`${API_BASE}/flood/trend`),
+          fetch(`${API_BASE}/flood/top-risk-areas`),
+          fetch(`${API_BASE}/flood/summary`),
+        ]);
+        if (!gridRes.ok || !trendRes.ok || !areasRes.ok || !summaryRes.ok) {
+          throw new Error("One or more /flood endpoints failed");
+        }
+        const [gridData, trendData, areasData, summaryData] = await Promise.all([
+          gridRes.json(), trendRes.json(), areasRes.json(), summaryRes.json(),
+        ]);
+        if (cancelled) return;
+        setGrid(gridData.grid || null);
+        setTrend(trendData.trend || null);
+        setAreas(areasData.areas || null);
+        setSummary(summaryData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load Dhaka flood data:", err);
+          setError(err.message || "Failed to load flood data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { grid, trend, areas, summary, loading, error };
+}
+
+function useNationalFloodData() {
+  const [severity, setSeverity] = useState(null);
+  const [priority, setPriority] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [projection, setProjection] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [sevRes, prRes, sumRes] = await Promise.all([
+          fetch(`${API_BASE}/flood/national/severity`),
+          fetch(`${API_BASE}/flood/national/priority`),
+          fetch(`${API_BASE}/flood/national/summary`),
+        ]);
+        if (!sevRes.ok || !prRes.ok || !sumRes.ok) {
+          throw new Error("One or more /flood/national endpoints failed");
+        }
+        const [sevData, prData, sumData] = await Promise.all([sevRes.json(), prRes.json(), sumRes.json()]);
+        if (cancelled) return;
+        setSeverity(sevData);
+        setPriority(prData);
+        setSummary(sumData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load national flood data:", err);
+          setError(err.message || "Failed to load national flood data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+
+      // The 7-day forward projection is a separate, newer model — fetched
+      // independently and never allowed to fail the three endpoints above.
+      // Until it has run at least once in production it 404s, which is an
+      // honest "not available yet" (null), not an error for this dashboard.
+      try {
+        const projRes = await fetch(`${API_BASE}/flood/national/projection`);
+        if (!cancelled) {
+          setProjection(projRes.ok ? await projRes.json() : null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn("Flood risk projection unavailable:", err);
+          setProjection(null);
+        }
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { severity, priority, summary, projection, loading, error };
+}
+
+// ---------------------------------------------------------------------------
+// Deforestation — real data (Random Forest on seasonal MODIS NDVI, 2015-2025,
+// all 64 districts). No demo fallback exists for this module either; a
+// failed fetch surfaces as an explicit error state rather than fake numbers.
+// ---------------------------------------------------------------------------
+
+function useDeforestationData() {
+  const [districts, setDistricts] = useState(null);
+  const [worklist, setWorklist] = useState(null);
+  const [worklistTotal, setWorklistTotal] = useState(null);
+  const [restoration, setRestoration] = useState(null);
+  const [lossByYear, setLossByYear] = useState(null);
+  const [citizenCards, setCitizenCards] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [distRes, workRes, restRes, lossRes, cardsRes] = await Promise.all([
+          fetch(`${API_BASE}/deforestation/districts`),
+          fetch(`${API_BASE}/deforestation/worklist`),
+          fetch(`${API_BASE}/deforestation/restoration-priority`),
+          fetch(`${API_BASE}/deforestation/loss-by-year`),
+          fetch(`${API_BASE}/deforestation/citizen-cards`),
+        ]);
+        if (!distRes.ok || !workRes.ok || !restRes.ok || !lossRes.ok || !cardsRes.ok) {
+          throw new Error("One or more /deforestation endpoints failed");
+        }
+        const [distData, workData, restData, lossData, cardsData] = await Promise.all([
+          distRes.json(), workRes.json(), restRes.json(), lossRes.json(), cardsRes.json(),
+        ]);
+        if (cancelled) return;
+        setDistricts(distData);
+        setWorklist(workData.patches || []);
+        setWorklistTotal(workData.total_patches ?? null);
+        setRestoration(restData);
+        setLossByYear(lossData);
+        setCitizenCards(cardsData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load deforestation data:", err);
+          setError(err.message || "Failed to load deforestation data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { districts, worklist, worklistTotal, restoration, lossByYear, citizenCards, loading, error };
+}
+
+// Citizen-submitted "I saw tree-cutting here" reports (see
+// CitizenReportForm / CITIZEN-REPORTS-SETUP.md). `configured: false` means
+// the backend's Supabase table isn't set up yet — shown as a plain notice
+// rather than an empty list, so it's clear this isn't "zero reports so far".
+function useCitizenReports() {
+  const [reports, setReports] = useState(null);
+  const [configured, setConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // Bumped after an officer action (verify/resolve/assign/etc.) to refetch
+  // the list — simpler than threading a full refetch function through
+  // every caller, and avoids duplicating the fetch logic below.
+  const [reloadToken, setReloadToken] = useState(0);
+  const refetch = () => setReloadToken((n) => n + 1);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/deforestation/citizen-reports`);
+        if (!res.ok) throw new Error(`/deforestation/citizen-reports ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setConfigured(data.configured !== false);
+        setReports(data.reports || []);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load citizen reports:", err);
+          setError(err.message || "Failed to load citizen reports");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [reloadToken]);
+
+  return { reports, configured, loading, error, refetch };
+}
+
+// Officers who can be assigned a citizen report for follow-up (task
+// assignment — see PATCH /deforestation/citizen-reports/{id}). Always
+// includes the 3 demo accounts, so this is usable even before any officer
+// has registered for real.
+function useOfficersList() {
+  const [officers, setOfficers] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/auth/officers`)
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setOfficers(data.officers || []); })
+      .catch(() => {}); // non-critical — assignment dropdown just stays empty
+    return () => { cancelled = true; };
+  }, []);
+  return officers;
+}
+
+// Aggregated, anonymized citizen-report counts per district — the
+// "community transparency feed" on the citizen side (see
+// GET /deforestation/community-stats).
+function useCommunityStats() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/deforestation/community-stats`)
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setStats(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return stats;
+}
+
+// ---------------------------------------------------------------------------
+// Shared bits
+// ---------------------------------------------------------------------------
+
+// Builds a d3-geo mercator projection fitted to the given GeoJSON
+// feature/FeatureCollection, sized to width x height with `padding` on every
+// side, and returns a path generator for it. Memoized on the geography's
+// identity so it isn't recomputed on every render.
+function useGeoPath(geography, width, height, padding = 12) {
+  return useMemo(() => {
+    const projection = geoMercator().fitExtent(
+      [[padding, padding], [width - padding, height - padding]],
+      geography
+    );
+    return geoPath(projection);
+  }, [geography, width, height, padding]);
+}
+
+// Real, to-scale outline of all 64 districts, each colored by whatever
+// per-district value the caller supplies — replaces the old abstract 7x9
+// color grid (which had no relationship to Bangladesh's actual shape) with
+// the country's real geography. Clicking a district behaves exactly like
+// picking it from the ranking list next to it.
+function BangladeshDistrictMap({ valueByDistrict, colorFn, labelFn, onSelect, selectedName, compact }) {
+  const width = compact ? 220 : 340;
+  const height = compact ? 280 : 440;
+  const path = useGeoPath(BD_DISTRICTS_GEOJSON, width, height);
+  const [hover, setHover] = useState(null); // { name, value, x, y }
+
+  return (
+    <div className="relative inline-block">
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="max-w-full h-auto">
+        {BD_DISTRICTS_GEOJSON.features.map((f) => {
+          const name = f.properties.shapeName;
+          const value = valueByDistrict[name];
+          const isSelected = selectedName === name;
+          return (
+            <path
+              key={name}
+              d={path(f)}
+              fill={colorFn(value)}
+              stroke={isSelected ? "#34d399" : "rgba(10,10,9,0.55)"}
+              strokeWidth={isSelected ? 1.75 : 0.5}
+              className={onSelect ? "cursor-pointer transition-[filter] duration-150 hover:brightness-125" : undefined}
+              onClick={onSelect ? () => onSelect(name) : undefined}
+              onMouseEnter={(e) => setHover({ name, value, x: e.clientX, y: e.clientY })}
+              onMouseMove={(e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
+              onMouseLeave={() => setHover(null)}
+            />
+          );
+        })}
+      </svg>
+      {hover && (
+        <div
+          className="pointer-events-none fixed z-50 bg-stone-900 border border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 text-xs"
+          style={{ left: hover.x + 14, top: hover.y + 14 }}
+        >
+          <div className="text-stone-100 font-medium">{hover.name}</div>
+          <div className="text-stone-400">{labelFn(hover.value)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Dhaka's real district outline with the existing block-averaged flood-risk
+// grid clipped inside it. There's no per-cell geocoding in the underlying
+// 1,650-point survey (see dhakaGridNote), so a cell still can't be placed at
+// its literal coordinate — but framing the same grid inside Dhaka's actual
+// shape, instead of a bare rectangle, reads as a map rather than a swatch.
+function DhakaFloodMap({ grid, colorFn, labelFn }) {
+  const width = 320, height = 320;
+  const dhakaFeature = useMemo(
+    () => BD_DISTRICTS_GEOJSON.features.find((f) => f.properties.shapeName === "Dhaka"),
+    []
+  );
+  const path = useGeoPath(dhakaFeature || BD_DISTRICTS_GEOJSON, width, height, 16);
+  const [hover, setHover] = useState(null);
+
+  if (!dhakaFeature) return null;
+
+  const [[x0, y0], [x1, y1]] = path.bounds(dhakaFeature);
+  const rows = grid.length;
+  const cols = grid[0]?.length || 0;
+  const cellW = (x1 - x0) / cols;
+  const cellH = (y1 - y0) / rows;
+  const clipId = "dhaka-flood-clip";
+  const outline = path(dhakaFeature);
+
+  return (
+    <div className="relative inline-block">
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="max-w-full h-auto">
+        <defs>
+          <clipPath id={clipId}>
+            <path d={outline} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          {grid.map((row, ri) =>
+            row.map((v, ci) => (
+              <rect
+                key={`${ri}-${ci}`}
+                x={x0 + ci * cellW}
+                y={y0 + ri * cellH}
+                width={cellW + 0.6}
+                height={cellH + 0.6}
+                fill={colorFn(v)}
+                onMouseEnter={(e) => setHover({ v, x: e.clientX, y: e.clientY })}
+                onMouseMove={(e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                onMouseLeave={() => setHover(null)}
+              />
+            ))
+          )}
+        </g>
+        <path d={outline} fill="none" stroke="#78716c" strokeWidth={1.5} />
+      </svg>
+      {hover && (
+        <div
+          className="pointer-events-none fixed z-50 bg-stone-900 border border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 text-xs text-stone-100"
+          style={{ left: hover.x + 14, top: hover.y + 14 }}
+        >
+          {labelFn(hover.v)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Small tinted icon chip used throughout the dashboards for a consistent,
+// slightly more premium "icon in a badge" look instead of a bare icon.
+const ICON_BADGE_TONES = {
+  slate: "bg-stone-700/80 text-stone-300 ring-1 ring-stone-600/60",
+  orange: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20",
+  red: "bg-red-500/10 text-red-400 ring-1 ring-red-500/20",
+  teal: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20",
+  amber: "bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20",
+};
+
+function IconBadge({ icon: Icon, tone = "slate", size = 15, className = "" }) {
+  return (
+    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${ICON_BADGE_TONES[tone]} ${className}`}>
+      <Icon size={size} />
+    </span>
+  );
+}
+
+// Small uppercase label used above section headings for a bit more visual
+// hierarchy without adding much size/noise.
+function Eyebrow({ children, tone = "orange" }) {
+  const toneMap = {
+    orange: "text-emerald-400",
+    teal: "text-emerald-400",
+    slate: "text-stone-400",
+  };
+  return (
+    <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${toneMap[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+// Shown in place of module content while real data is loading, or if it
+// failed to load — used by Flood and Deforestation, which (unlike Heat)
+// have no hardcoded demo fallback to quietly fall back to.
+// Skeleton placeholder shaped like the dashboard it's standing in for (a row
+// of KPI cards plus a wider chart card) rather than a spinner or bare text —
+// it shows the person the layout that's about to fill in, which reads as
+// faster and feels less like a dead page than a centered "Loading…" message.
+function SkeletonCard({ className = "" }) {
+  return (
+    <div className={`bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 animate-pulse ${className}`}>
+      <div className="h-3 w-2/3 bg-stone-700/60 rounded-full mb-4" />
+      <div className="h-6 w-1/2 bg-stone-700/50 rounded-full mb-3" />
+      <div className="h-2.5 w-1/3 bg-stone-700/40 rounded-full" />
+    </div>
+  );
+}
+
+function DataStateNotice({ loading, error, label }) {
+  if (loading) {
+    return (
+      <div className="animate-fade-in" aria-live="polite" aria-busy="true">
+        <span className="sr-only">Loading {label}…</span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonCard className="mt-4 h-40" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-sm text-amber-500 py-16 text-center px-6">
+        <IconBadge icon={AlertTriangle} tone="amber" />
+        <span>Couldn't load {label} from the backend.</span>
+        <span className="text-xs text-stone-400">{error}</span>
+      </div>
+    );
+  }
+  return null;
+}
+
+function Kpi({ label, value, sub, icon: Icon, tone = "slate", hint }) {
+  const toneMap = {
+    slate: "text-stone-100",
+    orange: "text-emerald-400",
+    red: "text-red-400",
+    teal: "text-emerald-400",
+  };
+  return (
+    <div
+      title={hint}
+      className="group bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-stone-400 font-medium">{label}</span>
+        {Icon && <IconBadge icon={Icon} tone={tone === "slate" ? "slate" : tone} size={14} />}
+      </div>
+      <div className={`text-2xl font-semibold tracking-tight ${toneMap[tone]}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {value}
+      </div>
+      {sub && <div className="text-xs text-stone-400">{sub}</div>}
+    </div>
+  );
+}
+
+// Same card look as Kpi above (same classes, same label/value/sub layout)
+// but as one wide box rather than one of the 2/4-column grid — used for the
+// heat/flood "this recomputes on a schedule" live-refresh notice, which
+// used to be a long explanatory sentence in a thin strip. Kept short and
+// scannable on purpose: just the cadence as the headline, the last-refreshed
+// time as the sub-line, and a small live pulse on the icon.
+function LiveRefreshBox({ label, value, dateStr }) {
+  return (
+    <div className="bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 rounded-2xl p-4 flex flex-col gap-3 shadow-sm shadow-black/20">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-stone-400 font-medium">{label}</span>
+        <span className="relative shrink-0">
+          <IconBadge icon={Radar} tone="teal" size={14} />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 ring-2 ring-stone-900" />
+          </span>
+        </span>
+      </div>
+      <div className="text-2xl font-semibold tracking-tight text-emerald-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {value}
+      </div>
+      <div className="text-xs text-stone-400">{dateStr}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Report modal (stands in for PDF/Excel export)
+// ---------------------------------------------------------------------------
+
+function ReportModal({ districts, alerts, onClose }) {
+  const printRef = useRef(null);
+  const now = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const sorted = [...districts].sort((a, b) => b.heat_risk - a.heat_risk);
+  const avgLst = districts.length ? districts.reduce((s, d) => s + d.lst_c, 0) / districts.length : null;
+  const highRiskCount = districts.filter((d) => d.risk_category === "High").length;
+  const activeAlertCount = alerts?.alerts?.length ?? 0;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-stone-900 border border-stone-700 rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-2xl shadow-black/50 animate-fade-in-up">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-700">
+          <div className="flex items-center gap-2.5 text-stone-200">
+            <IconBadge icon={FileText} tone="orange" size={14} />
+            <span className="text-sm font-medium">National heat risk report</span>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded-lg p-1.5 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div ref={printRef} className="p-6 text-stone-200">
+          <h2 className="text-lg font-semibold text-stone-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Urban Heat Risk Summary
+          </h2>
+          <p className="text-xs text-stone-400 mt-1">Bangladesh, all 64 districts — generated {now}</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+            <div className="text-center">
+              <div className="text-xl font-semibold text-emerald-400">{avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"}</div>
+              <div className="text-[11px] text-stone-400 mt-1">National avg. surface temp</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-semibold text-red-400">{highRiskCount}</div>
+              <div className="text-[11px] text-stone-400 mt-1">High-risk districts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-semibold text-emerald-400">{activeAlertCount}</div>
+              <div className="text-[11px] text-stone-400 mt-1">Active heatwave watches</div>
+            </div>
+          </div>
+
+          <h3 className="text-sm font-medium text-stone-100 mt-6 mb-2">District ranking by heat risk</h3>
+          <table className="w-full text-xs border-separate border-spacing-0">
+            <thead>
+              <tr className="text-stone-400 text-left">
+                <th className="py-1.5 font-medium border-b border-stone-700">District</th>
+                <th className="py-1.5 font-medium border-b border-stone-700">LST</th>
+                <th className="py-1.5 font-medium border-b border-stone-700">Risk</th>
+                <th className="py-1.5 font-medium border-b border-stone-700">NDVI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((d, i) => (
+                <tr key={d.name} className={i % 2 === 1 ? "bg-stone-800/30" : ""}>
+                  <td className="py-1.5 px-1 text-stone-200 rounded-l-md">{d.name}</td>
+                  <td className="py-1.5 px-1 text-stone-300">{d.lst_c.toFixed(1)}C</td>
+                  <td className="py-1.5 px-1 text-stone-300">{d.risk_category}</td>
+                  <td className="py-1.5 px-1 text-stone-300 rounded-r-md">{d.ndvi.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <p className="text-[11px] text-stone-500 mt-6 leading-relaxed">
+            Risk score is a composite of surface temperature, vegetation and built-up fraction
+            (MODIS LST/NDVI, JRC GHSL, Mar–May 2026 season). Heatwave watches are re-checked every 3
+            days against a live 7-day forecast for the model's own hotspot sites. The 2015–2024
+            national warming trend shown elsewhere in this dashboard is not statistically significant
+            (p=0.106) — reported as observed, not confirmed.
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-stone-700">
+          <button
+            onClick={onClose}
+            className="px-3.5 py-1.5 text-sm rounded-lg border border-stone-600 text-stone-300 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-1.5 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.97] flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition-all duration-150"
+          >
+            <Download size={14} /> Save as PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Government dashboard
+// ---------------------------------------------------------------------------
+// A Bangla/English toggle for every day-to-day label, header, subtitle,
+// button and status message a new officer sees while using the dashboard —
+// so it reads clearly at a glance in either language. The handful of dense,
+// statistics-heavy passages written for the thesis defense panel (model
+// methodology, validation numbers, disclosed limitations) stay English-only
+// by design: they're reference material for evaluators, not something a
+// field officer needs translated to use the dashboard day to day, and a
+// machine-style translation of technical statistical caveats risks
+// misstating them.
+
+const GOVT_I18N = {
+  en: {
+    consoleName: "Environmental Console",
+    govtDashboard: "Government dashboard",
+    navHeat: "Heat monitoring",
+    navFlood: "Flood monitoring",
+    navAir: "Air pollution (future work)",
+    navForest: "Deforestation",
+    signOut: "Sign out",
+    menu: "Menu",
+    searchPlaceholder: "Search by district, upazila or ward",
+    loadingLiveData: "Loading live data…",
+    couldntLoad: "Couldn't load",
+    notifications: "Notifications",
+    noActiveAlerts: "No active alerts right now.",
+    generateReport: "Generate report",
+    moduleInDevelopment: "Module in development",
+    moduleInDevelopmentBody: (label) =>
+      `This demo prototype implements Heat, Flood and Deforestation monitoring end-to-end. The ${label.toLowerCase()} module follows the same architecture and is scoped for the next build phase.`,
+    backToHeat: "Back to heat monitoring",
+    legend: "Colors on this dashboard always mean the same thing:",
+    legendSafe: "Low / good",
+    legendCaution: "Moderate — watch",
+    legendHigh: "High / severe — act",
+    kpiAvgTemp: "National avg. surface temp",
+    kpiAvgTempSub: "Mar–May 2026 season",
+    kpiHighRisk: "High-risk districts",
+    kpiHighRiskSub: (n) => `of ${n} nationally`,
+    kpiUhi: "Districts with measurable UHI",
+    kpiUhiSub: "urban-vs-rural contrast detected",
+    kpiUhiGloss: "UHI = urban heat island: how much hotter a city is than the countryside around it.",
+    kpiHeatwaveWatches: "Heatwave watches",
+    kpiHeatwaveLive: "live, rechecked every 3 days",
+    kpiHeatwaveNotRun: "automation hasn't run yet",
+    kpiHeatwaveNone: "None active",
+    liveRefreshLabel: "Live monitoring",
+    liveRefreshHeat: "Rechecked every 3 days",
+    liveRefreshFlood: "Rescored every 3 days",
+    liveRefreshLastUpdated: (dateStr) => `Last refreshed ${dateStr}`,
+    compositeSeason: "Composite season",
+    surfaceTempTitle: "Surface temperature — nationwide",
+    surfaceTempSub: "Satellite-measured ground temperature (MODIS LST composite), Mar–May 2026",
+    gridNote: "Each district is colored by its own average surface temperature — hover or tap a district for its exact reading.",
+    noData: "No data",
+    priorityRanking: "Priority ranking",
+    heatMitigationTitle: "Heat mitigation priority",
+    heatMitigationSub: "Districts most in need of cooling measures, highest first.",
+    noGridData: "No grid data available.",
+    trendTitle: "Annual temperature trend, 2015–2026",
+    trendSub: "Nationwide average ground temperature by year, compared against the long-term baseline. The 2025–2026 points (hollow) are excluded from the trend line because of a known satellite sensor drift, not because the data is wrong. The upward trend is not yet statistically certain (p=0.106).",
+    heatwaveWatch: "Heatwave watch",
+    heatwaveWatchSub: "7-day forecast against official weather-service heatwave thresholds, rechecked every 3 days.",
+    noForecastYet: "Automation hasn't produced a forecast check yet.",
+    noHeatwaveForecast: (days) => `No heatwave forecast for any monitored hotspot in the next ${days} days.`,
+    heatwavePeak: (a, forecastDays) => `Peak ${a.peak_tmax_c.toFixed(1)}°C over ${a.heatwave_days} day(s) in the next ${forecastDays}`,
+    searchMatch: (n, q) => `${n} district(s) match "${q}"`,
+    ndviGloss: "NDVI = vegetation greenness (higher = more plant cover)",
+    builtGloss: "built-up fraction = share of the area covered by buildings/roads",
+    suhiGloss: "SUHI = how much hotter this district is than similar rural land nearby",
+    floodTabDhaka: "Dhaka (detailed)",
+    floodTabNational: "Nationwide overview (64 districts)",
+    kpiFloodProne: "Flood-prone area",
+    kpiPeakAlerted: "Peak area under alert",
+    kpiAlertDays: "Alert days",
+    kpiAlertDaysSub: (n) => `of ${n} days observed`,
+    kpiRainfall: "Rainfall vs baseline",
+    kpiRainfallSub: (n) => `baseline ${n}mm/day`,
+    realData2025: "Real data — 2025 monsoon window",
+    dhakaFloodTitle: "Flood risk — Dhaka (14 Jul 2025, historical peak)",
+    dhakaFloodSub: "Combined score of land shape and rainfall — 50% each",
+    dhakaGridNote: "Averaged from the real 1,650-point Dhaka survey grid",
+    highestRisk: "Highest risk",
+    topLocations: "Top locations",
+    rainfallVsAlert: "62-day rainfall vs. % of Dhaka under alert",
+    rainfallVsAlertSub: "8 Jun – 8 Aug 2025, real observed rainfall",
+    kpiDistrictsCovered: "Districts covered",
+    allBangladesh: "All of Bangladesh",
+    kpiValidatedRecall: "Validated recall",
+    kpiValidatedRecallSub: "on real 2018 held-out events",
+    kpiValidatedAuc: "Validated ROC-AUC",
+    kpiValidatedAucSub: "real ground-truth test year",
+    kpiTopPriority: "Top priority district",
+    kpiTopPrioritySub: "highest mitigation priority",
+    kpiPopulationTopPriority: "People in the highest-risk districts",
+    kpiPopulationTopPrioritySub: "top 20 of 64 districts, WorldPop 2020",
+    kpiPopulationTopPriorityHint: "Adds up the WorldPop 2020 gridded population estimate of whichever 20 districts currently rank highest for flood risk. Each district's population never changes — only the list of which 20 districts make the cut can, since that ranking is recalculated every 3 days from live rainfall.",
+    popLabel: (n) => `pop. ${n}`,
+    floodMapEyebrow: "Nationwide",
+    floodMapTitle: "Flood risk — all 64 districts",
+    floodMapSub: "This week's live predicted risk, from real rainfall.",
+    mitigationPriority: "Mitigation priority",
+    top20of64: "Top 20 of 64 districts",
+    rankedByScore: "Ranked by a weighted score: 50% predicted risk, 30% historical severity, 20% population exposure (WorldPop 2020)",
+    badgeVsPercent: "The badge is historical severity (past flood magnitude) — the % is this week's live predicted risk. A district can carry a severe flood history but a calm week, or the reverse, so the two can disagree.",
+    moreDistricts: (n) => `+${n} more districts, ranked, in the full export.`,
+    scoreDeltaTooltip: (prev, curr) =>
+      `Raw model score: ${prev} → ${curr} since the last automated refresh — the exact number the % on the right is rounded from.`,
+    scoreDeltaLegend: "Δ = exact change in the raw model score since the last real refresh, to 4 decimals — so it's visible even when the rounded % looks the same.",
+    colRank: "#",
+    colSeverityTier: "Severity",
+    colTrend: "Trend",
+    colDelta: "Δ change",
+    colLiveRisk: "Live risk",
+    earlyWarningTitle: "Early warning — rising over the next 7 days",
+    earlyWarningHint: "Same trained classifier, scored day-by-day against the real published weather forecast (not the 90-day average used for the ranking below). A district here has its worst predicted day still ahead of it this week.",
+    earlyWarningEmpty: "No district is currently projected to trend upward over the next 7 days.",
+    earlyWarningPeak: (pct) => `peaks around ${pct}% this week`,
+    earlyWarningCountdownToday: "already at alert level today",
+    earlyWarningCountdownDays: (n) => `alert level in ${n}d`,
+    noDeltaYet: "First refresh recorded — nothing to compare against yet.",
+    citizenReportsEyebrow: "Citizen reports",
+    citizenReportsTitle: "Tree-cutting reported by citizens",
+    reportCount: (n) => `${n} report${n === 1 ? "" : "s"}`,
+    contactLabel: "contact",
+    citizenReportsSub: "Starts as an unverified tip alongside the satellite model — use the status controls below to verify, assign, or resolve each one.",
+    statusAll: "All",
+    reportStatusLabel: (s) => ({ pending: "Pending", verified: "Verified", resolved: "Resolved", rejected: "Rejected" }[s] || s),
+    statusLabel: "Status:",
+    assignToLabel: "Assign to:",
+    assignedToLabel: "Assigned",
+    unassigned: "Unassigned",
+    officerNoteLabel: "Officer note",
+    saveNote: "Save note",
+    saving: "Saving…",
+    manageOpen: "Manage",
+    manageClose: "Close",
+    loadingCitizenReports: "Loading citizen reports…",
+    couldntLoadCitizenReports: "Couldn't load citizen reports.",
+    reportsNotSetUp: "Citizen reporting isn't set up yet on the backend.",
+    noCitizenReports: "No citizen reports submitted yet.",
+    kpiNationalLoss: "National loss, 2017–2024",
+    kpiNationalLossSub: "confirmed, lasting loss (not a one-season dip)",
+    kpiAccelerating: "Districts accelerating",
+    kpiAcceleratingSub: "recent loss ≥1.5× own baseline",
+    kpiAvgTreeCover: "Avg. tree cover",
+    kpiAvgTreeCoverSub: "national average, 2024",
+    kpiLossPatches: "Loss patches mapped",
+    kpiLossPatchesSub: "≥0.25 km², 2017–2023",
+    forestNotice: "This counts all tree cover — including home gardens and plantations, not only official forest land — so don't compare it to the Forest Department's own 11–15% figure. The nationwide year-by-year trend and a loss forecast are deliberately left off this dashboard: the underlying data disagreed with itself too much to trust a forecast built on it. The district ranking and loss map below did pass every check.",
+    forestMapEyebrow: "Nationwide",
+    forestMapTitle: "Tree cover — all 64 districts",
+    forestMapSub: "Current forest cover as a share of each district's land area, 2024.",
+    rankedByLoss: "Ranked by loss",
+    districtRanking64: "District ranking — 64 districts",
+    restorationPriority: "Restoration priority",
+    topReplanting: "Top replanting targets",
+    protectedLoss: "Confirmed loss inside a protected area",
+    protectedShort: "protected",
+    coverSuffix: "cover",
+    nationalLossByYear: "National loss by year",
+    km2PerYear: "km² of confirmed, lasting loss per year",
+    fieldWorklist: "Field worklist",
+    recentLossPatches: "Recent loss patches",
+    showingOf: (shown, total) => `showing ${shown} of ${total}, protected + recent first`,
+    downloadCsv: "Download CSV",
+    downloadCsvHint: "Download the rows shown below as a spreadsheet file",
+    colDistrict: "District",
+    colYear: "Year",
+    colArea: "Area",
+    colProtected: "Protected",
+    colLocation: "Location",
+    map: "Map",
+    yes: "yes",
+    close: "Close",
+    openData: "Open data",
+    openDataHint: "Download this platform's current per-district numbers (flood, heat, deforestation) as CSV or JSON — for researchers and third parties, free to reuse.",
+    openDataCsv: "Download CSV",
+    openDataJson: "View raw JSON",
+  },
+  bn: {
+    consoleName: "পরিবেশ কনসোল",
+    govtDashboard: "সরকারি ড্যাশবোর্ড",
+    navHeat: "তাপ পর্যবেক্ষণ",
+    navFlood: "বন্যা পর্যবেক্ষণ",
+    navAir: "বায়ু দূষণ (ভবিষ্যৎ কাজ)",
+    navForest: "বন উজাড়",
+    signOut: "সাইন আউট",
+    menu: "মেনু",
+    searchPlaceholder: "জেলা, উপজেলা বা ওয়ার্ড দিয়ে খুঁজুন",
+    loadingLiveData: "লাইভ তথ্য লোড হচ্ছে…",
+    couldntLoad: "লোড করা যায়নি",
+    notifications: "বিজ্ঞপ্তি",
+    noActiveAlerts: "এই মুহূর্তে কোনো সক্রিয় সতর্কতা নেই।",
+    generateReport: "রিপোর্ট তৈরি করুন",
+    moduleInDevelopment: "এই মডিউলটি এখনো তৈরি হচ্ছে",
+    moduleInDevelopmentBody: (label) =>
+      `এই ডেমো প্রোটোটাইপে তাপ, বন্যা ও বন উজাড় পর্যবেক্ষণ সম্পূর্ণভাবে তৈরি করা হয়েছে। ${label} মডিউলটি একই কাঠামোতে পরবর্তী ধাপে তৈরি হবে।`,
+    backToHeat: "তাপ পর্যবেক্ষণে ফিরে যান",
+    legend: "এই ড্যাশবোর্ডে রঙের অর্থ সবসময় একই থাকে:",
+    legendSafe: "কম / ভালো",
+    legendCaution: "মাঝারি — নজর রাখুন",
+    legendHigh: "উচ্চ / মারাত্মক — ব্যবস্থা নিন",
+    kpiAvgTemp: "জাতীয় গড় ভূপৃষ্ঠ তাপমাত্রা",
+    kpiAvgTempSub: "মার্চ–মে ২০২৬ মৌসুম",
+    kpiHighRisk: "উচ্চ-ঝুঁকির জেলা",
+    kpiHighRiskSub: (n) => `মোট ${n} টির মধ্যে`,
+    kpiUhi: "পরিমাপযোগ্য UHI-সহ জেলা",
+    kpiUhiSub: "শহর-বনাম-গ্রাম তাপ পার্থক্য শনাক্ত হয়েছে",
+    kpiUhiGloss: "UHI = আরবান হিট আইল্যান্ড: আশেপাশের গ্রামাঞ্চলের তুলনায় শহর কতটা বেশি গরম।",
+    kpiHeatwaveWatches: "তাপপ্রবাহ সতর্কতা",
+    kpiHeatwaveLive: "লাইভ, প্রতি ৩ দিন পরপর হালনাগাদ",
+    kpiHeatwaveNotRun: "অটোমেশন এখনো চলেনি",
+    kpiHeatwaveNone: "এই মুহূর্তে কোনোটি নেই",
+    liveRefreshLabel: "লাইভ পর্যবেক্ষণ",
+    liveRefreshHeat: "প্রতি ৩ দিন পরপর হালনাগাদ",
+    liveRefreshFlood: "প্রতি ৩ দিন পরপর পুনর্মূল্যায়ন",
+    liveRefreshLastUpdated: (dateStr) => `সর্বশেষ হালনাগাদ ${dateStr}`,
+    compositeSeason: "সমন্বিত মৌসুম",
+    surfaceTempTitle: "ভূপৃষ্ঠের তাপমাত্রা — সারাদেশ",
+    surfaceTempSub: "স্যাটেলাইট থেকে পরিমাপ করা ভূপৃষ্ঠের তাপমাত্রা (MODIS LST), মার্চ–মে ২০২৬",
+    gridNote: "প্রতিটি জেলা তার নিজস্ব গড় ভূপৃষ্ঠ তাপমাত্রা অনুযায়ী রঙিন — নির্দিষ্ট মান দেখতে জেলার উপর হোভার বা ট্যাপ করুন।",
+    noData: "তথ্য নেই",
+    priorityRanking: "অগ্রাধিকার তালিকা",
+    heatMitigationTitle: "তাপ প্রশমন অগ্রাধিকার",
+    heatMitigationSub: "যেসব জেলায় শীতলীকরণ ব্যবস্থা সবচেয়ে বেশি প্রয়োজন, উপরে সবচেয়ে জরুরিটা।",
+    noGridData: "কোনো গ্রিড তথ্য পাওয়া যায়নি।",
+    trendTitle: "বার্ষিক তাপমাত্রার প্রবণতা, ২০১৫–২০২৬",
+    trendSub: "প্রতি বছরের সারাদেশের গড় ভূপৃষ্ঠ তাপমাত্রা, দীর্ঘমেয়াদি ভিত্তির সাথে তুলনা করে দেখানো। ২০২৫–২০২৬-এর পয়েন্টগুলো (ফাঁকা বৃত্ত) প্রবণতা রেখা থেকে বাদ দেওয়া হয়েছে — কারণ এটি স্যাটেলাইট সেন্সরের একটি পরিচিত ত্রুটি, ভুল তথ্য নয়। বাড়ার প্রবণতাটি এখনো পরিসংখ্যানগতভাবে নিশ্চিত নয় (p=0.106)।",
+    heatwaveWatch: "তাপপ্রবাহ পর্যবেক্ষণ",
+    heatwaveWatchSub: "সরকারি আবহাওয়া দপ্তরের তাপপ্রবাহ মানদণ্ড অনুযায়ী ৭ দিনের পূর্বাভাস, প্রতি ৩ দিন পরপর হালনাগাদ।",
+    noForecastYet: "অটোমেশন এখনো কোনো পূর্বাভাস তৈরি করেনি।",
+    noHeatwaveForecast: (days) => `আগামী ${days} দিনে কোনো পর্যবেক্ষণ এলাকায় তাপপ্রবাহের পূর্বাভাস নেই।`,
+    heatwavePeak: (a, forecastDays) => `সর্বোচ্চ ${a.peak_tmax_c.toFixed(1)}°সে, আগামী ${forecastDays} দিনের মধ্যে ${a.heatwave_days} দিন ধরে`,
+    searchMatch: (n, q) => `"${q}" এর সাথে ${n} টি জেলা মিলেছে`,
+    ndviGloss: "NDVI = গাছপালার সবুজতা (বেশি মানে বেশি গাছপালা)",
+    builtGloss: "built-up fraction = এলাকার কতটুকু ভবন/রাস্তায় ঢাকা",
+    suhiGloss: "SUHI = আশেপাশের গ্রামাঞ্চলের তুলনায় এই জেলা কতটা বেশি গরম",
+    floodTabDhaka: "ঢাকা (বিস্তারিত)",
+    floodTabNational: "সারাদেশের সারসংক্ষেপ (৬৪ জেলা)",
+    kpiFloodProne: "বন্যাপ্রবণ এলাকা",
+    kpiPeakAlerted: "সর্বোচ্চ সতর্কতার আওতাধীন এলাকা",
+    kpiAlertDays: "সতর্কতার দিন",
+    kpiAlertDaysSub: (n) => `মোট ${n} দিনের মধ্যে`,
+    kpiRainfall: "বৃষ্টিপাত বনাম স্বাভাবিক মাত্রা",
+    kpiRainfallSub: (n) => `স্বাভাবিক মাত্রা ${n}মিমি/দিন`,
+    realData2025: "প্রকৃত তথ্য — ২০২৫ বর্ষা মৌসুম",
+    dhakaFloodTitle: "বন্যার ঝুঁকি — ঢাকা (১৪ জুলাই ২০২৫, ঐতিহাসিক সর্বোচ্চ)",
+    dhakaFloodSub: "ভূমির গঠন ও বৃষ্টিপাতের সম্মিলিত স্কোর — প্রতিটি ৫০%",
+    dhakaGridNote: "ঢাকার প্রকৃত ১,৬৫০-পয়েন্ট জরিপ গ্রিড থেকে গড় করা",
+    highestRisk: "সর্বোচ্চ ঝুঁকি",
+    topLocations: "শীর্ষ এলাকাসমূহ",
+    rainfallVsAlert: "৬২ দিনের বৃষ্টিপাত বনাম ঢাকার কত % সতর্কতার আওতায়",
+    rainfallVsAlertSub: "৮ জুন – ৮ আগস্ট ২০২৫, প্রকৃত পর্যবেক্ষণকৃত বৃষ্টিপাত",
+    kpiDistrictsCovered: "অন্তর্ভুক্ত জেলা",
+    allBangladesh: "সমগ্র বাংলাদেশ",
+    kpiValidatedRecall: "যাচাইকৃত রিকল",
+    kpiValidatedRecallSub: "প্রকৃত ২০১৮ পরীক্ষার তথ্যের ভিত্তিতে",
+    kpiValidatedAuc: "যাচাইকৃত ROC-AUC",
+    kpiValidatedAucSub: "প্রকৃত গ্রাউন্ড-ট্রুথ পরীক্ষার বছর",
+    kpiTopPriority: "শীর্ষ অগ্রাধিকার জেলা",
+    kpiTopPrioritySub: "সর্বোচ্চ প্রশমন অগ্রাধিকার",
+    kpiPopulationTopPriority: "সবচেয়ে ঝুঁকিপূর্ণ জেলাগুলোর মানুষ",
+    kpiPopulationTopPrioritySub: "৬৪ জেলার মধ্যে শীর্ষ ২০টি, WorldPop ২০২০",
+    kpiPopulationTopPriorityHint: "যে ২০টি জেলা এই মুহূর্তে বন্যার ঝুঁকিতে সবচেয়ে উপরে আছে, তাদের WorldPop ২০২০ gridded জনসংখ্যা estimate যোগ করা হয়েছে। প্রতিটি জেলার জনসংখ্যা কখনো বদলায় না — শুধু কোন ২০টি জেলা এই তালিকায় থাকবে সেটা বদলাতে পারে, কারণ এই ranking প্রতি ৩ দিনে live বৃষ্টিপাত দিয়ে আবার হিসাব করা হয়।",
+    popLabel: (n) => `জনসংখ্যা ${n}`,
+    floodMapEyebrow: "সারাদেশ",
+    floodMapTitle: "বন্যার ঝুঁকি — সব ৬৪ জেলা",
+    floodMapSub: "এই সপ্তাহের লাইভ predicted ঝুঁকি, real বৃষ্টিপাত অনুযায়ী।",
+    mitigationPriority: "প্রশমন অগ্রাধিকার",
+    top20of64: "৬৪ জেলার মধ্যে শীর্ষ ২০",
+    rankedByScore: "একটি ওজনযুক্ত স্কোর দিয়ে সাজানো: ৫০% পূর্বাভাসিত ঝুঁকি, ৩০% ঐতিহাসিক তীব্রতা, ২০% জনসংখ্যা exposure (WorldPop ২০২০)",
+    badgeVsPercent: "ব্যাজটি ঐতিহাসিক তীব্রতা (অতীতের বন্যার মাত্রা) দেখায় — % হলো এই সপ্তাহের লাইভ পূর্বাভাসিত ঝুঁকি। একটি জেলার ইতিহাসে মারাত্মক বন্যা থাকতে পারে কিন্তু এই সপ্তাহ শান্ত, অথবা উল্টোটাও হতে পারে — তাই দুটো ভিন্ন হতে পারে।",
+    moreDistricts: (n) => `সম্পূর্ণ এক্সপোর্টে আরও ${n} টি জেলা, ক্রমানুসারে।`,
+    scoreDeltaTooltip: (prev, curr) =>
+      `আসল মডেল স্কোর: ${prev} → ${curr}, সর্বশেষ স্বয়ংক্রিয় refresh থেকে — ডানপাশের %-টি এই সংখ্যা থেকেই round করা।`,
+    scoreDeltaLegend: "Δ = সর্বশেষ real refresh-এর পর আসল মডেল স্কোরের সঠিক পরিবর্তন, ৪ decimal পর্যন্ত — round করা % একই দেখালেও এটা দেখা যায়।",
+    colRank: "#",
+    colSeverityTier: "তীব্রতা",
+    colTrend: "প্রবণতা",
+    colDelta: "Δ পরিবর্তন",
+    colLiveRisk: "লাইভ ঝুঁকি",
+    earlyWarningTitle: "আগাম সতর্কতা — পরের ৭ দিনে বাড়ছে",
+    earlyWarningHint: "একই trained classifier, কিন্তু real আবহাওয়া পূর্বাভাসের উপর day-by-day চালানো (নিচের র‍্যাংকিং-এ ব্যবহৃত ৯০ দিনের average নয়)। এখানে থাকা জেলার সবচেয়ে খারাপ predicted দিনটি এখনো এই সপ্তাহে আসেনি।",
+    earlyWarningEmpty: "আপাতত পরের ৭ দিনে কোনো জেলার ঝুঁকি বাড়ার প্রক্ষেপণ নেই।",
+    earlyWarningPeak: (pct) => `এই সপ্তাহে প্রায় ${pct}% এ চূড়ায় উঠবে`,
+    earlyWarningCountdownToday: "আজই alert level এ পৌঁছেছে",
+    earlyWarningCountdownDays: (n) => `${n} দিনে alert level`,
+    noDeltaYet: "প্রথম refresh রেকর্ড হয়েছে — তুলনা করার মতো আগের কিছু এখনো নেই।",
+    citizenReportsEyebrow: "নাগরিক রিপোর্ট",
+    citizenReportsTitle: "নাগরিকদের রিপোর্ট করা গাছ কাটা",
+    reportCount: (n) => `${n} টি রিপোর্ট`,
+    contactLabel: "যোগাযোগ",
+    citizenReportsSub: "শুরুতে যাচাই-বিহীন তথ্য হিসেবে থাকে, স্যাটেলাইট মডেলের পাশাপাশি — নিচের status control দিয়ে verify, assign, বা resolve করুন।",
+    statusAll: "সব",
+    reportStatusLabel: (s) => ({ pending: "অপেক্ষমাণ", verified: "যাচাইকৃত", resolved: "সমাধান হয়েছে", rejected: "প্রত্যাখ্যাত" }[s] || s),
+    statusLabel: "Status:",
+    assignToLabel: "যাকে assign করবেন:",
+    assignedToLabel: "Assigned",
+    unassigned: "Unassigned",
+    officerNoteLabel: "অফিসার নোট",
+    saveNote: "নোট সংরক্ষণ করুন",
+    saving: "সংরক্ষণ হচ্ছে…",
+    manageOpen: "Manage",
+    manageClose: "বন্ধ করুন",
+    loadingCitizenReports: "নাগরিকদের রিপোর্ট লোড হচ্ছে…",
+    couldntLoadCitizenReports: "নাগরিকদের রিপোর্ট লোড করা যায়নি।",
+    reportsNotSetUp: "নাগরিক রিপোর্টিং এখনো ব্যাকএন্ডে সেট আপ করা হয়নি।",
+    noCitizenReports: "এখনো কোনো নাগরিক রিপোর্ট জমা পড়েনি।",
+    kpiNationalLoss: "জাতীয় ক্ষতি, ২০১৭–২০২৪",
+    kpiNationalLossSub: "নিশ্চিত, স্থায়ী ক্ষতি (এক-মৌসুমের সাময়িক হ্রাস নয়)",
+    kpiAccelerating: "ত্বরান্বিত ক্ষতির জেলা",
+    kpiAcceleratingSub: "নিজের ভিত্তির চেয়ে ≥১.৫ গুণ সাম্প্রতিক ক্ষতি",
+    kpiAvgTreeCover: "গড় গাছপালার আচ্ছাদন",
+    kpiAvgTreeCoverSub: "জাতীয় গড়, ২০২৪",
+    kpiLossPatches: "চিহ্নিত ক্ষতিগ্রস্ত এলাকা",
+    kpiLossPatchesSub: "≥০.২৫ বর্গ কিমি, ২০১৭–২০২৩",
+    forestNotice: "এখানে সব ধরনের গাছপালার আচ্ছাদন গণনা করা হয়েছে — বাড়ির বাগান ও বাগান-বনসহ, শুধু সরকারি বনভূমি নয় — তাই এটিকে বন অধিদপ্তরের ১১–১৫% হিসাবের সাথে তুলনা করবেন না। সারাদেশের বছরভিত্তিক প্রবণতা ও ক্ষতির পূর্বাভাস ইচ্ছাকৃতভাবে এই ড্যাশবোর্ডে দেখানো হয়নি — মূল তথ্যের মধ্যেই যথেষ্ট অসামঞ্জস্য ছিল বলে তার উপর ভিত্তি করে পূর্বাভাসকে নির্ভরযোগ্য মনে করা যায়নি। নিচের জেলা তালিকা ও ক্ষতির মানচিত্র সব যাচাই পার হয়েছে।",
+    forestMapEyebrow: "সারাদেশ",
+    forestMapTitle: "গাছপালার আচ্ছাদন — সব ৬৪ জেলা",
+    forestMapSub: "প্রতিটি জেলার জমির তুলনায় বর্তমান বন আচ্ছাদনের অংশ, ২০২৪।",
+    rankedByLoss: "ক্ষতির ভিত্তিতে সাজানো",
+    districtRanking64: "জেলা তালিকা — ৬৪ জেলা",
+    restorationPriority: "পুনরুদ্ধার অগ্রাধিকার",
+    topReplanting: "শীর্ষ পুনঃবনায়ন লক্ষ্য",
+    protectedLoss: "সংরক্ষিত এলাকার ভেতরে নিশ্চিত ক্ষতি",
+    protectedShort: "সংরক্ষিত",
+    coverSuffix: "আচ্ছাদন",
+    nationalLossByYear: "বছরভিত্তিক জাতীয় ক্ষতি",
+    km2PerYear: "প্রতি বছর নিশ্চিত, স্থায়ী ক্ষতির বর্গ কিমি",
+    fieldWorklist: "মাঠ কর্ম তালিকা",
+    recentLossPatches: "সাম্প্রতিক ক্ষতিগ্রস্ত এলাকা",
+    showingOf: (shown, total) => `${total} টির মধ্যে ${shown} টি দেখানো হচ্ছে, সংরক্ষিত + সাম্প্রতিক আগে`,
+    downloadCsv: "CSV ডাউনলোড করুন",
+    downloadCsvHint: "নিচের সারিগুলো একটি স্প্রেডশিট ফাইল হিসেবে ডাউনলোড করুন",
+    colDistrict: "জেলা",
+    colYear: "বছর",
+    colArea: "এলাকা",
+    colProtected: "সংরক্ষিত",
+    colLocation: "অবস্থান",
+    map: "মানচিত্র",
+    yes: "হ্যাঁ",
+    close: "বন্ধ করুন",
+    openData: "উন্মুক্ত ডেটা",
+    openDataHint: "এই প্ল্যাটফর্মের বর্তমান জেলাভিত্তিক তথ্য (বন্যা, তাপ, বন উজাড়) CSV বা JSON হিসেবে ডাউনলোড করুন — গবেষক ও তৃতীয় পক্ষের জন্য, বিনামূল্যে ব্যবহারযোগ্য।",
+    openDataCsv: "CSV ডাউনলোড করুন",
+    openDataJson: "JSON দেখুন",
+  },
+};
+
+function GovtDashboard({ role, officerId, onLogout }) {
+  const [lang, setLang] = useState("en");
+  const gt = GOVT_I18N[lang];
+  const [activeModule, setActiveModule] = useState("heat");
+  const [search, setSearch] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const [selectedHeatDistrict, setSelectedHeatDistrict] = useState(null);
+  const [floodTab, setFloodTab] = useState("dhaka"); // "dhaka" | "national"
+  const [selectedFloodArea, setSelectedFloodArea] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [openDataOpen, setOpenDataOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const { districts: heatDistricts, grid: heatGrid, trend: heatTrend, alerts: heatAlerts, loading, error } = useHeatData();
+  const heatColorScale = useMemo(
+    () => makeTempColorScale((heatDistricts || []).map((d) => d.lst_c)),
+    [heatDistricts]
+  );
+  const floodDhaka = useFloodDhakaData();
+  const floodNational = useNationalFloodData();
+  const deforestation = useDeforestationData();
+  const citizenReports = useCitizenReports();
+  const officersList = useOfficersList();
+
+  const activeLoading =
+    activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
+    : activeModule === "forest" ? deforestation.loading
+    : loading;
+  const activeError =
+    activeModule === "flood" ? (floodTab === "national" ? floodNational.error : floodDhaka.error)
+    : activeModule === "forest" ? deforestation.error
+    : error;
+
+  const filteredDistricts = useMemo(
+    () => (heatDistricts || []).filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
+    [search, heatDistricts]
+  );
+
+  const sortedByRisk = useMemo(
+    () => [...filteredDistricts].sort((a, b) => b.heat_risk - a.heat_risk),
+    [filteredDistricts]
+  );
+
+  const avgLst = heatDistricts?.length
+    ? heatDistricts.reduce((s, d) => s + d.lst_c, 0) / heatDistricts.length
+    : null;
+  const highRiskCount = (heatDistricts || []).filter((d) => d.risk_category === "High").length;
+  const suhiDistrictCount = (heatDistricts || []).filter((d) => d.uhi_intensity_c !== null && d.uhi_intensity_c !== undefined).length;
+  const activeAlerts = heatAlerts?.alerts || [];
+
+  // Real cross-module alert count for the header notification bell — no
+  // invented "unread" state, just three genuine signals already computed
+  // from live data: active heatwave watches, districts at Severe flood
+  // risk, and districts flagged for accelerating deforestation.
+  const floodSevereDistricts = (floodNational.severity || []).filter((s) => s.severity_tier === "Severe");
+  const deforestAlertDistricts = (deforestation.districts || []).filter((d) => d.alert);
+  const notifications = [
+    ...activeAlerts.map((a) => ({
+      module: "heat",
+      text: `Heatwave watch: ${a.name} — peak ${a.peak_tmax_c.toFixed(1)}°C (${a.worst_category})`,
+    })),
+    ...floodSevereDistricts.map((s) => ({
+      module: "flood",
+      text: `${s.district_name}: Severe flood risk`,
+    })),
+    ...deforestAlertDistricts.map((d) => ({
+      module: "forest",
+      text: `${d.district}: flagged for accelerating deforestation`,
+    })),
+  ];
+
+  return (
+    <div className="min-h-screen bg-stone-900 text-stone-100 flex">
+      {showReport && <ReportModal districts={heatDistricts || []} alerts={heatAlerts} onClose={() => setShowReport(false)} />}
+
+      {/* Mobile nav backdrop */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setMobileNavOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 md:w-60 border-r border-stone-700/80 flex flex-col shrink-0 bg-stone-900 md:bg-stone-900/60 transform transition-transform duration-200 ${
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+        <div className="px-5 py-5 border-b border-stone-700/80 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/25 to-emerald-600/5 ring-1 ring-emerald-500/25">
+                <ShieldCheck size={16} className="text-emerald-400" />
+              </span>
+              <span className="text-sm font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {gt.consoleName}
+              </span>
+            </div>
+            <div className="text-[11px] text-stone-400 mt-2 pl-0.5">{gt.govtDashboard} · <span className="text-stone-300">{role}</span></div>
+          </div>
+          <button onClick={() => setMobileNavOpen(false)} aria-label={gt.close} className="md:hidden text-stone-400 hover:text-stone-200 p-1">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Color legend — always visible, no click/hover needed, so a
+            brand-new officer knows what red/amber/green mean before they've
+            read a single tier label anywhere in the app. */}
+        <div className="px-4 py-3 border-b border-stone-700/80">
+          <p className="text-[10px] text-stone-500 mb-1.5 leading-snug">{gt.legend}</p>
+          <div className="space-y-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> {gt.legendSafe}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" /> {gt.legendCaution}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-stone-300"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> {gt.legendHigh}</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
+          <button
+            onClick={() => { setActiveModule("heat"); setMobileNavOpen(false); }}
+            className={`relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+              activeModule === "heat"
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "text-stone-300 hover:bg-stone-800 hover:text-stone-200"
+            }`}
+          >
+            {activeModule === "heat" && (
+              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-emerald-500" />
+            )}
+            <Thermometer size={16} />
+            {gt.navHeat}
+          </button>
+          {OTHER_MODULES.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => { setActiveModule(m.key); setMobileNavOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+                activeModule === m.key ? "bg-stone-700/80 text-stone-200" : "text-stone-400 hover:bg-stone-800 hover:text-stone-300"
+              }`}
+            >
+              <m.icon size={16} />
+              <span className="flex-1 text-left">{gt[m.labelKey]}</span>
+              {m.locked && <Lock size={12} className="text-stone-500" />}
+            </button>
+          ))}
+        </nav>
+
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <div className="sticky top-0 z-10 border-b border-stone-700/80 bg-stone-900/80 backdrop-blur-md px-3 md:px-6 py-3 md:py-3.5 flex items-center gap-2 md:gap-4 flex-wrap">
+          <button onClick={() => setMobileNavOpen(true)} aria-label={gt.menu} className="md:hidden text-stone-300 hover:text-stone-100 p-1 shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+          {/* On mobile the sidebar (which shows the current module via a
+              highlighted row) is hidden behind the drawer, so without this
+              there's no on-screen sign of which module you're looking at
+              until you open the menu. Desktop already has the sidebar for
+              that, so this stays mobile-only. */}
+          <span className="md:hidden text-sm font-medium text-stone-200 truncate shrink-0 max-w-[7.5rem]">
+            {activeModule === "heat" ? gt.navHeat : gt[OTHER_MODULES.find((m) => m.key === activeModule)?.labelKey]}
+          </span>
+          <div className="relative flex-1 min-w-[120px] max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={gt.searchPlaceholder}
+              className="w-full bg-stone-800/80 border border-stone-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-shadow"
+            />
+          </div>
+          <div className="flex-1 hidden md:block" />
+          {activeLoading && (
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-stone-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-pulse" /> {gt.loadingLiveData}
+            </span>
+          )}
+          {activeError && !activeLoading && (
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full" title={activeError}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              {gt.couldntLoad}
+            </span>
+          )}
+          <button
+            onClick={() => setShowReport(true)}
+            aria-label={gt.generateReport}
+            className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white shadow-lg shadow-emerald-950/30 transition-all duration-150 shrink-0"
+          >
+            <FileText size={14} /> <span className="hidden sm:inline">{gt.generateReport}</span>
+          </button>
+
+          {/* Open Data — lets researchers/third parties pull the platform's
+              current per-district numbers directly, outside this UI. Same
+              popover pattern as the notification bell above. */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenDataOpen((v) => !v)}
+              aria-label={gt.openData}
+              className="flex items-center gap-1.5 text-sm px-2.5 md:px-3.5 py-1.5 rounded-lg border border-stone-700 text-stone-300 hover:bg-stone-800 hover:text-stone-100 transition-colors shrink-0"
+            >
+              <Download size={14} /> <span className="hidden sm:inline">{gt.openData}</span>
+            </button>
+            {openDataOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setOpenDataOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in p-3.5 space-y-2.5">
+                  <p className="text-[11px] text-stone-400 leading-relaxed">{gt.openDataHint}</p>
+                  <a
+                    href={`${API_BASE}/data/export.csv`}
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 py-2 rounded-lg transition-colors"
+                  >
+                    <Download size={13} /> {gt.openDataCsv}
+                  </a>
+                  <a
+                    href={`${API_BASE}/data/export`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium border border-stone-700 hover:bg-stone-700/60 text-stone-300 py-2 rounded-lg transition-colors"
+                  >
+                    {gt.openDataJson}
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Language + sign-out — moved from the sidebar footer to the
+              top-right of the header per team feedback, so they're visible
+              without opening the mobile nav drawer. Notifications lives here
+              too now, grouped with the other utility icons rather than
+              floating on its own next to the loading/error status text. */}
+          <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-stone-700/80 shrink-0">
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative flex items-center justify-center text-stone-400 hover:bg-stone-800 hover:text-stone-200 rounded-lg p-1.5 md:p-2 transition-colors"
+                title={gt.notifications}
+                aria-label={gt.notifications}
+              >
+                <Bell size={16} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-stone-900" />
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-20 overflow-hidden animate-fade-in">
+                    <div className="px-4 py-3 border-b border-stone-700 text-xs font-medium text-stone-200">
+                      {gt.notifications} {notifications.length > 0 ? `(${notifications.length})` : ""}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <p className="px-4 py-6 text-xs text-stone-400 text-center">{gt.noActiveAlerts}</p>
+                      ) : (
+                        notifications.map((n, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setActiveModule(n.module);
+                              if (n.module === "flood") setFloodTab("national");
+                              setNotifOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs text-stone-200 hover:bg-stone-700/70 border-b border-stone-700/60 last:border-0 transition-colors"
+                          >
+                            {n.text}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => setLang(lang === "en" ? "bn" : "en")}
+              className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+              title={lang === "en" ? "বাংলা" : "English"}
+              aria-label={lang === "en" ? "বাংলা" : "English"}
+            >
+              <Languages size={15} />
+              <span className="hidden md:inline">{lang === "en" ? "বাংলা" : "English"}</span>
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 text-xs px-2 md:px-2.5 py-1.5 rounded-lg text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors"
+              title={gt.signOut}
+              aria-label={gt.signOut}
+            >
+              <LogOut size={15} /> <span className="hidden md:inline">{gt.signOut}</span>
+            </button>
+          </div>
+        </div>
+
+        {activeModule === "flood" ? (
+          <FloodModuleContent
+            floodTab={floodTab}
+            setFloodTab={setFloodTab}
+            dhaka={floodDhaka}
+            national={floodNational}
+            selectedArea={selectedFloodArea}
+            setSelectedArea={setSelectedFloodArea}
+            lang={lang}
+            search={search}
+          />
+        ) : activeModule === "forest" ? (
+          <DeforestationModuleContent
+            data={deforestation}
+            selectedDistrict={selectedDistrict}
+            setSelectedDistrict={setSelectedDistrict}
+            citizenReports={citizenReports}
+            officerId={officerId}
+            officersList={officersList}
+            lang={lang}
+            search={search}
+          />
+        ) : activeModule !== "heat" ? (
+          <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
+            <div className="text-center max-w-sm">
+              <div className="w-14 h-14 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center mx-auto mb-4">
+                <Lock size={22} className="text-stone-500" />
+              </div>
+              <p className="text-stone-100 font-medium">{gt.moduleInDevelopment}</p>
+              <p className="text-sm text-stone-400 mt-1.5 leading-relaxed">
+                {gt.moduleInDevelopmentBody(gt[OTHER_MODULES.find((m) => m.key === activeModule)?.labelKey] || "")}
+              </p>
+              <button
+                onClick={() => setActiveModule("heat")}
+                className="mt-5 text-sm text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1.5 transition-colors"
+              >
+                <ArrowLeft size={14} /> {gt.backToHeat}
+              </button>
+            </div>
+          </div>
+        ) : loading || error || !heatDistricts ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 animate-fade-in">
+            <DataStateNotice loading={loading} error={error} label="heat data" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
+            {/* KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Kpi label={gt.kpiAvgTemp} value={avgLst !== null ? `${avgLst.toFixed(1)}C` : "—"} sub={gt.kpiAvgTempSub} icon={Thermometer} tone="orange" />
+              <Kpi label={gt.kpiHighRisk} value={highRiskCount} sub={gt.kpiHighRiskSub(heatDistricts.length)} icon={AlertTriangle} tone="red" />
+              <Kpi label={gt.kpiUhi} value={suhiDistrictCount} sub={gt.kpiUhiSub} icon={Users} />
+              <Kpi
+                label={gt.kpiHeatwaveWatches}
+                value={activeAlerts.length > 0 ? activeAlerts.length : gt.kpiHeatwaveNone}
+                sub={heatAlerts?.generated_at ? gt.kpiHeatwaveLive : gt.kpiHeatwaveNotRun}
+                icon={Bell}
+                tone={activeAlerts.length ? "red" : "slate"}
+              />
+            </div>
+            <p className="text-[10px] text-stone-500 -mt-4">{gt.kpiUhiGloss}</p>
+
+            {heatAlerts?.generated_at && (
+              <LiveRefreshBox
+                label={gt.liveRefreshLabel}
+                value={gt.liveRefreshHeat}
+                dateStr={gt.liveRefreshLastUpdated(
+                  new Date(heatAlerts.generated_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })
+                )}
+              />
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Heat map */}
+              <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <Eyebrow>{gt.compositeSeason}</Eyebrow>
+                    <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.surfaceTempTitle}</h3>
+                    <p className="text-xs text-stone-400 mt-0.5">{gt.surfaceTempSub}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
+                    <span>{heatColorScale.domainMin}°C</span>
+                    <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
+                    <span>{heatColorScale.domainMax}°C</span>
+                  </div>
+                </div>
+                {heatDistricts ? (
+                  <>
+                    <div className="flex items-center justify-center py-4">
+                      <BangladeshDistrictMap
+                        valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
+                        colorFn={heatColorScale.colorFn}
+                        labelFn={(v) => (v === null || v === undefined ? gt.noData : `${v.toFixed(1)}°C`)}
+                        onSelect={(name) => setSelectedHeatDistrict(heatDistricts.find((d) => d.name === name) || null)}
+                        selectedName={selectedHeatDistrict?.name}
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-500 text-center">{gt.gridNote}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-stone-400 py-8 text-center">{gt.noGridData}</p>
+                )}
+              </div>
+
+              {/* District ranking */}
+              <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <Eyebrow>{gt.priorityRanking}</Eyebrow>
+                <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.heatMitigationTitle}</h3>
+                <p className="text-[11px] text-stone-500 mb-3">{gt.heatMitigationSub}</p>
+                <div className="space-y-1 max-h-[360px] overflow-y-auto">
+                  {sortedByRisk.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+                  ) : (
+                    sortedByRisk.map((d, i) => {
+                      const c = tierColor(d.risk_category);
+                      const isSelected = selectedHeatDistrict?.name === d.name;
+                      return (
+                        <button
+                          key={d.name}
+                          onClick={() => setSelectedHeatDistrict(d)}
+                          className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
+                            isSelected ? "bg-stone-700/70 ring-1 " + c.ring : "hover:bg-stone-800/80"
+                          }`}
+                        >
+                          <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                          <span className="flex-1 text-sm text-stone-200">{d.name}</span>
+                          <span className="text-xs text-stone-400 tabular-nums">{d.lst_c.toFixed(1)}°C</span>
+                          <ChevronRight size={13} className={`text-stone-500 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {selectedHeatDistrict && (
+              <div className={`rounded-2xl p-4 border ${tierColor(selectedHeatDistrict.risk_category).bg} border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+                <IconBadge icon={MapPin} tone={selectedHeatDistrict.risk_category === "High" ? "red" : selectedHeatDistrict.risk_category === "Medium" ? "amber" : "teal"} />
+                <div className="flex-1">
+                  <span className="text-sm text-stone-100 font-medium">{selectedHeatDistrict.name}</span>
+                  <span className="text-xs text-stone-400 ml-2">
+                    {selectedHeatDistrict.lst_c.toFixed(1)}°C · {tierLabel(selectedHeatDistrict.risk_category, lang)} · NDVI {selectedHeatDistrict.ndvi.toFixed(2)} · {gt.builtGloss.split(" = ")[0]} {selectedHeatDistrict.built_fraction.toFixed(3)}
+                    {selectedHeatDistrict.uhi_intensity_c !== null && selectedHeatDistrict.uhi_intensity_c !== undefined
+                      ? ` · SUHI ${selectedHeatDistrict.uhi_intensity_c.toFixed(2)}°C`
+                      : ""}
+                  </span>
+                  <div className="text-[10px] text-stone-500 mt-1">{gt.ndviGloss} · {gt.suhiGloss}</div>
+                </div>
+                <button onClick={() => setSelectedHeatDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+                  <X size={15} />
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Trend chart */}
+              <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp size={14} className="text-emerald-400/80" />
+                  <h3 className="text-sm font-medium text-stone-100">{gt.trendTitle}</h3>
+                </div>
+                <p className="text-xs text-stone-400 mb-3">{gt.trendSub}</p>
+                <div style={{ width: "100%", height: 200 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={heatTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="year" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[24, 32]} />
+                      <Tooltip
+                        contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,0,0,0.5)" }}
+                        labelStyle={{ color: "#cbd5e1", marginBottom: 2 }}
+                        cursor={{ stroke: "#334155", strokeWidth: 1 }}
+                      />
+                      <Line type="monotone" dataKey="baseline" stroke="#475569" strokeWidth={1.5} dot={false} name="Pre-drift baseline" />
+                      <Line
+                        type="monotone" dataKey="temp" stroke="#fb923c" strokeWidth={2.5} name="Observed"
+                        dot={(props) => {
+                          const { cx, cy, payload, index } = props;
+                          return (
+                            <circle key={`dot-${payload.year ?? index}`} cx={cx} cy={cy} r={2.5}
+                              fill={payload.excluded ? "#0f172a" : "#fb923c"}
+                              stroke="#fb923c" strokeWidth={payload.excluded ? 1.5 : 0} />
+                          );
+                        }}
+                        activeDot={{ r: 4.5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Heatwave watch */}
+              <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Bell size={14} className="text-emerald-400/80" />
+                  <h3 className="text-sm font-medium text-stone-100">{gt.heatwaveWatch}</h3>
+                </div>
+                <p className="text-[11px] text-stone-400 mb-3.5 leading-relaxed">{gt.heatwaveWatchSub}</p>
+                {!heatAlerts?.generated_at ? (
+                  <p className="text-xs text-stone-400">{gt.noForecastYet}</p>
+                ) : activeAlerts.length === 0 ? (
+                  <p className="text-xs text-emerald-300/90">{gt.noHeatwaveForecast(heatAlerts.forecast_days)}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeAlerts.map((a) => (
+                      <div key={a.name} className="flex gap-3">
+                        <IconBadge icon={AlertTriangle} tone="red" size={14} />
+                        <div>
+                          <p className="text-xs font-medium text-stone-200">{a.name} · {a.worst_category}</p>
+                          <p className="text-[11px] text-stone-400 mt-0.5 leading-relaxed">
+                            {gt.heatwavePeak(a, heatAlerts.forecast_days)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {search && (
+              <div className="text-xs text-stone-400">
+                {gt.searchMatch(filteredDistricts.length, search)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Flood module content — two real, separate datasets: Dhaka (city-block
+// rule-based composite score, historical 2025 window) and Nationwide
+// (64-district trained Random Forest, 2015-2024). Shown as two tabs rather
+// than merged, since they're different scales and different methods —
+// merging them would blur that distinction rather than clarify it.
+// ---------------------------------------------------------------------------
+
+function FloodModuleContent({ floodTab, setFloodTab, dhaka, national, selectedArea, setSelectedArea, lang, search }) {
+  const gt = GOVT_I18N[lang];
+  return (
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
+      <div className="inline-flex items-center gap-1 bg-stone-800/80 border border-stone-700 rounded-lg p-1">
+        <button
+          onClick={() => setFloodTab("dhaka")}
+          className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "dhaka" ? "bg-stone-700 text-stone-50" : "text-stone-400 hover:text-stone-200"}`}
+        >
+          {gt.floodTabDhaka}
+        </button>
+        <button
+          onClick={() => setFloodTab("national")}
+          className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${floodTab === "national" ? "bg-stone-700 text-stone-50" : "text-stone-400 hover:text-stone-200"}`}
+        >
+          {gt.floodTabNational}
+        </button>
+      </div>
+
+      {floodTab === "dhaka" ? (
+        <FloodDhakaView dhaka={dhaka} selectedArea={selectedArea} setSelectedArea={setSelectedArea} lang={lang} />
+      ) : (
+        <FloodNationalView national={national} lang={lang} search={search} />
+      )}
+    </div>
+  );
+}
+
+function FloodDhakaView({ dhaka, selectedArea, setSelectedArea, lang }) {
+  const gt = GOVT_I18N[lang];
+  const { grid, trend, areas, summary, loading, error } = dhaka;
+
+  if (loading || error || !summary) {
+    return <DataStateNotice loading={loading} error={error} label="Dhaka flood data" />;
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi label={gt.kpiFloodProne} value={`${summary.floodPronePct}%`} sub={`${summary.floodProneCells} / ${summary.totalCells}`} icon={Droplets} tone="orange" />
+        <Kpi label={gt.kpiPeakAlerted} value={`${summary.peakPctAlerted}%`} sub={summary.peakDate} icon={AlertTriangle} tone="red" />
+        <Kpi label={gt.kpiAlertDays} value={summary.alertDays} sub={gt.kpiAlertDaysSub(summary.totalDays)} />
+        <Kpi label={gt.kpiRainfall} value={`${summary.observedRainfall}mm`} sub={gt.kpiRainfallSub(summary.historicalRainfall)} tone="teal" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{gt.realData2025}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.dhakaFloodTitle}</h3>
+          <p className="text-xs text-stone-400 mt-0.5 mb-4">{gt.dhakaFloodSub}</p>
+          <div className="flex items-center justify-center py-4">
+            {grid && <DhakaFloodMap grid={grid} colorFn={riskScoreToColor} labelFn={(v) => `${(v * 100).toFixed(0)}%`} />}
+          </div>
+          <p className="text-[11px] text-stone-500 text-center">{gt.dhakaGridNote}</p>
+        </div>
+
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{gt.highestRisk}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.topLocations}</h3>
+          <div className="space-y-1 max-h-72 overflow-y-auto">
+            {(areas || []).map((a, i) => {
+              const isSelected = selectedArea?.area === a.area;
+              return (
+                <button
+                  key={a.area}
+                  onClick={() => setSelectedArea(a)}
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-stone-700/70 ring-1 ring-emerald-500/30" : "hover:bg-stone-800/80"}`}
+                >
+                  <span className="text-[11px] text-stone-500 w-4 tabular-nums">{i + 1}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${a.category === "High" ? "bg-red-500" : a.category === "Medium" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                  <span className="flex-1 min-w-0 text-xs text-stone-200 truncate" title={a.name ? a.area : undefined}>{a.name || a.area}</span>
+                  <span className="text-xs text-stone-400 tabular-nums">{(a.risk * 100).toFixed(0)}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {selectedArea && (
+        <div className="rounded-2xl p-4 border bg-stone-800/40 border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20">
+          <IconBadge icon={MapPin} tone={selectedArea.category === "High" ? "red" : "amber"} />
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-stone-100 font-medium">{selectedArea.name || selectedArea.area}</span>
+            <span className="text-xs text-stone-400 ml-2">
+              {(selectedArea.risk * 100).toFixed(0)}% · {tierLabel(selectedArea.category, lang)} · {selectedArea.elevation}m · {selectedArea.riverDist}m
+            </span>
+            {selectedArea.name && (
+              <div className="text-[11px] text-stone-500 mt-0.5">{selectedArea.area}</div>
+            )}
+          </div>
+          <button onClick={() => setSelectedArea(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {trend && (
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={14} className="text-emerald-400/80" />
+            <h3 className="text-sm font-medium text-stone-100">{gt.rainfallVsAlert}</h3>
+          </div>
+          <p className="text-xs text-stone-400 mb-3">{gt.rainfallVsAlertSub}</p>
+          <div style={{ width: "100%", height: 200 }}>
+            <ResponsiveContainer>
+              <LineChart data={trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} interval={6} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }} />
+                <Line type="monotone" dataKey="rainfall" stroke="#38bdf8" strokeWidth={1.5} dot={false} name="Rainfall (mm)" />
+                <Line type="monotone" dataKey="pctAlerted" stroke="#fb923c" strokeWidth={2} dot={false} name="% area alerted" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px] text-stone-500">
+        No supervised model was trained for Dhaka — no flood-event ground truth exists for this window. Risk
+        scores are a relative, comparative signal, not a calibrated probability.
+      </p>
+    </>
+  );
+}
+
+function FloodNationalView({ national, lang, search }) {
+  const gt = GOVT_I18N[lang];
+  const { severity, priority, summary, projection, loading, error } = national;
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+
+  // Early-warning list: districts whose 7-day FORWARD projection (the same
+  // frozen classifier, scored against Open-Meteo's real forecast rather
+  // than the 90-day historical average above) is trending up — i.e. their
+  // worst day this week is still ahead, not behind them. This is the one
+  // place the government view surfaces the projection model; it's additive
+  // to the priority ranking, never a replacement for it, and renders
+  // nothing until the automation has produced at least one projection run.
+  const risingDistricts = useMemo(() => {
+    return (projection?.districts || [])
+      .filter((d) => d.projection_trend === "rising")
+      .sort((a, b) => b.risk_in_7_days - a.risk_in_7_days)
+      .slice(0, 8);
+  }, [projection]);
+
+  const severityByDistrict = useMemo(() => {
+    const m = {};
+    (severity || []).forEach((s) => { m[s.district_id] = s; });
+    return m;
+  }, [severity]);
+
+  if (loading || error || !summary) {
+    return <DataStateNotice loading={loading} error={error} label="nationwide flood data" />;
+  }
+
+  const searchedPriority = search
+    ? (priority || []).filter((d) => d.district_name.toLowerCase().includes(search.toLowerCase()))
+    : priority || [];
+  const topPriority = searchedPriority.slice(0, 20);
+  const observedYears = summary.observed_years || [];
+  const proxyYears = summary.proxy_years || [];
+  // WorldPop 2020 population (summed within FAO GAUL district boundaries —
+  // same figures the thesis report's own Section H discloses) across the
+  // top-20 priority districts — the actual number the population-weighted
+  // exposure term (see rankedByScore / summary.exposure_metric) is now
+  // grounded in, surfaced directly rather than left implicit in the score.
+  const populationInTopPriority = topPriority.reduce((sum, d) => sum + (d.population || 0), 0);
+  const formatPopulation = (n) =>
+    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : String(n);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi label={gt.kpiDistrictsCovered} value={summary.districts} sub={gt.allBangladesh} icon={MapPin} />
+        <Kpi label={gt.kpiValidatedRecall} value="83%" sub={gt.kpiValidatedRecallSub} icon={ShieldCheck} tone="teal" />
+        <Kpi label={gt.kpiValidatedAuc} value="0.91" sub={gt.kpiValidatedAucSub} tone="teal" />
+        <Kpi label={gt.kpiTopPriority} value={topPriority[0]?.district_name || "—"} sub={gt.kpiTopPrioritySub} icon={AlertTriangle} tone="red" />
+        <Kpi
+          label={gt.kpiPopulationTopPriority}
+          value={populationInTopPriority > 0 ? formatPopulation(populationInTopPriority) : "—"}
+          sub={gt.kpiPopulationTopPrioritySub}
+          hint={gt.kpiPopulationTopPriorityHint}
+          icon={Users}
+          tone="amber"
+        />
+      </div>
+
+      {summary.last_refreshed_at && (
+        <LiveRefreshBox
+          label={gt.liveRefreshLabel}
+          value={gt.liveRefreshFlood}
+          dateStr={gt.liveRefreshLastUpdated(
+            new Date(summary.last_refreshed_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+            })
+          )}
+        />
+      )}
+
+      {priority && priority.length > 0 && (
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Eyebrow>{gt.floodMapEyebrow}</Eyebrow>
+              <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.floodMapTitle}</h3>
+              <p className="text-xs text-stone-400 mt-0.5">{gt.floodMapSub}</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
+              <span>0%</span>
+              <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(45,130,130), rgb(210,170,40), rgb(190,40,30))" }} />
+              <span>100%</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-center py-4">
+            <BangladeshDistrictMap
+              valueByDistrict={Object.fromEntries(priority.map((d) => [d.district_name, d.avg_predicted_risk]))}
+              colorFn={riskScoreToColor}
+              labelFn={(v) => (v === null || v === undefined ? gt.noData : `${(v * 100).toFixed(0)}%`)}
+              onSelect={(name) => setSelectedDistrict((priority || []).find((d) => d.district_name === name) || null)}
+              selectedName={selectedDistrict?.district_name}
+            />
+          </div>
+        </div>
+      )}
+
+      {projection && (
+        <div className="bg-gradient-to-b from-red-950/30 to-stone-800/30 border border-red-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
+          <div className="flex items-center gap-2.5 mb-1">
+            <IconBadge icon={TrendingUp} tone="red" size={14} />
+            <h3 className="text-sm font-medium text-stone-100">{gt.earlyWarningTitle}</h3>
+          </div>
+          <p className="text-[11px] text-stone-500 mb-3">{gt.earlyWarningHint}</p>
+          {risingDistricts.length === 0 ? (
+            <p className="text-xs text-stone-400">{gt.earlyWarningEmpty}</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {risingDistricts.map((d) => {
+                const countdown = floodAlertCountdown(d.daily);
+                return (
+                  <div key={d.district_id} className="flex items-center gap-2 bg-stone-900/50 border border-stone-700/60 rounded-xl px-3 py-2">
+                    <TrendingUp size={13} className="text-red-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-stone-200 font-medium truncate">{d.district_name}</p>
+                      <p className="text-[10px] text-stone-500 tabular-nums">
+                        {gt.earlyWarningPeak(Math.round((d.peak_day?.predicted_risk || 0) * 100))}
+                      </p>
+                      {countdown?.crosses && (
+                        <p className="text-[10px] text-red-400 font-medium">
+                          {countdown.daysAhead === 0 ? gt.earlyWarningCountdownToday : gt.earlyWarningCountdownDays(countdown.daysAhead)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{gt.mitigationPriority}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-1">{gt.top20of64}</h3>
+          <p className="text-xs text-stone-400 mb-1">{gt.rankedByScore}</p>
+          <p className="text-[11px] text-stone-500 mb-1">{gt.badgeVsPercent}</p>
+          <p className="text-[11px] text-stone-500 mb-3">{gt.scoreDeltaLegend}</p>
+
+          {/* Explicit column headers — per supervisor feedback that a value-only
+              row (a name next to a stack of unlabeled numbers/icons) isn't
+              self-explanatory to someone seeing this for the first time.
+              Widths mirror the data row below so each header sits directly
+              above the value it describes. */}
+          <div className="flex items-center gap-2 sm:gap-3 px-2 pb-1.5 mb-1 border-b border-stone-700/60 text-[9px] sm:text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+            <span className="w-5 shrink-0">{gt.colRank}</span>
+            <span className="w-1.5 shrink-0" />
+            <span className="flex-1 min-w-0">{gt.colDistrict}</span>
+            <span className="shrink-0 w-16 text-center" title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{gt.colSeverityTier}</span>
+            <span className="shrink-0 w-9 text-center" title="Direction the live predicted risk has moved since the last refresh">{gt.colTrend}</span>
+            <span className="shrink-0 w-16 text-right" title={gt.scoreDeltaLegend}>{gt.colDelta}</span>
+            <span className="shrink-0 w-20 text-right" title="This week's live predicted flood risk from real rainfall">{gt.colLiveRisk}</span>
+          </div>
+
+          <div className="space-y-1">
+            {topPriority.length === 0 && search ? (
+              <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+            ) : (
+            topPriority.map((d) => {
+              const sev = severityByDistrict[d.district_id];
+              const tier = sev?.severity_tier || "Moderate";
+              const c = tierColor(tier);
+              const prevRisk = sev?.previous_avg_predicted_risk;
+              const hasDelta = typeof prevRisk === "number";
+              const delta = hasDelta ? d.avg_predicted_risk - prevRisk : null;
+              const isSelected = selectedDistrict?.district_id === d.district_id;
+              return (
+                <button
+                  key={d.district_id}
+                  type="button"
+                  onClick={() => setSelectedDistrict(isSelected ? null : d)}
+                  className={`w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg text-left transition-colors ${isSelected ? `bg-stone-700/70 ring-1 ${c.ring}` : "hover:bg-stone-800/80"}`}
+                >
+                  <span className="text-[11px] text-stone-500 w-5 tabular-nums shrink-0">{d.priority_rank}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm text-stone-200 truncate">{d.district_name}</span>
+                    {typeof d.population === "number" && (
+                      <span className="block text-[9px] text-stone-500 tabular-nums">
+                        {gt.popLabel(d.population.toLocaleString())}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 w-16 flex justify-center">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.bg} ${c.text}`} title="Historical severity tier — based on past flood magnitude (DFO severity + flooded extent), not this week's weather">{tierLabel(tier, lang)}</span>
+                  </span>
+                  <span className="shrink-0 w-9 flex justify-center">
+                    <RiskTrendBadge trend={sev?.risk_trend} />
+                  </span>
+                  {hasDelta ? (
+                    <span
+                      className={`shrink-0 text-[10px] tabular-nums w-16 text-right ${delta > 0 ? "text-amber-400" : delta < 0 ? "text-emerald-400" : "text-stone-500"}`}
+                      title={gt.scoreDeltaTooltip(prevRisk.toFixed(4), d.avg_predicted_risk.toFixed(4))}
+                    >
+                      Δ{delta >= 0 ? "+" : ""}{delta.toFixed(4)}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] text-stone-600 w-16 text-right" title={gt.noDeltaYet}>—</span>
+                  )}
+                  <span className="shrink-0 text-xs text-stone-400 tabular-nums w-20 text-right" title="This week's live predicted flood risk from real rainfall — separate from the historical severity badge">{(d.avg_predicted_risk * 100).toFixed(1)}%</span>
+                </button>
+              );
+            })
+            )}
+          </div>
+          <p className="text-[11px] text-stone-500 mt-3">{gt.moreDistricts(Math.max(0, searchedPriority.length - 20))}</p>
+        </div>
+      </div>
+
+      {selectedDistrict && (() => {
+        const sev = severityByDistrict[selectedDistrict.district_id];
+        const tier = sev?.severity_tier || "Moderate";
+        const c = tierColor(tier);
+        return (
+          <div className={`rounded-2xl p-4 border ${c.bg} border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+            <IconBadge icon={AlertTriangle} tone={tier === "Severe" || tier === "High" ? "red" : tier === "Moderate" ? "amber" : "teal"} />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-stone-100 font-medium">{selectedDistrict.district_name}</span>
+              <span className="text-xs text-stone-400 ml-2">
+                {gt.colLiveRisk} {(selectedDistrict.avg_predicted_risk * 100).toFixed(1)}% · {tierLabel(tier, lang)}
+                {typeof selectedDistrict.population === "number" && ` · ${gt.popLabel(selectedDistrict.population.toLocaleString())}`}
+              </span>
+            </div>
+            <button onClick={() => setSelectedDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+              <X size={15} />
+            </button>
+          </div>
+        );
+      })()}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Deforestation module content — real data: Random Forest on seasonal MODIS
+// NDVI, 2015-2025, all 64 districts. National year-by-year trend direction
+// and the loss forecast are deliberately NOT shown — the notebook's own
+// integration-readiness check quarantined both (three normalisation methods
+// disagree even on the sign of the decade change; the forecast's backtest
+// error exceeds its usability threshold). What IS shown — the 2020
+// cross-section, district rankings, and loss locations — passed all 35
+// core checks.
+// ---------------------------------------------------------------------------
+
+// Client-side CSV export of the worklist rows already fetched — no backend
+// change needed. This is the difference between "a list on screen" and
+// something a field officer can actually take with them (open in a
+// spreadsheet, print, share over WhatsApp) when they're headed out with
+// patchy or no connectivity.
+function downloadWorklistCsv(rows) {
+  const header = ["district", "loss_year", "area_km2", "in_protected", "lat", "lon"];
+  const lines = [header.join(",")];
+  rows.forEach((p) => {
+    const vals = [
+      p.district ?? "",
+      p.loss_year ?? "",
+      p.area_km2 ?? "",
+      p.in_protected ? "yes" : "no",
+      p.lat ?? "",
+      p.lon ?? "",
+    ];
+    lines.push(vals.map((v) => (typeof v === "string" && v.includes(",") ? `"${v}"` : v)).join(","));
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `deforestation_worklist_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Status pill colors — same red/amber/green-family language as everywhere
+// else in the app, plus a neutral "pending" and a distinct "rejected".
+const REPORT_STATUS_TONE = {
+  pending: { bg: "bg-stone-700/60", text: "text-stone-300" },
+  verified: { bg: "bg-amber-950/40", text: "text-amber-400" },
+  resolved: { bg: "bg-emerald-950/40", text: "text-emerald-400" },
+  rejected: { bg: "bg-red-950/40", text: "text-red-400" },
+};
+
+// One citizen report, with officer controls (status / assignment / note)
+// when an officerId is available — this is the closed-loop verification +
+// task-assignment feature: a report is no longer just a read-only line, an
+// officer can actually act on it, and that action is what the citizen's own
+// status lookup (ReportStatusLookup, citizen side) later shows them.
+function ReportManageRow({ r, officerId, officersList, lang, gt, onUpdated }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState(r.officer_note || "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const status = r.status || "pending";
+  const tone = REPORT_STATUS_TONE[status] || REPORT_STATUS_TONE.pending;
+  const assignedOfficer = officersList.find((o) => o.officer_id === r.assigned_to);
+
+  async function patchReport(fields) {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports/${r.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updated_by: officerId, ...fields }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Update failed (${res.status})`);
+      onUpdated(body.report);
+    } catch (err) {
+      setSaveError(err.message || "Update failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="p-2 rounded-lg hover:bg-stone-800/60">
+      <div className="flex items-start gap-2.5">
+        <IconBadge icon={AlertTriangle} tone="amber" size={12} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-xs text-stone-200">
+              <span className="font-medium">{r.district}</span> — {r.description}
+            </p>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ${tone.bg} ${tone.text}`}>
+              {gt.reportStatusLabel(status)}
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-500 mt-0.5">
+            {new Date(r.created_at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {r.contact ? ` · ${gt.contactLabel}: ${r.contact}` : ""}
+            {assignedOfficer ? ` · ${gt.assignedToLabel}: ${assignedOfficer.name}` : ""}
+            {" #"}{r.id}
+          </p>
+          {r.officer_note && !open && (
+            <p className="text-[11px] text-stone-400 mt-1 italic">"{r.officer_note}"</p>
+          )}
+          {officerId && (
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="text-[10px] text-emerald-400 hover:text-emerald-300 mt-1"
+            >
+              {open ? gt.manageClose : gt.manageOpen}
+            </button>
+          )}
+          {open && (
+            <div className="mt-2 p-2.5 bg-stone-900/60 border border-stone-700 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-[10px] text-stone-400">{gt.statusLabel}</label>
+                <select
+                  value={status}
+                  disabled={saving}
+                  onChange={(e) => patchReport({ status: e.target.value })}
+                  className="bg-stone-800 border border-stone-700 rounded-lg px-2 py-1 text-[11px] text-stone-200 disabled:opacity-60"
+                >
+                  {["pending", "verified", "resolved", "rejected"].map((s) => (
+                    <option key={s} value={s}>{gt.reportStatusLabel(s)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-[10px] text-stone-400">{gt.assignToLabel}</label>
+                <select
+                  value={r.assigned_to || ""}
+                  disabled={saving}
+                  onChange={(e) => patchReport({ assigned_to: e.target.value || null })}
+                  className="bg-stone-800 border border-stone-700 rounded-lg px-2 py-1 text-[11px] text-stone-200 disabled:opacity-60"
+                >
+                  <option value="">{gt.unassigned}</option>
+                  {officersList.map((o) => (
+                    <option key={o.officer_id} value={o.officer_id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-stone-400">{gt.officerNoteLabel}</label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg px-2 py-1.5 text-[11px] text-stone-200 resize-none"
+                />
+                <button
+                  onClick={() => patchReport({ officer_note: note })}
+                  disabled={saving}
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300"
+                >
+                  {saving ? gt.saving : gt.saveNote}
+                </button>
+              </div>
+              {saveError && <p className="text-[10px] text-red-400">{saveError}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeforestationModuleContent({ data, selectedDistrict, setSelectedDistrict, citizenReports, officerId, officersList, lang, search }) {
+  const gt = GOVT_I18N[lang];
+  const { districts, worklist, worklistTotal, restoration, lossByYear, loading, error } = data;
+  const [reportStatusFilter, setReportStatusFilter] = useState("all");
+
+  if (loading || error || !districts) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 animate-fade-in">
+        <DataStateNotice loading={loading} error={error} label="deforestation data" />
+      </div>
+    );
+  }
+
+  const nationalLossKm2 = (lossByYear || []).reduce((sum, r) => sum + (r.km2_lost || 0), 0);
+  const alertCount = districts.filter((d) => d.alert).length;
+  const avgForestPct = districts.reduce((s, d) => s + (d.forest_pct_now || 0), 0) / districts.length;
+  const sortedByLoss = [...districts]
+    .filter((d) => !search || d.district.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.forest_loss_pct || 0) - (a.forest_loss_pct || 0));
+  const topRestoration = (restoration || []).filter((r) => r.restoration_tier === "High").slice(0, 10);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi label={gt.kpiNationalLoss} value={`${Math.round(nationalLossKm2).toLocaleString()} km²`} sub={gt.kpiNationalLossSub} icon={TreeDeciduous} tone="red" />
+        <Kpi label={gt.kpiAccelerating} value={alertCount} sub={gt.kpiAcceleratingSub} icon={AlertTriangle} tone="orange" />
+        <Kpi label={gt.kpiAvgTreeCover} value={`${avgForestPct.toFixed(1)}%`} sub={gt.kpiAvgTreeCoverSub} tone="teal" />
+        <Kpi label={gt.kpiLossPatches} value={(worklistTotal ?? worklist?.length ?? 0).toLocaleString()} sub={gt.kpiLossPatchesSub} />
+      </div>
+
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Eyebrow tone="teal">{gt.forestMapEyebrow}</Eyebrow>
+            <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.forestMapTitle}</h3>
+            <p className="text-xs text-stone-400 mt-0.5">{gt.forestMapSub}</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-stone-400">
+            <span>0%</span>
+            <div className="w-16 h-2 rounded-full ring-1 ring-black/20" style={{ background: "linear-gradient(to right, rgb(190,40,30), rgb(210,170,40), rgb(16,120,70))" }} />
+            <span>60%+</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-4">
+          <BangladeshDistrictMap
+            valueByDistrict={Object.fromEntries(districts.map((d) => [d.district, d.forest_pct_now]))}
+            colorFn={forestPctToColor}
+            labelFn={(v) => (v === null || v === undefined ? gt.noData : `${v.toFixed(1)}%`)}
+            onSelect={(name) => setSelectedDistrict(districts.find((d) => d.district === name) || null)}
+            selectedName={selectedDistrict?.district}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{gt.rankedByLoss}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.districtRanking64}</h3>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {sortedByLoss.length === 0 && search ? (
+              <p className="text-xs text-stone-500 text-center py-6">{gt.searchMatch(0, search)}</p>
+            ) : (
+            sortedByLoss.map((d, i) => {
+              const c = tierColor(d.priority);
+              const isSelected = selectedDistrict?.district === d.district;
+              return (
+                <button
+                  key={d.district}
+                  onClick={() => setSelectedDistrict(d)}
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${isSelected ? "bg-stone-700/70 ring-1 " + c.ring : "hover:bg-stone-800/80"}`}
+                >
+                  <span className="text-[11px] text-stone-500 w-5 tabular-nums">{i + 1}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                  <span className="flex-1 min-w-0 text-sm text-stone-200 truncate">{d.district}</span>
+                  {d.protected_loss_km2 > 0 && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400 shrink-0"
+                      title={gt.protectedLoss}
+                    >
+                      {d.protected_loss_km2.toFixed(1)} km² {gt.protectedShort}
+                    </span>
+                  )}
+                  <span className="text-xs text-stone-400 tabular-nums shrink-0">{d.forest_pct_now?.toFixed(1)}% {gt.coverSuffix}</span>
+                  <ChevronRight size={13} className={`text-stone-500 transition-transform shrink-0 ${isSelected ? "translate-x-0.5" : ""}`} />
+                </button>
+              );
+            })
+            )}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow tone="teal">{gt.restorationPriority}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5 mb-4">{gt.topReplanting}</h3>
+          <div className="space-y-2.5">
+            {topRestoration.map((r, i) => (
+              <div key={r.district} className="flex items-center gap-2.5">
+                <IconBadge icon={Sprout} tone="teal" size={13} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-stone-200 truncate">{r.district}</p>
+                  <p className="text-[11px] text-stone-400">{r.forest_pct_now?.toFixed(1)}% {gt.coverSuffix} · {r.trend}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {selectedDistrict && (
+        <div className={`rounded-2xl p-4 border ${tierColor(selectedDistrict.priority).bg} border-stone-700 flex items-center gap-4 animate-fade-in-up shadow-sm shadow-black/20`}>
+          <IconBadge icon={TreeDeciduous} tone={selectedDistrict.priority === "High" ? "red" : selectedDistrict.priority === "Medium" ? "amber" : "teal"} />
+          <div className="flex-1">
+            <span className="text-sm text-stone-100 font-medium">{selectedDistrict.district}</span>
+            <span className="text-xs text-stone-400 ml-2">
+              {selectedDistrict.forest_pct_now?.toFixed(1)}% {gt.coverSuffix} · -{selectedDistrict.forest_loss_pct?.toFixed(1)}% (2016–) ·
+              {" "}{selectedDistrict.trend} · {tierLabel(selectedDistrict.restoration_tier, lang)}
+              {selectedDistrict.protected_loss_km2 > 0 && ` · ${selectedDistrict.protected_loss_km2.toFixed(1)} km² ${gt.protectedShort}`}
+            </span>
+          </div>
+          <button onClick={() => setSelectedDistrict(null)} aria-label={gt.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {lossByYear && lossByYear.length > 0 && (
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <h3 className="text-sm font-medium text-stone-100 mb-1">{gt.nationalLossByYear}</h3>
+          <p className="text-xs text-stone-400 mb-3">{gt.km2PerYear}</p>
+          <div style={{ width: "100%", height: 180 }}>
+            <ResponsiveContainer>
+              <BarChart data={lossByYear} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="year" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12 }} />
+                <Bar dataKey="km2_lost" fill="#dc2626" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {worklist && worklist.length > 0 && (
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div>
+              <Eyebrow tone="orange">{gt.fieldWorklist}</Eyebrow>
+              <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.recentLossPatches}</h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-stone-400">{gt.showingOf(Math.min(50, worklist.length), (worklistTotal ?? worklist.length).toLocaleString())}</span>
+              <button
+                onClick={() => downloadWorklistCsv(worklist)}
+                className="text-[11px] px-2 py-1 rounded-lg border border-stone-700 text-stone-300 hover:text-stone-100 hover:bg-stone-800 transition-colors shrink-0"
+                title={gt.downloadCsvHint}
+              >
+                {gt.downloadCsv}
+              </button>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            <table className="w-full text-xs border-separate border-spacing-0">
+              <thead className="sticky top-0 bg-stone-800">
+                <tr className="text-stone-400 text-left">
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colDistrict}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colYear}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colArea}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colProtected}</th>
+                  <th className="py-1.5 font-medium border-b border-stone-700">{gt.colLocation}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {worklist.slice(0, 50).map((p, i) => (
+                  <tr key={i} className={i % 2 === 1 ? "bg-stone-800/30" : ""}>
+                    <td className="py-1.5 px-1 text-stone-200">{p.district}</td>
+                    <td className="py-1.5 px-1 text-stone-300">{p.loss_year}</td>
+                    <td className="py-1.5 px-1 text-stone-300">{p.area_km2?.toFixed(2)} km²</td>
+                    <td className="py-1.5 px-1">
+                      {p.in_protected ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950/40 text-red-400">{gt.yes}</span> : <span className="text-stone-500">—</span>}
+                    </td>
+                    <td className="py-1.5 px-1">
+                      {p.lat != null && p.lon != null ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 tabular-nums"
+                          title={`${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`}
+                        >
+                          <MapPin size={11} /> {gt.map}
+                        </a>
+                      ) : (
+                        <span className="text-stone-500">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <Eyebrow tone="teal">{gt.citizenReportsEyebrow}</Eyebrow>
+            <h3 className="text-sm font-medium text-stone-100 mt-0.5">{gt.citizenReportsTitle}</h3>
+          </div>
+          {citizenReports?.reports && (
+            <span className="text-[11px] text-stone-400">{gt.reportCount(citizenReports.reports.length)}</span>
+          )}
+        </div>
+        <p className="text-xs text-stone-400 mb-3">{gt.citizenReportsSub}</p>
+
+        {citizenReports?.reports && citizenReports.reports.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+            {["all", "pending", "verified", "resolved", "rejected"].map((s) => {
+              const count = s === "all" ? citizenReports.reports.length : citizenReports.reports.filter((r) => (r.status || "pending") === s).length;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setReportStatusFilter(s)}
+                  className={`text-[10px] px-2 py-1 rounded-full transition-colors ${
+                    reportStatusFilter === s ? "bg-emerald-600/25 text-emerald-300" : "bg-stone-800 text-stone-400 hover:text-stone-200"
+                  }`}
+                >
+                  {s === "all" ? gt.statusAll : gt.reportStatusLabel(s)} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {citizenReports?.loading ? (
+          <p className="text-xs text-stone-400 py-4">{gt.loadingCitizenReports}</p>
+        ) : citizenReports?.error ? (
+          <p className="text-xs text-amber-500 py-4">{gt.couldntLoadCitizenReports}</p>
+        ) : citizenReports?.configured === false ? (
+          <p className="text-xs text-stone-400 py-4">{gt.reportsNotSetUp}</p>
+        ) : !citizenReports?.reports || citizenReports.reports.length === 0 ? (
+          <p className="text-xs text-stone-400 py-4">{gt.noCitizenReports}</p>
+        ) : (
+          <div className="space-y-1 max-h-96 overflow-y-auto">
+            {citizenReports.reports
+              .filter((r) => reportStatusFilter === "all" || (r.status || "pending") === reportStatusFilter)
+              .map((r) => (
+                <ReportManageRow
+                  key={r.id}
+                  r={r}
+                  officerId={officerId}
+                  officersList={officersList || []}
+                  lang={lang}
+                  gt={gt}
+                  onUpdated={() => citizenReports.refetch()}
+                />
+              ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Citizen dashboard
+// ---------------------------------------------------------------------------
+// Real, citizen-facing additions (this revision): a district picker so the
+// page is about the citizen's own area instead of a fixed demo ward; a real
+// flood-risk card sourced from the same live, 3-day-refreshed national flood
+// model the government dashboard uses (flood_national_severity.json — no new
+// model, no invented numbers); tier-based safety guidance instead of just a
+// number; and an English/Bangla toggle for the static text on this page.
+// Nothing here fabricates specific shelter locations for a real district —
+// the flood card points to the real, publicly known national emergency
+// number (999) and local Union Parishad / Upazila office instead, since no
+// real shelter-location dataset exists for this project.
+
+const CITIZEN_I18N = {
+  en: {
+    appName: "Bangladesh Environmental Watch",
+    exit: "Exit",
+    back: "Back",
+    hubHint: "Tap a category to see details for your area.",
+    heatModuleLabel: "Seasonal heat risk",
+    floodModuleLabel: "Flood risk",
+    forestModuleLabel: "Deforestation",
+    yourArea: "Your area",
+    yourAreaHint: "Flood risk, heat risk and tree cover below update for whichever district you pick.",
+    heatwaveWatchOne: "1 location nationally is forecast to see heatwave-level heat in the next 7 days.",
+    heatwaveWatchMany: "locations nationally are forecast to see heatwave-level heat in the next 7 days.",
+    heatMapTitle: "Heat map — nationwide",
+    noData: "No data",
+    currentTemp: "Surface temp, your district",
+    healthAdvisoryTitle: "Health advisory",
+    floodRiskTitle: "Flood risk —",
+    floodRiskLive: "Live, rescored every 3 days from real rainfall",
+    floodRiskFallback: "Flood data isn't available right now — showing the last known status.",
+    floodRiskFallbackNote: "Couldn't load live flood data. Try again shortly.",
+    trendUp: "rising since last update",
+    trendDown: "falling since last update",
+    trendSteady: "steady since last update",
+    whatToDo: "What to do",
+    emergencyLine: "National emergency helpline: 999 (fire, flood rescue, ambulance)",
+    emergencyLine2: "For your nearest official shelter, contact your local Union Parishad / Ward office.",
+    treeCoverTitle: "Tree cover —",
+    footer: "Live data from the backend where available.",
+    loading: "Loading…",
+    reportTitle: "Seen tree-cutting nearby?",
+    reportHint: "Satellite data can miss small, local cutting. Your report helps — it's shown to government reviewers, not verified automatically.",
+    reportDescriptionPlaceholder: "What did you see, and roughly where? (e.g. \"several trees cut near the riverbank, Ward 4\")",
+    reportContactPlaceholder: "Phone or email (optional)",
+    reportSubmit: "Submit report",
+    reportSending: "Sending…",
+    reportSuccess: "Thank you — your report was submitted.",
+    reportReference: "Reference number, if you need to follow up:",
+    reportNotConfigured: "Reports aren't accepted yet — this feature needs one more setup step on the backend.",
+    reportError: "Couldn't submit your report. Please try again shortly.",
+    reportTooShort: "Please add a few more words describing what you saw.",
+    reportStatusLabel: (s) => ({ pending: "Pending", verified: "Verified", resolved: "Resolved", rejected: "Rejected" }[s] || s),
+    statusCheckTitle: "Check a report's status",
+    statusCheckHint: "Enter the reference number you were given after submitting a report.",
+    statusCheckPlaceholder: "Reference number",
+    statusCheckButton: "Check status",
+    statusCheckSending: "Checking…",
+    statusCheckNotFound: "No report found with that reference number.",
+    statusCheckNotConfigured: "Status lookup isn't available yet — this feature needs one more setup step on the backend.",
+    statusCheckError: "Couldn't check status. Please try again shortly.",
+    statusCheckSubmittedLabel: "Submitted:",
+    statusCheckUpdatedLabel: "Last updated:",
+    statusCheckNoteLabel: "Officer note:",
+    communityStatsTitle: "Reporting activity in this district",
+    communityStatsHint: "How many tree-cutting reports have been submitted here, and what's happened to them.",
+    communityStatsTotal: "total reports",
+    communityStatsEmpty: "No reports yet for this district.",
+    alertSubscribeTitle: "Get alerted automatically",
+    alertSubscribeHint: "Don't wait to check the app — get an email the moment your area's risk actually goes up. No account needed.",
+    alertEmailPlaceholder: "Your email address",
+    hazardFlood: "Flood",
+    hazardHeat: "Heatwave (national watch)",
+    alertSubscribeButton: "Subscribe",
+    alertSubscribeSending: "Subscribing…",
+    alertSubscribeSuccess: "You're subscribed — we'll only email you when your risk actually changes.",
+    alertSubscribeInvalid: "Enter an email and pick at least one alert type.",
+    alertSubscribeNotConfigured: "Alerts aren't accepted yet — this feature needs one more setup step on the backend.",
+    alertSubscribeError: "Couldn't save your subscription. Please try again shortly.",
+    alertWhatsappLabel: "Also get this on WhatsApp (demo)",
+    alertPhonePlaceholder: "WhatsApp number, e.g. +8801XXXXXXXXX",
+    alertPhoneInvalid: "Enter a valid WhatsApp number in international format, e.g. +8801XXXXXXXXX.",
+    alertWhatsappJoinNote: "Demo feature — first send \"{code}\" to {number} on WhatsApp (one-time), then enter your number below.",
+    chooseDistrictPrompt: "Choose your district to see your area's risk",
+    chooseDistrictHint: "Tap the district picker above and pick where you are — nothing is shown by default so you never see someone else's area by mistake.",
+    legendSafe: "Safe",
+    legendCaution: "Caution",
+    legendHigh: "High risk",
+    listen: "Listen",
+    stopListening: "Stop",
+    share: "Share",
+    saveCard: "Save",
+    emergencyHelplinesTitle: "Emergency helplines",
+    emergencyHint: "Tap any number to call directly — works even without a data connection.",
+    emergencyNational: "National emergency — police, fire, flood rescue, ambulance (24/7, free)",
+    emergencyChild: "Child helpline — for a child in danger or distress",
+    emergencyWomenChild: "Women & children affairs — abuse or safety concerns",
+    emergencyGovtInfo: "Government information & assistance",
+    emergencyAgri: "Agriculture helpline — crop or livestock damage advice",
+    largeTextOn: "Larger text",
+    largeTextOff: "Normal text",
+    forecastTitle: "Live 7-day weather — your area",
+    forecastHint: "Real forecast for your district's location, fetched live from Open-Meteo — separate from the risk score above, which comes from the trained model.",
+    trendDetail: (prevPct, currPct) => `Was ${prevPct}% at the last check, now ${currPct}%.`,
+    projectionTitle: "7-day forward risk projection",
+    projectionHint: "Same trained model, run against the real published weather forecast for each of the next 7 days — not a historical average. Later days are less certain than tomorrow.",
+    projectionRising: (day, pct) => `Rising — ${day || "later this week"} looks worst, around ${pct}% predicted risk.`,
+    projectionFalling: "Falling — this week's forecast rain eases up, risk trends down.",
+    projectionSteady: "Steady — no sharp change expected over the next 7 days.",
+    districtPopulation: (n) => `${n} people live in this district (WorldPop 2020 estimate) — part of why it's ranked the way it is.`,
+    liveSafeHoursTitle: "Safe hours to work outside — today",
+    liveSafeHoursHint: "From today's live hour-by-hour forecast for your district, not the seasonal average above.",
+    liveSafeHoursLoading: "Checking today's hourly forecast…",
+    liveSafeHoursError: "Couldn't load today's hourly forecast.",
+    liveSafeHoursPeakAt: (tempC, hourStr) => `Feels hottest around ${hourStr} — up to ${tempC}°C.`,
+    liveSafeHoursAvoid: (windowsStr) => `Avoid outdoor work: ${windowsStr}.`,
+    liveSafeHoursSafe: (windowsStr) => `Safest hours: ${windowsStr}.`,
+    liveSafeHoursAllSafe: "No unsafe hours expected today — normal precautions are enough.",
+    floodCountdownTitle: "When could this get worse?",
+    floodCountdownHint: "Same live 7-day flood projection above, read as a countdown to the alert level government alerts use.",
+    floodCountdownToday: "Already at alert-level flood risk today — take precautions now.",
+    floodCountdownDays: (n, dateStr) => `Alert-level flood risk possible in ${n} day${n === 1 ? "" : "s"} (${dateStr}).`,
+    floodCountdownNone: "No alert-level flood risk expected in the next 7 days.",
+    todayAdvisoryTitle: "Today, for your area",
+    todayAdvisoryHint: "The trained flood/heat models, combined with today's live Open-Meteo forecast.",
+    todayAdvisoryFloodElevated: (pct, mm) =>
+      `Rain expected today (${mm}mm) and flood risk is elevated (${pct}%) — avoid low-lying areas and keep an eye on updates.`,
+    todayAdvisoryFloodLow: "Little rain expected today — flood risk stays low.",
+    todayAdvisoryHeatDanger: (tempC, windowsStr) =>
+      `It'll get hot today (feels like up to ${tempC}°C) — avoid outdoor work ${windowsStr}.`,
+    todayAdvisoryHeatOk: "No extreme heat expected today.",
+  },
+  bn: {
+    appName: "বাংলাদেশ পরিবেশ পর্যবেক্ষণ",
+    exit: "বের হন",
+    back: "ফিরে যান",
+    hubHint: "বিস্তারিত দেখতে যেকোনো একটি বিভাগে ট্যাপ করুন।",
+    heatModuleLabel: "মৌসুমি তাপ ঝুঁকি",
+    floodModuleLabel: "বন্যার ঝুঁকি",
+    forestModuleLabel: "বন উজাড়",
+    yourArea: "আপনার এলাকা",
+    yourAreaHint: "নিচের বন্যার ঝুঁকি, তাপের ঝুঁকি ও বনভূমি তথ্য আপনার বাছাই করা জেলা অনুযায়ী বদলাবে।",
+    heatwaveWatchOne: "সারাদেশে ১টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
+    heatwaveWatchMany: "টি এলাকায় আগামী ৭ দিনে তাপপ্রবাহ-মাত্রার তাপ পূর্বাভাস দেওয়া হয়েছে।",
+    heatMapTitle: "তাপ মানচিত্র — সারাদেশ",
+    noData: "তথ্য নেই",
+    currentTemp: "ভূপৃষ্ঠের তাপমাত্রা, আপনার জেলা",
+    healthAdvisoryTitle: "স্বাস্থ্য পরামর্শ",
+    floodRiskTitle: "বন্যার ঝুঁকি —",
+    floodRiskLive: "লাইভ — প্রতি ৩ দিন পরপর প্রকৃত বৃষ্টিপাতের তথ্য দিয়ে হালনাগাদ",
+    floodRiskFallback: "এই মুহূর্তে বন্যার তথ্য পাওয়া যাচ্ছে না — সর্বশেষ জানা অবস্থা দেখানো হচ্ছে।",
+    floodRiskFallbackNote: "লাইভ বন্যার তথ্য লোড করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    trendUp: "গত হালনাগাদের তুলনায় বাড়ছে",
+    trendDown: "গত হালনাগাদের তুলনায় কমছে",
+    trendSteady: "গত হালনাগাদের তুলনায় একই আছে",
+    whatToDo: "কী করবেন",
+    emergencyLine: "জাতীয় জরুরি সেবা: ৯৯৯ (ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স)",
+    emergencyLine2: "নিকটতম সরকারি আশ্রয়কেন্দ্রের জন্য আপনার স্থানীয় ইউনিয়ন পরিষদ / ওয়ার্ড অফিসে যোগাযোগ করুন।",
+    treeCoverTitle: "বনভূমি —",
+    footer: "যেখানে সম্ভব ব্যাকএন্ড থেকে লাইভ তথ্য দেখানো হয়।",
+    loading: "লোড হচ্ছে…",
+    reportTitle: "আশেপাশে গাছ কাটা দেখেছেন?",
+    reportHint: "স্যাটেলাইট ডেটা ছোট আকারের স্থানীয় গাছ কাটা ধরতে পারে না। আপনার রিপোর্ট সাহায্য করে — এটা সরকারি পর্যালোচকদের দেখানো হয়, স্বয়ংক্রিয়ভাবে যাচাই করা হয় না।",
+    reportDescriptionPlaceholder: "কী দেখেছেন, আনুমানিক কোথায়? (যেমন: \"নদীর ধারে কয়েকটি গাছ কাটা হয়েছে, ওয়ার্ড ৪\")",
+    reportContactPlaceholder: "ফোন বা ইমেইল (ঐচ্ছিক)",
+    reportSubmit: "রিপোর্ট জমা দিন",
+    reportSending: "পাঠানো হচ্ছে…",
+    reportSuccess: "ধন্যবাদ — আপনার রিপোর্ট জমা হয়েছে।",
+    reportReference: "পরে খোঁজ নিতে হলে এই রেফারেন্স নাম্বারটা রাখুন:",
+    reportNotConfigured: "রিপোর্ট এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    reportError: "আপনার রিপোর্ট জমা দেওয়া যায়নি। একটু পর আবার চেষ্টা করুন।",
+    reportTooShort: "আপনি কী দেখেছেন সেটা আরেকটু বিস্তারিত লিখুন।",
+    reportStatusLabel: (s) => ({ pending: "অপেক্ষমাণ", verified: "যাচাইকৃত", resolved: "সমাধান হয়েছে", rejected: "প্রত্যাখ্যাত" }[s] || s),
+    statusCheckTitle: "রিপোর্টের অবস্থা দেখুন",
+    statusCheckHint: "রিপোর্ট জমা দেওয়ার পর যে রেফারেন্স নাম্বারটি পেয়েছিলেন সেটি লিখুন।",
+    statusCheckPlaceholder: "রেফারেন্স নাম্বার",
+    statusCheckButton: "অবস্থা দেখুন",
+    statusCheckSending: "খোঁজা হচ্ছে…",
+    statusCheckNotFound: "এই রেফারেন্স নাম্বারে কোনো রিপোর্ট পাওয়া যায়নি।",
+    statusCheckNotConfigured: "অবস্থা দেখার সুবিধা এখনো চালু হয়নি — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    statusCheckError: "অবস্থা জানা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    statusCheckSubmittedLabel: "জমা দেওয়া হয়েছে:",
+    statusCheckUpdatedLabel: "সর্বশেষ হালনাগাদ:",
+    statusCheckNoteLabel: "কর্মকর্তার মন্তব্য:",
+    communityStatsTitle: "এই জেলায় রিপোর্টিং কার্যক্রম",
+    communityStatsHint: "এখানে কতগুলো গাছ কাটার রিপোর্ট জমা হয়েছে, এবং সেগুলোর কী হয়েছে।",
+    communityStatsTotal: "মোট রিপোর্ট",
+    communityStatsEmpty: "এই জেলার জন্য এখনো কোনো রিপোর্ট নেই।",
+    alertSubscribeTitle: "স্বয়ংক্রিয় সতর্কতা পান",
+    alertSubscribeHint: "অ্যাপ চেক করার জন্য অপেক্ষা করবেন না — আপনার এলাকার ঝুঁকি সত্যিই বাড়লে সাথে সাথে ইমেইল পাবেন। কোনো অ্যাকাউন্ট লাগবে না।",
+    alertEmailPlaceholder: "আপনার ইমেইল ঠিকানা",
+    hazardFlood: "বন্যা",
+    hazardHeat: "তাপপ্রবাহ (জাতীয় সতর্কতা)",
+    alertSubscribeButton: "সাবস্ক্রাইব করুন",
+    alertSubscribeSending: "সাবস্ক্রাইব হচ্ছে…",
+    alertSubscribeSuccess: "আপনি সাবস্ক্রাইব করেছেন — ঝুঁকি সত্যিই পরিবর্তন হলেই কেবল আমরা ইমেইল পাঠাবো।",
+    alertSubscribeInvalid: "একটি ইমেইল লিখুন এবং অন্তত একটি সতর্কতার ধরন বেছে নিন।",
+    alertSubscribeNotConfigured: "সতর্কতা এখনো গ্রহণ করা হচ্ছে না — এই ফিচারের জন্য backend-এ আরেকটা setup ধাপ বাকি আছে।",
+    alertSubscribeError: "আপনার সাবস্ক্রিপশন সংরক্ষণ করা যায়নি। একটু পর আবার চেষ্টা করুন।",
+    alertWhatsappLabel: "WhatsApp-এও পেতে চাই (ডেমো)",
+    alertPhonePlaceholder: "WhatsApp নম্বর, যেমন +8801XXXXXXXXX",
+    alertPhoneInvalid: "সঠিক আন্তর্জাতিক ফরম্যাটে WhatsApp নম্বর দিন, যেমন +8801XXXXXXXXX।",
+    alertWhatsappJoinNote: "ডেমো ফিচার — প্রথমে WhatsApp থেকে \"{code}\" লিখে {number} নম্বরে পাঠান (একবার মাত্র), তারপর নিচে আপনার নম্বর লিখুন।",
+    chooseDistrictPrompt: "আপনার এলাকার ঝুঁকি দেখতে আপনার জেলা বেছে নিন",
+    chooseDistrictHint: "উপরের জেলা নির্বাচক-এ ট্যাপ করে আপনার অবস্থান বেছে নিন — by default কিছু দেখানো হয় না, যাতে ভুলবশত অন্য কারো এলাকার তথ্য না দেখেন।",
+    legendSafe: "নিরাপদ",
+    legendCaution: "সতর্কতা",
+    legendHigh: "উচ্চ ঝুঁকি",
+    listen: "শুনুন",
+    stopListening: "থামুন",
+    share: "শেয়ার করুন",
+    saveCard: "সংরক্ষণ করুন",
+    emergencyHelplinesTitle: "জরুরি হেল্পলাইন",
+    emergencyHint: "সরাসরি কল করতে যেকোনো নম্বরে ট্যাপ করুন — ইন্টারনেট ছাড়াও কাজ করে।",
+    emergencyNational: "জাতীয় জরুরি সেবা — পুলিশ, ফায়ার সার্ভিস, বন্যা উদ্ধার, অ্যাম্বুলেন্স (২৪/৭, বিনামূল্যে)",
+    emergencyChild: "শিশু সহায়তা হেল্পলাইন — বিপদে বা কষ্টে থাকা শিশুর জন্য",
+    emergencyWomenChild: "নারী ও শিশু বিষয়ক — নির্যাতন বা নিরাপত্তা সংক্রান্ত উদ্বেগ",
+    emergencyGovtInfo: "সরকারি তথ্য ও সহায়তা",
+    emergencyAgri: "কৃষি হেল্পলাইন — ফসল বা গবাদি পশুর ক্ষতি সংক্রান্ত পরামর্শ",
+    largeTextOn: "বড় লেখা",
+    largeTextOff: "স্বাভাবিক লেখা",
+    forecastTitle: "লাইভ ৭ দিনের আবহাওয়া — আপনার এলাকা",
+    forecastHint: "আপনার জেলার অবস্থানের জন্য Open-Meteo থেকে সরাসরি নেওয়া real পূর্বাভাস — উপরের ঝুঁকির স্কোর থেকে আলাদা, যেটা trained model থেকে আসে।",
+    trendDetail: (prevPct, currPct) => `সর্বশেষ চেক-এ ছিল ${prevPct}%, এখন ${currPct}%।`,
+    projectionTitle: "৭-দিনের forward ঝুঁকি প্রক্ষেপণ",
+    projectionHint: "একই trained model, কিন্তু পরের ৭ দিনের real আবহাওয়া পূর্বাভাসের উপর চালানো — historical average নয়। যত দূরের দিন, তত কম নিশ্চিত।",
+    projectionRising: (day, pct) => `বাড়ছে — ${day || "এই সপ্তাহের পরের দিকে"} সবচেয়ে খারাপ, প্রায় ${pct}% predicted risk।`,
+    projectionFalling: "কমছে — এই সপ্তাহের পূর্বাভাসে বৃষ্টি কমছে, ঝুঁকি নিম্নমুখী।",
+    projectionSteady: "স্থিতিশীল — পরের ৭ দিনে বড় কোনো পরিবর্তনের আশঙ্কা নেই।",
+    districtPopulation: (n) => `এই জেলায় ${n} জন মানুষ বসবাস করে (WorldPop ২০২০ estimate) — এটাও এই ranking-এর একটা কারণ।`,
+    liveSafeHoursTitle: "বাইরে কাজ করার নিরাপদ সময় — আজকে",
+    liveSafeHoursHint: "উপরের মৌসুমি গড় নয়, বরং আপনার জেলার আজকের লাইভ ঘণ্টাভিত্তিক পূর্বাভাস থেকে।",
+    liveSafeHoursLoading: "আজকের ঘণ্টাভিত্তিক পূর্বাভাস দেখা হচ্ছে…",
+    liveSafeHoursError: "আজকের ঘণ্টাভিত্তিক পূর্বাভাস লোড করা যায়নি।",
+    liveSafeHoursPeakAt: (tempC, hourStr) => `${hourStr} নাগাদ সবচেয়ে গরম অনুভূত হবে — সর্বোচ্চ ${tempC}°C।`,
+    liveSafeHoursAvoid: (windowsStr) => `বাইরের কাজ এড়িয়ে চলুন: ${windowsStr}।`,
+    liveSafeHoursSafe: (windowsStr) => `সবচেয়ে নিরাপদ সময়: ${windowsStr}।`,
+    liveSafeHoursAllSafe: "আজ কোনো অনিরাপদ সময় নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।",
+    floodCountdownTitle: "কখন আরও খারাপ হতে পারে?",
+    floodCountdownHint: "উপরের একই লাইভ ৭-দিনের বন্যা প্রক্ষেপণ, সরকারের সতর্কতা-ইমেইলে ব্যবহৃত alert level পর্যন্ত একটা countdown হিসেবে দেখানো।",
+    floodCountdownToday: "আজই বিপদসীমা মাত্রার বন্যার ঝুঁকি রয়েছে — এখনই সতর্কতা নিন।",
+    floodCountdownDays: (n, dateStr) => `${n} দিনের মধ্যে বিপদসীমা মাত্রার বন্যার ঝুঁকি হতে পারে (${dateStr})।`,
+    floodCountdownNone: "পরের ৭ দিনে বিপদসীমা মাত্রার বন্যার ঝুঁকির আশঙ্কা নেই।",
+    todayAdvisoryTitle: "আজকে, আপনার এলাকার জন্য",
+    todayAdvisoryHint: "trained flood/heat model, আজকের লাইভ Open-Meteo পূর্বাভাসের সাথে মিলিয়ে।",
+    todayAdvisoryFloodElevated: (pct, mm) =>
+      `আজ বৃষ্টি হতে পারে (${mm}mm) এবং বন্যার ঝুঁকি বেড়েছে (${pct}%) — নিচু এলাকা এড়িয়ে চলুন এবং হালনাগাদ তথ্যে নজর রাখুন।`,
+    todayAdvisoryFloodLow: "আজ সামান্য বৃষ্টি হতে পারে — বন্যার ঝুঁকি কম থাকবে।",
+    todayAdvisoryHeatDanger: (tempC, windowsStr) =>
+      `আজ গরম বেশি থাকবে (অনুভূত তাপমাত্রা সর্বোচ্চ ${tempC}°C) — ${windowsStr} বাইরের কাজ এড়িয়ে চলুন।`,
+    todayAdvisoryHeatOk: "আজ অস্বাভাবিক গরমের আশঙ্কা নেই।",
+  },
+};
+
+function floodSafetySteps(tier, lang) {
+  const steps = {
+    en: {
+      Severe: [
+        "Keep valuables and important documents on a higher floor or shelf.",
+        "Charge your phone and keep a torch or flashlight ready.",
+        "Avoid crossing flooded roads or rivers on foot or by vehicle.",
+        "If local authorities announce evacuation, leave early rather than waiting.",
+      ],
+      High: [
+        "Keep valuables and important documents on a higher floor or shelf.",
+        "Charge your phone and keep a torch or flashlight ready.",
+        "Avoid crossing flooded roads or rivers on foot or by vehicle.",
+      ],
+      Moderate: [
+        "Keep an eye on local news for updates over the next few days.",
+        "Avoid unnecessary travel to low-lying areas near rivers.",
+      ],
+      Low: ["No unusual flood risk right now — normal precautions are enough."],
+    },
+    bn: {
+      Severe: [
+        "মূল্যবান জিনিসপত্র ও গুরুত্বপূর্ণ কাগজপত্র উঁচু জায়গায় সরিয়ে রাখুন।",
+        "মোবাইল চার্জ করে রাখুন এবং টর্চ লাইট প্রস্তুত রাখুন।",
+        "পানিতে ডোবা রাস্তা বা নদী হেঁটে বা গাড়িতে পার হওয়া থেকে বিরত থাকুন।",
+        "স্থানীয় প্রশাসন সরে যেতে বললে দেরি না করে আগেভাগেই সরে যান।",
+      ],
+      High: [
+        "মূল্যবান জিনিসপত্র ও গুরুত্বপূর্ণ কাগজপত্র উঁচু জায়গায় সরিয়ে রাখুন।",
+        "মোবাইল চার্জ করে রাখুন এবং টর্চ লাইট প্রস্তুত রাখুন।",
+        "পানিতে ডোবা রাস্তা বা নদী হেঁটে বা গাড়িতে পার হওয়া থেকে বিরত থাকুন।",
+      ],
+      Moderate: [
+        "আগামী কয়েক দিন স্থানীয় খবরে নজর রাখুন।",
+        "নদীর কাছাকাছি নিচু এলাকায় অপ্রয়োজনীয় যাতায়াত এড়িয়ে চলুন।",
+      ],
+      Low: ["এই মুহূর্তে অস্বাভাবিক বন্যার ঝুঁকি নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।"],
+    },
+  };
+  const byLang = steps[lang] || steps.en;
+  return byLang[tier] || byLang.Moderate;
+}
+
+// Heat health guidance, keyed off the real model's risk_category (High /
+// Medium / Low — a tertile split, not the old 4-tier Extreme/High/Moderate/Low
+// placeholder scale). No fabricated ward-specific timing (the old text named
+// "Panchlaish and Kotwali" for every citizen nationwide) — this is generic,
+// defensible public-health guidance scaled to how hot the model actually
+// says a district's season has been.
+function heatAdvisory(category, lang) {
+  const copy = {
+    en: {
+      High: {
+        body: "This district's surface temperatures have run high this season. Drink water regularly even without feeling thirsty, limit direct sun exposure between late morning and late afternoon, and check on elderly neighbours and young children.",
+        safeHours: "Safer hours to be outside: before 8am or after 6pm.",
+      },
+      Medium: {
+        body: "This district's heat risk is moderate. Stay hydrated and take breaks in shade during the hottest part of the day.",
+        safeHours: "Midday sun (roughly 12pm–3pm) is when it's hottest — pace outdoor work accordingly.",
+      },
+      Low: {
+        body: "No unusual heat risk in this district right now — normal precautions are enough.",
+        safeHours: null,
+      },
+    },
+    bn: {
+      High: {
+        body: "এই মৌসুমে এই জেলার ভূপৃষ্ঠের তাপমাত্রা বেশি থেকেছে। তৃষ্ণা না লাগলেও নিয়মিত পানি পান করুন, সকাল শেষ থেকে বিকাল পর্যন্ত সরাসরি রোদ এড়িয়ে চলুন, এবং বয়স্ক প্রতিবেশী ও শিশুদের খোঁজ নিন।",
+        safeHours: "বাইরে থাকার নিরাপদ সময়: সকাল ৮টার আগে অথবা সন্ধ্যা ৬টার পরে।",
+      },
+      Medium: {
+        body: "এই জেলার তাপের ঝুঁকি মাঝারি। পানি পান করতে থাকুন এবং দিনের সবচেয়ে গরম সময়ে ছায়ায় বিরতি নিন।",
+        safeHours: "দুপুর (আনুমানিক ১২টা–৩টা) সবচেয়ে গরম থাকে — সেই অনুযায়ী বাইরের কাজের গতি ঠিক করুন।",
+      },
+      Low: {
+        body: "এই মুহূর্তে এই জেলায় অস্বাভাবিক তাপের ঝুঁকি নেই — স্বাভাবিক সতর্কতাই যথেষ্ট।",
+        safeHours: null,
+      },
+    },
+  };
+  const byLang = copy[lang] || copy.en;
+  return byLang[category] || byLang.Medium;
+}
+
+// Today's real hour-by-hour safe/avoid-outdoor-work windows — see
+// useHourlyHeatToday/summarizeHeatHours above. Deliberately separate from
+// the static heatAdvisory() text above it (which is keyed only to the
+// season-long risk_category tertile and can't say WHEN today is worst);
+// this is the live complement, same relationship as LiveForecastStrip is to
+// the trained flood/heat scores elsewhere in this file.
+function LiveSafeHoursCard({ lat, lon, lang, t }) {
+  const { hours, loading, error } = useHourlyHeatToday(lat, lon);
+  const summary = useMemo(() => summarizeHeatHours(hours), [hours]);
+
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Sun} tone="amber" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.liveSafeHoursTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-3">{t.liveSafeHoursHint}</p>
+
+      {loading && <p className="text-xs text-stone-400">{t.liveSafeHoursLoading}</p>}
+      {error && !loading && <p className="text-xs text-amber-400">{t.liveSafeHoursError}</p>}
+
+      {summary && !loading && !error && (
+        <div className="space-y-2">
+          <div className="flex gap-0.5 h-6" title={t.liveSafeHoursHint}>
+            {(hours || []).map((h) => {
+              const band = heatBand(h.apparent);
+              const color =
+                band === "danger" ? "bg-red-500" : band === "caution" ? "bg-amber-500" : band === "safe" ? "bg-emerald-500" : "bg-stone-700";
+              return (
+                <div
+                  key={h.hour}
+                  className={`flex-1 rounded-sm ${color}`}
+                  title={`${fmtHour(h.hour, lang)}: ${h.apparent != null ? Math.round(h.apparent) + "°C" : "—"}`}
+                />
+              );
+            })}
+          </div>
+          <p className="text-xs text-stone-300 leading-relaxed">
+            {t.liveSafeHoursPeakAt(Math.round(summary.peakApparent ?? 0), fmtHour(summary.peakHour, lang))}
+          </p>
+          {summary.dangerWindows.length > 0 ? (
+            <p className="text-xs text-red-300 leading-relaxed">{t.liveSafeHoursAvoid(fmtHourWindows(summary.dangerWindows, lang))}</p>
+          ) : (
+            <p className="text-xs text-emerald-300 leading-relaxed">{t.liveSafeHoursAllSafe}</p>
+          )}
+          {summary.dangerWindows.length > 0 && summary.safeWindows.length > 0 && (
+            <p className="text-xs text-emerald-300/90 leading-relaxed">{t.liveSafeHoursSafe(fmtHourWindows(summary.safeWindows, lang))}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "How many days until this district's live flood projection crosses the
+// alert threshold" — same daily[] FloodProjectionStrip charts, read as a
+// concrete countdown instead of a row of bars the citizen has to interpret.
+function FloodCountdownCard({ daily, lang, t }) {
+  const countdown = useMemo(() => floodAlertCountdown(daily), [daily]);
+  if (!countdown) return null;
+
+  const dateStr =
+    countdown.crosses && countdown.daysAhead > 0
+      ? new Date(countdown.date + "T00:00:00").toLocaleDateString(lang === "bn" ? "bn-BD" : "en-GB", {
+          weekday: "long", day: "numeric", month: "short",
+        })
+      : "";
+  const tone = !countdown.crosses ? "emerald" : countdown.daysAhead <= 2 ? "red" : "amber";
+  const toneClasses = {
+    emerald: { bg: "bg-emerald-950/30", border: "border-emerald-900/40", text: "text-emerald-300", badge: "teal" },
+    amber: { bg: "bg-amber-950/30", border: "border-amber-900/40", text: "text-amber-300", badge: "amber" },
+    red: { bg: "bg-red-950/30", border: "border-red-900/40", text: "text-red-300", badge: "red" },
+  }[tone];
+
+  return (
+    <div className={`${toneClasses.bg} border ${toneClasses.border} rounded-2xl p-4 shadow-sm shadow-black/20`}>
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={AlertTriangle} tone={toneClasses.badge} size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.floodCountdownTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-2">{t.floodCountdownHint}</p>
+      <p className={`text-sm font-medium ${toneClasses.text} leading-relaxed`}>
+        {!countdown.crosses
+          ? t.floodCountdownNone
+          : countdown.daysAhead === 0
+          ? t.floodCountdownToday
+          : t.floodCountdownDays(countdown.daysAhead, dateStr)}
+      </p>
+    </div>
+  );
+}
+
+// One combined, plain-language "what do I do today" card — reads the same
+// live flood projection (today's row: predicted_risk + the real
+// rainfall_mm Open-Meteo already reported for it) and the same live hourly
+// heat summary above into 1-2 short sentences per hazard, instead of
+// leaving the citizen to mentally combine two separate risk scores
+// themselves. Renders nothing until at least one of the two live fetches
+// has something to say (each hazard's line is independently optional).
+function TodayAdvisoryCard({ floodDaily, heatHours, lang, t }) {
+  const floodToday = floodDaily && floodDaily[0];
+  const heatSummary = useMemo(() => summarizeHeatHours(heatHours), [heatHours]);
+  if (!floodToday && !heatSummary) return null;
+
+  const floodElevated = floodToday && floodToday.predicted_risk >= FLOOD_ALERT_THRESHOLD;
+  const heatDanger = heatSummary && heatSummary.dangerWindows.length > 0;
+
+  const lines = [];
+  if (floodToday) {
+    lines.push(
+      floodElevated
+        ? t.todayAdvisoryFloodElevated(Math.round(floodToday.predicted_risk * 100), Math.round(floodToday.rainfall_mm || 0))
+        : t.todayAdvisoryFloodLow
+    );
+  }
+  if (heatSummary) {
+    lines.push(
+      heatDanger
+        ? t.todayAdvisoryHeatDanger(Math.round(heatSummary.peakApparent || 0), fmtHourWindows(heatSummary.dangerWindows, lang))
+        : t.todayAdvisoryHeatOk
+    );
+  }
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-b from-emerald-950/20 to-stone-800/30 border border-emerald-900/30 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={ShieldCheck} tone="teal" size={14} />
+        <h3 className="text-sm font-medium text-stone-100">{t.todayAdvisoryTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-500 mb-2">{t.todayAdvisoryHint}</p>
+      <div className="space-y-1.5">
+        {lines.map((line, i) => (
+          <p key={i} className="text-xs text-stone-200 leading-relaxed">{line}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A citizen "I saw tree-cutting here" report — genuinely different from
+// the satellite-based deforestation model (which only catches loss large
+// and persistent enough to show up in a 250m MODIS pixel over several
+// years). Posts to /deforestation/citizen-reports; if the backend isn't
+// configured yet (see CITIZEN-REPORTS-SETUP.md) it says so plainly rather
+// than pretending the report was saved.
+function CitizenReportForm({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [description, setDescription] = useState("");
+  const [contact, setContact] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | too_short
+  const [errorDetail, setErrorDetail] = useState("");
+  // Real reference number, only shown if the backend actually returns one —
+  // never invented client-side. A citizen who wants to follow up (e.g. by
+  // calling their Union Parishad office) has something concrete to cite.
+  const [reportId, setReportId] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (description.trim().length < 5) {
+      setStatus("too_short");
+      return;
+    }
+    setStatus("sending");
+    setErrorDetail("");
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ district, description: description.trim(), contact: contact.trim() || null }),
+      });
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(body.detail || "");
+        setStatus("error");
+        return;
+      }
+      const body = await res.json().catch(() => ({}));
+      setReportId(body?.id ?? body?.report?.id ?? null);
+      setStatus("sent");
+      setDescription("");
+      setContact("");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Send} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.reportTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.reportHint}</p>
+
+      {status === "sent" ? (
+        <div>
+          <p className="text-xs text-emerald-300">{t.reportSuccess}</p>
+          {reportId != null && (
+            <p className="text-[11px] text-stone-400 mt-1">
+              {t.reportReference} <span className="text-stone-200 tabular-nums">#{reportId}</span>
+            </p>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t.reportDescriptionPlaceholder}
+            rows={2}
+            className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50 resize-none"
+          />
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder={t.reportContactPlaceholder}
+            className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+          />
+          {status === "too_short" && <p className="text-[11px] text-amber-400">{t.reportTooShort}</p>}
+          {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.reportNotConfigured}</p>}
+          {status === "error" && <p className="text-[11px] text-amber-400">{t.reportError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            {status === "sending" ? t.reportSending : t.reportSubmit}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// Closed-loop status check: a citizen can look up what happened to their own
+// report using the reference number shown after submitting (see
+// CitizenReportForm above) — no login needed, same low-friction design as
+// submitting the report itself. Independent of the currently-selected
+// district, since a citizen may be checking on a report they filed earlier
+// for somewhere else. Reads GET /deforestation/citizen-reports/{id}.
+function ReportStatusLookup({ lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [refId, setRefId] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | found | not_found | not_configured | error
+  const [report, setReport] = useState(null);
+  const [errorDetail, setErrorDetail] = useState("");
+
+  async function handleCheck(e) {
+    e.preventDefault();
+    const id = refId.trim();
+    if (!id) return;
+    setStatus("sending");
+    setErrorDetail("");
+    setReport(null);
+    try {
+      const res = await fetch(`${API_BASE}/deforestation/citizen-reports/${encodeURIComponent(id)}`);
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (res.status === 404) {
+        setStatus("not_found");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(body.detail || "");
+        setStatus("error");
+        return;
+      }
+      const body = await res.json();
+      setReport(body.report);
+      setStatus("found");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  const tone = report ? (REPORT_STATUS_TONE[report.status || "pending"] || REPORT_STATUS_TONE.pending) : null;
+  const dateFmt = { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" };
+  const locale = lang === "bn" ? "bn-BD" : "en-GB";
+
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Search} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.statusCheckTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.statusCheckHint}</p>
+
+      <form onSubmit={handleCheck} className="flex gap-2">
+        <input
+          value={refId}
+          onChange={(e) => setRefId(e.target.value)}
+          placeholder={t.statusCheckPlaceholder}
+          className="flex-1 min-w-0 bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+        />
+        <button
+          type="submit"
+          disabled={status === "sending" || !refId.trim()}
+          className="bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium px-3 rounded-lg transition-colors shrink-0"
+        >
+          {status === "sending" ? t.statusCheckSending : t.statusCheckButton}
+        </button>
+      </form>
+
+      {status === "not_found" && <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckNotFound}</p>}
+      {status === "not_configured" && <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckNotConfigured}</p>}
+      {status === "error" && (
+        <p className="text-[11px] text-amber-400 mt-2">{t.statusCheckError}{errorDetail ? ` (${errorDetail})` : ""}</p>
+      )}
+
+      {status === "found" && report && (
+        <div className="mt-3 pt-3 border-t border-stone-700/60 space-y-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-stone-200 font-medium">{report.district}</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ${tone.bg} ${tone.text}`}>
+              {t.reportStatusLabel(report.status || "pending")}
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-400">
+            {t.statusCheckSubmittedLabel} {new Date(report.created_at).toLocaleString(locale, dateFmt)}
+          </p>
+          {report.updated_at && (
+            <p className="text-[11px] text-stone-400">
+              {t.statusCheckUpdatedLabel} {new Date(report.updated_at).toLocaleString(locale, dateFmt)}
+            </p>
+          )}
+          {report.officer_note && (
+            <p className="text-[11px] text-stone-300 mt-1">{t.statusCheckNoteLabel} {report.officer_note}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Community transparency feed (citizen side): aggregated, anonymized report
+// counts for the citizen's own district — see GET /deforestation/community-stats.
+// Deliberately shows only counts, never any individual report's description
+// or contact — that stays government-side (ReportManageRow).
+function CommunityStatsCard({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const stats = useCommunityStats();
+  if (!stats || !stats.configured || !district) return null;
+
+  const bucket = stats.districts?.[district];
+  if (!bucket || !bucket.total) {
+    return (
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+        <div className="flex items-center gap-2.5 mb-1">
+          <IconBadge icon={Users} tone="teal" size={13} />
+          <h3 className="text-sm font-medium text-stone-100">{t.communityStatsTitle}</h3>
+        </div>
+        <p className="text-[11px] text-stone-400">{t.communityStatsEmpty}</p>
+      </div>
+    );
+  }
+
+  const rows = ["pending", "verified", "resolved", "rejected"];
+  return (
+    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Users} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.communityStatsTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.communityStatsHint}</p>
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span className="text-lg font-semibold text-stone-100 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          {bucket.total}
+        </span>
+        <span className="text-[11px] text-stone-400">{t.communityStatsTotal}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {rows.map((key) => {
+          const tone = REPORT_STATUS_TONE[key];
+          return (
+            <div key={key} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${tone.bg}`}>
+              <span className={`text-[11px] ${tone.text}`}>{t.reportStatusLabel(key)}</span>
+              <span className={`text-xs font-medium tabular-nums ${tone.text}`}>{bucket[key] || 0}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Proactive alert subscription — the one piece that turns this dashboard
+// from "pull" (a citizen has to open the app to check) into an actual
+// early-warning system: subscribe an email to a district + hazard(s), and
+// scripts/send_alerts.py (same every-3-day automation that refreshes the
+// model data) emails automatically when that district's LIVE flood risk
+// newly crosses into dangerous territory, or a new national heatwave
+// forecast is issued. No login, no verification step — same low-friction,
+// anonymous design as the citizen report form above.
+function AlertSubscribeForm({ district, lang }) {
+  const t = CITIZEN_I18N[lang];
+  const [email, setEmail] = useState("");
+  const [hazards, setHazards] = useState({ flood: true, heat: false });
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | not_configured | invalid | invalid_phone
+  const [errorDetail, setErrorDetail] = useState("");
+
+  function toggleHazard(key) {
+    setHazards((h) => ({ ...h, [key]: !h[key] }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const selected = Object.keys(hazards).filter((k) => hazards[k]);
+    if (!email.trim() || selected.length === 0 || !district) {
+      setStatus("invalid");
+      return;
+    }
+    if (wantsWhatsapp && !/^\+[1-9]\d{7,14}$/.test(phone.trim())) {
+      setStatus("invalid_phone");
+      return;
+    }
+    setStatus("sending");
+    setErrorDetail("");
+    try {
+      const res = await fetch(`${API_BASE}/alerts/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          district,
+          hazards: selected,
+          lang,
+          phone: wantsWhatsapp ? phone.trim() : null,
+        }),
+      });
+      if (res.status === 503) {
+        setStatus("not_configured");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorDetail(typeof body.detail === "string" ? body.detail : "");
+        setStatus("error");
+        return;
+      }
+      setStatus("sent");
+    } catch (err) {
+      setErrorDetail(err.message || "");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="bg-gradient-to-b from-emerald-950/30 to-stone-800/30 border border-emerald-900/40 rounded-2xl p-4 shadow-sm shadow-black/20">
+      <div className="flex items-center gap-2.5 mb-1">
+        <IconBadge icon={Bell} tone="teal" size={13} />
+        <h3 className="text-sm font-medium text-stone-100">{t.alertSubscribeTitle}</h3>
+      </div>
+      <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">{t.alertSubscribeHint}</p>
+
+      {status === "sent" ? (
+        <p className="text-xs text-emerald-300">{t.alertSubscribeSuccess}</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t.alertEmailPlaceholder}
+            className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+          />
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer">
+              <input type="checkbox" checked={hazards.flood} onChange={() => toggleHazard("flood")} className="accent-emerald-500" />
+              {t.hazardFlood}
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer">
+              <input type="checkbox" checked={hazards.heat} onChange={() => toggleHazard("heat")} className="accent-emerald-500" />
+              {t.hazardHeat}
+            </label>
+          </div>
+
+          <label className="flex items-center gap-1.5 text-xs text-stone-300 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={wantsWhatsapp}
+              onChange={() => setWantsWhatsapp((w) => !w)}
+              className="accent-emerald-500"
+            />
+            {t.alertWhatsappLabel}
+          </label>
+          {wantsWhatsapp && (
+            <div className="space-y-1.5 pl-0.5">
+              <p className="text-[10px] text-stone-500 leading-relaxed">
+                {t.alertWhatsappJoinNote
+                  .replace("{code}", WHATSAPP_SANDBOX_JOIN_CODE)
+                  .replace("{number}", WHATSAPP_SANDBOX_NUMBER)}
+              </p>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t.alertPhonePlaceholder}
+                className="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+          )}
+
+          {status === "invalid" && <p className="text-[11px] text-amber-400">{t.alertSubscribeInvalid}</p>}
+          {status === "invalid_phone" && <p className="text-[11px] text-amber-400">{t.alertPhoneInvalid}</p>}
+          {status === "not_configured" && <p className="text-[11px] text-amber-400">{t.alertSubscribeNotConfigured}</p>}
+          {status === "error" && <p className="text-[11px] text-amber-400">{t.alertSubscribeError}{errorDetail ? ` (${errorDetail})` : ""}</p>}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-60 text-emerald-300 text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            {status === "sending" ? t.alertSubscribeSending : t.alertSubscribeButton}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// Searchable district picker — replaces a plain native <select> holding all
+// 64 districts (clunky to scroll on mobile) with a small filterable panel,
+// same interaction pattern as the notification popover elsewhere in the app.
+function DistrictPicker({ value, options, onChange, lang }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(
+    () => options.filter((d) => d.toLowerCase().includes(query.toLowerCase())),
+    [options, query]
+  );
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-xs bg-stone-700/80 border border-stone-600 text-stone-100 rounded-lg pl-2.5 pr-2 py-1.5 flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 max-w-[9.5rem]"
+      >
+        <MapPin size={12} className="shrink-0 text-emerald-400" />
+        <span className="truncate">{value || "—"}</span>
+        <ChevronRight size={12} className="shrink-0 rotate-90 text-stone-400" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => { setOpen(false); setQuery(""); }} />
+          <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-stone-800 border border-stone-700 rounded-xl shadow-xl shadow-black/40 z-30 overflow-hidden animate-fade-in">
+            <div className="p-2 border-b border-stone-700">
+              <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={lang === "bn" ? "জেলা খুঁজুন" : "Search district"}
+                  className="w-full bg-stone-900/60 border border-stone-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500/50"
+                />
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-4 text-xs text-stone-500 text-center">{lang === "bn" ? "কোনো মিল নেই" : "No match"}</p>
+              ) : (
+                filtered.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => { onChange(d); setOpen(false); setQuery(""); }}
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${d === value ? "bg-emerald-500/10 text-emerald-300" : "text-stone-200 hover:bg-stone-700/60"}`}
+                  >
+                    {d}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CitizenDashboard({ onLogout }) {
+  const { districts: heatDistricts, grid: heatGrid, alerts: heatAlerts } = useHeatData();
+  const heatColorScale = useMemo(
+    () => makeTempColorScale((heatDistricts || []).map((d) => d.lst_c)),
+    [heatDistricts]
+  );
+  const { citizenCards, districts: forestDistricts } = useDeforestationData();
+  const { severity, summary, projection, loading: floodLoading, error: floodError } = useNationalFloodData();
+  const [lang, setLang] = useState("en");
+  const t = CITIZEN_I18N[lang];
+
+  // Larger-text mode for elderly or low-vision users — the same "even a
+  // brand-new, non-technical or vision-impaired person should understand
+  // this instantly" goal the supervisor raised, extended to font size.
+  // Scaling the document root's font-size (rather than one wrapper's) is
+  // what actually grows Tailwind's rem-based text/spacing utilities
+  // consistently across the whole page, including tap-target sizes — not
+  // just the words. Reset on unmount so leaving citizen view never leaves
+  // the rest of the app scaled.
+  const [largeText, setLargeText] = useState(() => {
+    try {
+      return localStorage.getItem("citizen_large_text") === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.style.fontSize = largeText ? "118%" : "";
+    try {
+      localStorage.setItem("citizen_large_text", largeText ? "1" : "0");
+    } catch {
+      // Private browsing / blocked storage — the toggle still works for
+      // this visit, it just won't be remembered next time.
+    }
+    return () => {
+      document.documentElement.style.fontSize = "";
+    };
+  }, [largeText]);
+
+  // Hub-and-detail navigation: the citizen dashboard opens on a hub of three
+  // module cards (Heat / Flood / Deforestation) rather than dumping every
+  // module's cards on one long scroll — tapping a card opens that module's
+  // detail, with a Back button to return to the hub.
+  const [citizenView, setCitizenView] = useState("hub"); // "hub" | "heat" | "flood" | "forest"
+
+  const districtOptions = useMemo(
+    () => (severity || []).map((s) => s.district_name).sort((a, b) => a.localeCompare(b)),
+    [severity]
+  );
+
+  // No default district — the citizen must actively pick their own area;
+  // showing someone else's district's data by default (e.g. always opening
+  // on Chittagong) would be misleading for anyone who doesn't notice the
+  // picker and just reads the hub cards.
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+
+  const selectedFlood = useMemo(
+    () => (severity || []).find((s) => s.district_name === selectedDistrict) || null,
+    [severity, selectedDistrict]
+  );
+
+  // 7-day forward flood risk projection for the selected district, when the
+  // automation has produced one yet (see useNationalFloodData — this is a
+  // separate, newer model and legitimately absent until its first run).
+  const selectedProjection = useMemo(
+    () => (projection?.districts || []).find((d) => d.district_name === selectedDistrict) || null,
+    [projection, selectedDistrict]
+  );
+
+  // Tree cover and heat now both genuinely exist for all 64 districts, so
+  // both follow the area picker instead of one being gated to a single city.
+  const treeCard = useMemo(
+    () => (citizenCards || []).find((c) => c.district === selectedDistrict) || null,
+    [citizenCards, selectedDistrict]
+  );
+
+  const selectedHeat = useMemo(
+    () => (heatDistricts || []).find((d) => d.name === selectedDistrict) || null,
+    [heatDistricts, selectedDistrict]
+  );
+
+  // Real forest-loss priority tier for the citizen's own district, from the
+  // same government-side deforestation data — not a new/invented signal —
+  // so the Deforestation hub card can carry a real color-coded risk level
+  // too, instead of being the one card with no risk color at all.
+  const selectedForestPriority = useMemo(
+    () => (forestDistricts || []).find((d) => d.district === selectedDistrict)?.priority || null,
+    [forestDistricts, selectedDistrict]
+  );
+
+  // Heatwave watch is reported at the national level (it's keyed to the
+  // model's own hotspot cluster centroids, not administrative districts —
+  // see heat_export.py) — a short banner naming how many locations
+  // nationally are under watch, not a claim about the citizen's own area.
+  const activeHeatwaveCount = heatAlerts?.alerts?.length || 0;
+
+  // Live 7-day forecast for exactly the selected district's real centroid —
+  // fetched straight from Open-Meteo, independent of the 3-day model
+  // refresh cycle. See the DISTRICT_CENTROIDS/useLocalForecast comment
+  // above for why this is a deliberately separate, complementary signal
+  // rather than a restatement of the trained models.
+  const centroid = DISTRICT_CENTROIDS[selectedDistrict];
+  const localForecast = useLocalForecast(centroid?.[0], centroid?.[1]);
+  // Today's real hour-by-hour forecast for the same centroid — feeds the
+  // live safe-hours card and the combined "today" advisory below.
+  const { hours: hourlyHeatToday } = useHourlyHeatToday(centroid?.[0], centroid?.[1]);
+
+  return (
+    <div className="min-h-screen bg-stone-900 text-stone-100">
+      <div className="sticky top-0 z-10 border-b border-stone-700/80 bg-stone-900/80 backdrop-blur-md px-5 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            onClick={onLogout}
+            title={t.back}
+            aria-label={t.back}
+            className="shrink-0 text-stone-400 hover:text-stone-200 p-1 -ml-1 rounded-lg hover:bg-stone-800 transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/25 to-emerald-600/5 ring-1 ring-emerald-500/25 shrink-0">
+            <Radar size={16} className="text-emerald-400" />
+          </span>
+          <span className="text-sm font-semibold text-stone-50 tracking-tight truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            {t.appName}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setLargeText((v) => !v)}
+            title={largeText ? t.largeTextOff : t.largeTextOn}
+            aria-label={largeText ? t.largeTextOff : t.largeTextOn}
+            className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors border ${
+              largeText
+                ? "text-emerald-300 border-emerald-700/60 bg-emerald-900/20"
+                : "text-stone-400 hover:text-stone-200 border-stone-700 hover:bg-stone-800"
+            }`}
+          >
+            <Type size={13} />
+          </button>
+          <button
+            onClick={() => setLang(lang === "en" ? "bn" : "en")}
+            className="text-xs text-stone-400 hover:text-stone-200 px-2.5 py-1 rounded-lg hover:bg-stone-800 transition-colors border border-stone-700"
+          >
+            {lang === "en" ? "বাংলা" : "English"}
+          </button>
+          <button onClick={onLogout} className="text-xs text-stone-400 hover:text-stone-200 px-2.5 py-1 rounded-lg hover:bg-stone-800 transition-colors">{t.exit}</button>
+        </div>
+      </div>
+
+      <div className="max-w-md md:max-w-4xl mx-auto px-4 py-5 space-y-4 animate-fade-in">
+        {citizenView === "hub" ? (
+          <>
+            {districtOptions.length > 0 && (
+              <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-medium text-stone-100">{t.yourArea}</h3>
+                  <DistrictPicker value={selectedDistrict} options={districtOptions} onChange={setSelectedDistrict} lang={lang} />
+                </div>
+                <p className="text-[11px] text-stone-400">{t.yourAreaHint}</p>
+              </div>
+            )}
+
+            {activeHeatwaveCount > 0 && (
+              <div className="bg-gradient-to-br from-red-950/50 to-red-950/20 border border-red-900/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm shadow-black/20">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 ring-1 ring-red-500/30 shrink-0">
+                  <AlertTriangle size={16} className="text-red-400" />
+                </span>
+                <p className="text-xs text-red-300 leading-relaxed">
+                  {activeHeatwaveCount === 1 ? t.heatwaveWatchOne : `${activeHeatwaveCount} ${t.heatwaveWatchMany}`}
+                </p>
+              </div>
+            )}
+
+            {!selectedDistrict ? (
+              // No district picked yet — a prominent, unmissable prompt
+              // instead of hub cards stuck on "loading" forever (there's
+              // nothing to show until the citizen actually chooses an area).
+              <div className="bg-gradient-to-b from-emerald-950/30 to-stone-800/30 border border-emerald-900/40 rounded-2xl p-5 text-center shadow-sm shadow-black/20">
+                <IconBadge icon={MapPin} tone="teal" size={15} />
+                <p className="text-sm text-stone-100 font-medium mt-2">{t.chooseDistrictPrompt}</p>
+                <p className="text-[11px] text-stone-400 mt-1">{t.chooseDistrictHint}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[11px] text-stone-500 -mb-1">{t.hubHint}</p>
+
+                <TodayAdvisoryCard floodDaily={selectedProjection?.daily} heatHours={hourlyHeatToday} lang={lang} t={t} />
+
+                {/* Always-visible color legend — the same red/amber/green scale
+                    is used everywhere in this app, so once someone learns it
+                    here, every badge and card below becomes readable by color
+                    alone, without needing to read any tier word. */}
+                <div className="flex items-center gap-3 flex-wrap -mb-1">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" /> {t.legendSafe}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> {t.legendCaution}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> {t.legendHigh}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {[
+                    {
+                      key: "heat",
+                      icon: Thermometer,
+                      label: t.heatModuleLabel,
+                      tier: selectedHeat?.risk_category || null,
+                      sub: selectedHeat ? `${selectedHeat.lst_c.toFixed(1)}°C` : t.loading,
+                    },
+                    {
+                      key: "flood",
+                      icon: Droplets,
+                      label: t.floodModuleLabel,
+                      tier: selectedFlood?.severity_tier || null,
+                      sub: selectedFlood
+                        ? `${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%`
+                        : floodLoading
+                        ? t.loading
+                        : t.floodRiskFallbackNote,
+                    },
+                    {
+                      key: "forest",
+                      icon: TreeDeciduous,
+                      label: t.forestModuleLabel,
+                      tier: selectedForestPriority,
+                      sub: treeCard ? `${treeCard.forest_pct}%` : t.loading,
+                    },
+                  ].map((m) => {
+                    // Icon color = risk level (red/amber/green), the same scale as
+                    // the legend above and everywhere else in the app — this is
+                    // the primary signal now, not each module's brand color.
+                    const toneKey = RISK_LEVEL_BADGE_TONE[riskLevel(m.tier)] || "slate";
+                    return (
+                      <button
+                        key={m.key}
+                        onClick={() => setCitizenView(m.key)}
+                        className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+                            <m.icon size={22} />
+                          </span>
+                          <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
+                        </div>
+                        <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-stone-100">{m.label}</div>
+                            <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
+                          </div>
+                          {m.tier && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                              {tierLabel(m.tier, lang)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <AlertSubscribeForm district={selectedDistrict} lang={lang} />
+              </>
+            )}
+
+            <EmergencyHelplineCard t={t} />
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between -mt-1 mb-1">
+              <button
+                onClick={() => setCitizenView("hub")}
+                className="flex items-center gap-1.5 text-sm text-stone-300 hover:text-stone-100 transition-colors"
+              >
+                <ArrowLeft size={14} /> {t.back}
+              </button>
+              {selectedDistrict && <span className="text-[11px] text-stone-400">{selectedDistrict}</span>}
+            </div>
+
+            {citizenView === "heat" && selectedHeat && (() => {
+              const advisory = heatAdvisory(selectedHeat.risk_category, lang);
+              const heroSpeak = `${tierLabel(selectedHeat.risk_category, lang)} — ${selectedHeat.lst_c.toFixed(1)}°C. ${advisory.body}`;
+              const heroSave = buildSaveContent(
+                `${tierLabel(selectedHeat.risk_category, lang)} — ${selectedDistrict || ""} (${selectedHeat.lst_c.toFixed(1)}°C)`,
+                [advisory.body, advisory.safeHours].filter(Boolean),
+                lang
+              );
+              return (
+                <>
+                  <RiskHero
+                    icon={Thermometer}
+                    tier={selectedHeat.risk_category}
+                    title={tierLabel(selectedHeat.risk_category, lang)}
+                    sub={`${selectedHeat.lst_c.toFixed(1)}°C · ${selectedDistrict || ""}`}
+                    lang={lang}
+                    speak={heroSpeak}
+                    saveContent={heroSave}
+                    listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
+                    shareLabel={t.share}
+                    saveLabel={t.saveCard}
+                    saveFilename={`heat-risk-${selectedDistrict || "area"}.txt`}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-stone-100">{t.heatMapTitle}</h3>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${tierColor(selectedHeat.risk_category).bg} ${tierColor(selectedHeat.risk_category).text}`}>
+                          {tierLabel(selectedHeat.risk_category, lang)}
+                        </span>
+                      </div>
+                      {heatDistricts ? (
+                        <div className="flex justify-center">
+                          <BangladeshDistrictMap
+                            compact
+                            valueByDistrict={Object.fromEntries(heatDistricts.map((d) => [d.name, d.lst_c]))}
+                            colorFn={heatColorScale.colorFn}
+                            labelFn={(v) => (v === null || v === undefined ? t.noData : `${v.toFixed(1)}°C`)}
+                            selectedName={selectedDistrict}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-stone-400 text-center py-4">{t.loading}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <IconBadge icon={Thermometer} tone="orange" size={14} className="mb-2.5" />
+                      <div className="text-xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {selectedHeat.lst_c.toFixed(1)}°C
+                      </div>
+                      <div className="text-[11px] text-stone-400 mt-0.5">{t.currentTemp}</div>
+                    </div>
+
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <h3 className="text-sm font-medium text-stone-100 mb-2">{t.healthAdvisoryTitle}</h3>
+                      <p className="text-xs text-stone-300 leading-relaxed">{advisory.body}</p>
+                    </div>
+
+                    <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                    <LiveSafeHoursCard lat={centroid?.[0]} lon={centroid?.[1]} lang={lang} t={t} />
+                  </div>
+
+                  {selectedHeat.risk_category === "High" && <EmergencyHelplineCard t={t} />}
+                </>
+              );
+            })()}
+
+            {citizenView === "flood" &&
+              (floodLoading || floodError || !selectedFlood ? (
+                <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                  <h3 className="text-sm font-medium text-stone-100 mb-1">{t.floodRiskTitle} {selectedDistrict || ""}</h3>
+                  <p className="text-xs text-stone-400">{floodLoading ? t.loading : t.floodRiskFallbackNote}</p>
+                </div>
+              ) : (
+                (() => {
+                  const tier = selectedFlood.severity_tier || "Moderate";
+                  const c = tierColor(tier);
+                  const steps = floodSafetySteps(tier, lang);
+                  const heroSpeak = `${tierLabel(tier, lang)} — ${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%. ${steps.join(" ")}`;
+                  const heroSave = buildSaveContent(
+                    `${tierLabel(tier, lang)} — ${selectedFlood.district_name} (${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}%)`,
+                    steps,
+                    lang
+                  );
+                  return (
+                    <>
+                      <RiskHero
+                        icon={Droplets}
+                        tier={tier}
+                        title={tierLabel(tier, lang)}
+                        sub={`${(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% · ${selectedFlood.district_name}`}
+                        lang={lang}
+                        speak={heroSpeak}
+                        saveContent={heroSave}
+                        listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
+                        shareLabel={t.share}
+                        saveLabel={t.saveCard}
+                        saveFilename={`flood-risk-${selectedFlood.district_name}.txt`}
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2.5">
+                              <IconBadge icon={Droplets} tone="teal" size={14} />
+                              <h3 className="text-sm font-medium text-stone-100">{t.floodRiskTitle} {selectedFlood.district_name}</h3>
+                            </div>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{tierLabel(tier, lang)}</span>
+                          </div>
+                          <p className="text-[11px] text-stone-400 mb-3 flex items-center gap-1.5 flex-wrap">
+                            <span>
+                              {(selectedFlood.avg_predicted_risk * 100).toFixed(1)}% predicted risk
+                              {summary?.last_refreshed_at ? ` · ${t.floodRiskLive}` : ""}
+                            </span>
+                            {selectedFlood.risk_trend && (
+                              <span className="inline-flex items-center gap-1">
+                                <RiskTrendBadge trend={selectedFlood.risk_trend} size={11} />
+                                {selectedFlood.risk_trend === "up" ? t.trendUp : selectedFlood.risk_trend === "down" ? t.trendDown : t.trendSteady}
+                              </span>
+                            )}
+                          </p>
+                          {typeof selectedFlood.population === "number" && (
+                            <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                              {t.districtPopulation(selectedFlood.population.toLocaleString())}
+                            </p>
+                          )}
+                          {typeof selectedFlood.previous_avg_predicted_risk === "number" && (
+                            <p className="text-[11px] text-stone-500 mb-3 -mt-2">
+                              {t.trendDetail(
+                                (selectedFlood.previous_avg_predicted_risk * 100).toFixed(0),
+                                (selectedFlood.avg_predicted_risk * 100).toFixed(0)
+                              )}
+                            </p>
+                          )}
+                          <div className="space-y-2 mb-1">
+                            {steps.map((s, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="w-1 h-1 rounded-full bg-stone-500 mt-1.5 shrink-0" />
+                                <p className="text-xs text-stone-300 leading-relaxed">{s}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {(tier === "Severe" || tier === "High" || tier === "Moderate") && (
+                            <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-700">{t.emergencyLine2}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-4">
+                          <LiveForecastStrip forecast={localForecast} lang={lang} title={t.forecastTitle} hint={t.forecastHint} />
+                          <FloodProjectionStrip projection={selectedProjection} lang={lang} t={t} />
+                          <FloodCountdownCard daily={selectedProjection?.daily} lang={lang} t={t} />
+                        </div>
+                      </div>
+
+                      {(tier === "Severe" || tier === "High" || tier === "Moderate") && <EmergencyHelplineCard t={t} />}
+                    </>
+                  );
+                })()
+              ))}
+
+            {citizenView === "forest" && (
+              <>
+                {treeCard && (
+                  <RiskHero
+                    icon={TreeDeciduous}
+                    tier={selectedForestPriority}
+                    title={selectedForestPriority ? tierLabel(selectedForestPriority, lang) : `${treeCard.forest_pct}%`}
+                    sub={`${treeCard.district} · ${treeCard.forest_pct}% ${lang === "bn" ? "গাছপালা" : "tree cover"}`}
+                    lang={lang}
+                    speak={`${treeCard.district}: ${treeCard.forest_pct}%. ${treeCard.message || ""}`}
+                    saveContent={buildSaveContent(
+                      `${treeCard.district} — ${treeCard.forest_pct}% ${lang === "bn" ? "গাছপালা" : "tree cover"}`,
+                      [treeCard.message, treeCard.call_to_action].filter(Boolean),
+                      lang
+                    )}
+                    listenLabel={t.listen}
+                    stopListenLabel={t.stopListening}
+                    shareLabel={t.share}
+                    saveLabel={t.saveCard}
+                    saveFilename={`forest-cover-${treeCard.district}.txt`}
+                  />
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {treeCard && (
+                    <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-4 shadow-sm shadow-black/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <IconBadge icon={TreeDeciduous} tone="teal" size={14} />
+                          <h3 className="text-sm font-medium text-stone-100">{t.treeCoverTitle} {treeCard.district}</h3>
+                        </div>
+                        <span className="text-lg font-semibold text-stone-50 tabular-nums" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {treeCard.forest_pct}%
+                        </span>
+                      </div>
+                      <div style={{ width: "100%", height: 56 }}>
+                        <ResponsiveContainer>
+                          <LineChart data={treeCard.years.map((y, i) => ({ year: y, v: treeCard.sparkline[i] }))}>
+                            <Line type="monotone" dataKey="v" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <p className="text-xs text-stone-300 leading-relaxed mt-2">{treeCard.message}</p>
+                      <button
+                        type="button"
+                        onClick={() => shareRiskText(`${treeCard.district}: ${treeCard.message} ${treeCard.call_to_action || ""}`.trim())}
+                        className="w-full mt-3 bg-emerald-600/20 hover:bg-emerald-600/30 active:scale-[0.98] text-emerald-300 text-xs font-medium py-2 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Share2 size={13} /> {treeCard.call_to_action}
+                      </button>
+                    </div>
+                  )}
+
+                  {selectedDistrict && <CitizenReportForm district={selectedDistrict} lang={lang} />}
+                  {selectedDistrict && <CommunityStatsCard district={selectedDistrict} lang={lang} />}
+                </div>
+                <ReportStatusLookup lang={lang} />
+              </>
+            )}
+          </>
+        )}
+
+        <p className="text-[11px] text-stone-500 text-center pt-1 pb-2">
+          {t.footer}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auth / role select
+// ---------------------------------------------------------------------------
+
+const ROLE_CREDENTIALS = {
+  "Environmental Analyst": { officer_id: "env_project", password: "env_project_400" },
+  "City Administrator": { officer_id: "city_admin", password: "city_admin_400" },
+  "Field Officer": { officer_id: "field_officer", password: "field_officer_400" },
+};
+
+const REGISTERABLE_ROLES = Object.keys(ROLE_CREDENTIALS);
+
+function GovtLogin({ onBack, onLogin }) {
+  const [mode, setMode] = useState("login"); // "login" | "register"
+
+  // --- login state ---
+  // Officer ID / password start blank, same as a real sign-in page — the
+  // server (not a locally-selected role) decides the account's role on a
+  // successful login (see handleLoginSubmit's `data.role`). "role" here is
+  // only a last-resort fallback if a response is ever missing one.
+  const [role, setRole] = useState("Environmental Analyst");
+  const [officerId, setOfficerId] = useState("");
+  const [password, setPassword] = useState("");
+
+  // --- register state ---
+  const [regName, setRegName] = useState("");
+  const [regRole, setRegRole] = useState(REGISTERABLE_ROLES[0]);
+  const [regOfficerId, setRegOfficerId] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function switchMode(newMode) {
+    setMode(newMode);
+    setError("");
+  }
+
+  // Separate, clearly-labeled demo shortcut (rendered below the real sign-in
+  // form, not baked into it) — fills the two fields with one role's demo
+  // credentials so a reviewer can try each role without being told the
+  // password out loud, but still has to look at what got filled in and
+  // press Sign in themselves, same as any real login.
+  function fillDemo(demoRole) {
+    const creds = ROLE_CREDENTIALS[demoRole];
+    if (!creds) return;
+    setRole(demoRole);
+    setOfficerId(creds.officer_id);
+    setPassword(creds.password);
+    setError("");
+  }
+
+  async function handleLoginSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ officer_id: officerId, password }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Login failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      onLogin({ role: data.role || role, officerId: data.officer_id || officerId });
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegisterSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!regName.trim() || !regOfficerId.trim() || !regPassword) {
+      setError("Please fill in every field.");
+      return;
+    }
+    if (regPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          officer_id: regOfficerId.trim(),
+          password: regPassword,
+          name: regName.trim(),
+          role: regRole,
+        }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.detail || `Registration failed (${res.status})`);
+      }
+
+      // Instant access: a successful registration logs the new officer
+      // straight in, same as the login flow.
+      onLogin({ role: body.role || regRole, officerId: body.officer_id || regOfficerId.trim() });
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputClass =
+    "w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 mt-1 mb-3 text-sm text-stone-200 focus:outline-none focus:border-emerald-500/50";
+
+  return (
+    <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-200 mb-6">
+          <ArrowLeft size={14} /> Back
+        </button>
+
+        {mode === "login" ? (
+          <form onSubmit={handleLoginSubmit} className="bg-stone-800/60 border border-stone-700 rounded-2xl p-6">
+            <ShieldCheck size={22} className="text-emerald-400 mb-3" />
+            <h2 className="text-lg font-semibold text-stone-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Government sign in
+            </h2>
+            <p className="text-xs text-stone-400 mt-1 mb-5">Role-based access to environmental monitoring and decision support</p>
+
+            <label className="text-xs text-stone-300">Officer ID</label>
+            <input
+              value={officerId}
+              onChange={(e) => setOfficerId(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. env_project"
+              autoComplete="username"
+            />
+
+            <label className="text-xs text-stone-300">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+
+            <div className="mt-4 pt-3 border-t border-dashed border-stone-700">
+              <p className="text-[11px] text-stone-500 text-center mb-2">Reviewer demo access — fills the fields above, does not sign in automatically</p>
+              <div className="flex gap-1.5">
+                {REGISTERABLE_ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => fillDemo(r)}
+                    className="flex-1 text-[11px] text-stone-400 hover:text-emerald-300 border border-stone-700 hover:border-emerald-500/40 rounded-lg py-1.5 px-1 transition-colors"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-stone-700 mt-4 pt-4 text-center">
+              <button
+                type="button"
+                onClick={() => switchMode("register")}
+                className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
+              >
+                <UserPlus size={13} /> New officer? Register here
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleRegisterSubmit} className="bg-stone-800/60 border border-stone-700 rounded-2xl p-6">
+            <UserPlus size={22} className="text-emerald-400 mb-3" />
+            <h2 className="text-lg font-semibold text-stone-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Officer registration
+            </h2>
+            <p className="text-xs text-stone-400 mt-1 mb-5">Create an account to get government dashboard access</p>
+
+            <label className="text-xs text-stone-300">Full name</label>
+            <input value={regName} onChange={(e) => setRegName(e.target.value)} className={inputClass} placeholder="e.g. Rahim Uddin" />
+
+            <label className="text-xs text-stone-300">Role</label>
+            <select value={regRole} onChange={(e) => setRegRole(e.target.value)} className={inputClass}>
+              {REGISTERABLE_ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+
+            <label className="text-xs text-stone-300">Officer ID</label>
+            <input
+              value={regOfficerId}
+              onChange={(e) => setRegOfficerId(e.target.value)}
+              className={inputClass}
+              placeholder="Choose a unique ID, e.g. rahim_2026"
+            />
+
+            <label className="text-xs text-stone-300">Password</label>
+            <input
+              type="password"
+              value={regPassword}
+              onChange={(e) => setRegPassword(e.target.value)}
+              className={inputClass}
+              placeholder="At least 6 characters"
+            />
+
+            <label className="text-xs text-stone-300">Confirm password</label>
+            <input
+              type="password"
+              value={regConfirmPassword}
+              onChange={(e) => setRegConfirmPassword(e.target.value)}
+              className={inputClass}
+            />
+
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+            >
+              {loading ? "Creating account…" : "Register & sign in"}
+            </button>
+
+            <div className="border-t border-stone-700 mt-4 pt-4 text-center">
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="text-xs text-stone-300 hover:text-stone-200"
+              >
+                Already have an account? Sign in
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RoleSelect({ onSelect }) {
+  return (
+    <div className="relative min-h-screen bg-stone-900 flex items-center justify-center p-4 overflow-hidden">
+      {/* Subtle ambient background glow + dot grid, purely decorative */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(148,163,184,0.15) 1px, transparent 0)",
+          backgroundSize: "28px 28px",
+          maskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[560px] h-[360px] rounded-full blur-3xl opacity-30"
+        style={{ background: "radial-gradient(closest-side, rgba(251,146,60,0.35), transparent)" }}
+      />
+
+      <div className="relative max-w-2xl w-full animate-fade-in-up">
+        <div className="text-center mb-10">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-1 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Environmental Risk Monitoring Platform
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-semibold text-stone-50 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Bangladesh Climate and Hazard Console
+          </h1>
+          <p className="text-sm text-stone-400 mt-3.5 max-w-md mx-auto leading-relaxed">
+            Satellite-derived heat, flood and deforestation risk monitoring,
+            built on our own trained prediction models for government planning
+            and public awareness.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <button
+            onClick={() => onSelect("govt")}
+            className="text-left bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-emerald-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/20"
+          >
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <ShieldCheck size={22} className="text-emerald-400" />
+            </span>
+            <p className="text-stone-50 font-medium">Government dashboard</p>
+            <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
+              Full access to risk analysis, AI predictions, resource planning and report generation.
+            </p>
+            <span className="text-xs text-emerald-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
+              Continue <ChevronRight size={13} />
+            </span>
+          </button>
+          <button
+            onClick={() => onSelect("citizen")}
+            className="text-left bg-gradient-to-b from-stone-800/80 to-stone-800/40 border border-stone-700 hover:border-emerald-500/40 rounded-2xl p-6 transition-all duration-200 group shadow-sm shadow-black/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/20"
+          >
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <Users size={22} className="text-emerald-400" />
+            </span>
+            <p className="text-stone-50 font-medium">Citizen dashboard</p>
+            <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
+              Flood risk, heat risk and tree cover for your district, plus a national heatwave watch and health advisories.
+            </p>
+            <span className="text-xs text-emerald-400 mt-4 inline-flex items-center gap-1 group-hover:gap-2 transition-all font-medium">
+              Continue <ChevronRight size={13} />
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
+export default function App() {
+  const [view, setView] = useState("select"); // select | govt-login | govt | citizen
+  const [role, setRole] = useState(null);
+  const [officerId, setOfficerId] = useState(null);
+
+  return (
+    <div style={{ fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap');
+      `}</style>
+
+      {view === "select" && (
+        <RoleSelect onSelect={(v) => setView(v === "govt" ? "govt-login" : "citizen")} />
+      )}
+      {view === "govt-login" && (
+        <GovtLogin
+          onBack={() => setView("select")}
+          onLogin={({ role: r, officerId: oid }) => { setRole(r); setOfficerId(oid); setView("govt"); }}
+        />
+      )}
+      {view === "govt" && (
+        <GovtDashboard role={role} officerId={officerId} onLogout={() => setView("select")} />
+      )}
+      {view === "citizen" && (
+        <CitizenDashboard onLogout={() => setView("select")} />
+      )}
+    </div>
+  );
+}
