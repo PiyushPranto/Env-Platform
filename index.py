@@ -200,10 +200,15 @@ def list_officers():
 
 # Allow the deployed frontend (and local dev) to call this API from the browser.
 # Tighten allow_origins to the exact Vercel frontend URL before the real defense demo.
+# PATCH is required here (not just GET/POST): the officer "verify / assign /
+# note" controls on a citizen report use PATCH /deforestation/citizen-reports/
+# {id}, and a browser's CORS preflight rejects that call outright — surfacing
+# as a generic "Failed to fetch" with no server-side error logged at all — if
+# the method isn't explicitly allowed here.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"],
 )
 
