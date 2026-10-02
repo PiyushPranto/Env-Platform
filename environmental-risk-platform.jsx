@@ -4372,15 +4372,15 @@ function CitizenDashboard({ onLogout }) {
                       <button
                         key={m.key}
                         onClick={() => setCitizenView(m.key)}
-                        className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
+                        className="w-full min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5 md:flex md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left overflow-hidden"
                       >
                         <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
                           <m.icon size={22} />
                         </span>
-                        <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
-                          <div className="min-w-0">
+                        <div className="min-w-0 w-full flex items-center justify-between gap-2 overflow-hidden">
+                          <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="text-sm font-medium text-stone-100 truncate">{m.label}</div>
-                            <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
+                            <div className="text-[11px] text-stone-400 mt-0.5 truncate">{m.sub}</div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {m.tier && (
