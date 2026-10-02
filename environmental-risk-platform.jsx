@@ -4374,22 +4374,22 @@ function CitizenDashboard({ onLogout }) {
                         onClick={() => setCitizenView(m.key)}
                         className="w-full flex items-center gap-3.5 md:flex-col md:items-start md:gap-2.5 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 hover:border-stone-600 rounded-2xl p-4 shadow-sm shadow-black/20 transition-colors text-left"
                       >
-                        <div className="flex items-center justify-between w-full">
-                          <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
-                            <m.icon size={22} />
-                          </span>
-                          <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
-                        </div>
+                        <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
+                          <m.icon size={22} />
+                        </span>
                         <div className="flex-1 min-w-0 flex items-center justify-between w-full gap-2">
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-stone-100">{m.label}</div>
+                            <div className="text-sm font-medium text-stone-100 truncate">{m.label}</div>
                             <div className="text-[11px] text-stone-400 mt-0.5">{m.sub}</div>
                           </div>
-                          {m.tier && (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
-                              {tierLabel(m.tier, lang)}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {m.tier && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${tierColor(m.tier).bg} ${tierColor(m.tier).text}`}>
+                                {tierLabel(m.tier, lang)}
+                              </span>
+                            )}
+                            <ChevronRight size={16} className="text-stone-500 shrink-0 md:hidden" />
+                          </div>
                         </div>
                       </button>
                     );
