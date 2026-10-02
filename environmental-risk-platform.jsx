@@ -4377,7 +4377,7 @@ function CitizenDashboard({ onLogout }) {
                         <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${ICON_BADGE_TONES[toneKey]}`}>
                           <m.icon size={22} />
                         </span>
-                        <div className="min-w-0 w-full flex items-center justify-between gap-2 overflow-hidden">
+                        <div className="flex-1 min-w-0 flex items-center justify-between gap-2 overflow-hidden">
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="text-sm font-medium text-stone-100 truncate">{m.label}</div>
                             <div className="text-[11px] text-stone-400 mt-0.5 truncate">{m.sub}</div>
