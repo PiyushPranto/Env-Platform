@@ -44,17 +44,17 @@
   "top5_priority_districts": [
     "Dhaka",
     "Jamalpur",
-    "Gaibandha",
     "Kishoreganj",
+    "Gaibandha",
     "Netrakona"
   ],
   "live_prediction_window": {
-    "start_date": "2026-06-13",
-    "end_date": "2026-09-24",
+    "start_date": "2026-06-16",
+    "end_date": "2026-09-27",
     "window_days": 90
   },
-  "last_refreshed_at": "2026-10-01T07:57:00Z",
+  "last_refreshed_at": "2026-10-04T07:33:00Z",
   "refresh_mode": "frozen_model_scored_on_live_open_meteo_rolling_window",
   "exposure_metric": "population",
-  "population_data_source": "WorldPop 2020 gridded population estimates, summed within FAO GAUL level-2 district boundaries (national total 141,622,665 - below Bangladesh's official ~165M 2020 population because coastline pixels falling outside the GAUL polygons aren't counted; disclosed in the thesis report, Section H). Same figures reported in the thesis text."
+  "population_data_source": "WorldPop 2020 gridded population estimates, summed within FAO GAUL level-2 district boundaries (national total 141,622,665 \u2014 below Bangladesh's official ~165M 2020 population because coastline pixels falling outside the GAUL polygons aren't counted; disclosed in the thesis report, Section H). Same figures reported in the thesis text."
 }
