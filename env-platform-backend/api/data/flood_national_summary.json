@@ -49,11 +49,11 @@
     "Gaibandha"
   ],
   "live_prediction_window": {
-    "start_date": "2026-06-22",
-    "end_date": "2026-10-03",
+    "start_date": "2026-06-25",
+    "end_date": "2026-10-06",
     "window_days": 90
   },
-  "last_refreshed_at": "2026-10-10T07:52:28Z",
+  "last_refreshed_at": "2026-10-13T08:39:32Z",
   "refresh_mode": "frozen_model_scored_on_live_open_meteo_rolling_window",
   "exposure_metric": "population",
   "population_data_source": "WorldPop 2020 gridded population estimates, summed within FAO GAUL level-2 district boundaries (national total 141,622,665 \u2014 below Bangladesh's official ~165M 2020 population because coastline pixels falling outside the GAUL polygons aren't counted; disclosed in the thesis report, Section H). Same figures reported in the thesis text."
