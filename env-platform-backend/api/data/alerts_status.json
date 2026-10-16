@@ -1,12 +1,12 @@
 {
-  "ran_at": "2026-10-13T08:39:40Z",
+  "ran_at": "2026-10-16T06:32:51Z",
   "supabase_configured": true,
   "smtp_configured": true,
   "twilio_configured": false,
-  "subscriptions_checked": 5,
+  "subscriptions_checked": 0,
   "flood_emails_sent": 0,
   "heat_emails_sent": 0,
   "flood_whatsapp_sent": 0,
   "heat_whatsapp_sent": 0,
-  "note": null
+  "note": "Could not reach Supabase: <urlopen error [Errno -2] Name or service not known>"
 }
