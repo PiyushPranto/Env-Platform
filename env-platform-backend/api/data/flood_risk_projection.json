@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T06:32:51Z",
+  "generated_at": "2026-10-19T07:04:55Z",
   "forecast_days": 7,
   "seed_days_used": 13,
   "methodology": "The same frozen, trained classifier flood_national_priority.json's avg_predicted_risk uses, scored day-by-day for the next 7 real forecast days from Open-Meteo's published forecast (not the 90-day historical average the nowcast uses). 13 prior days of near-real-time rainfall are fetched only to correctly seed the rolling-rain features for day 1 of the forecast, and are not themselves scored or reported. This inherits the weather forecast's own uncertainty, which grows with each day further out \u2014 treat later days as directional, not precise.",
@@ -9,28 +9,13 @@
       "district_name": "Barisal",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.008359340991097036,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.003936055318762862,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.005425137873842884,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0022056869700995767,
+          "predicted_risk": 0.0037897572442513973,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0022056869700995767,
+          "predicted_risk": 0.0037897572442513973,
           "rainfall_mm": 0.0
         },
         {
@@ -42,13 +27,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0006777928677454757,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0006777928677454757,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0006777928677454757,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0006777928677454757,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.008359340991097036,
-        "rainfall_mm": 0.1
+        "date": "2026-10-19",
+        "predicted_risk": 0.0037897572442513973,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -57,23 +57,8 @@
       "district_name": "Bhola",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.01019974349171488,
-          "rainfall_mm": 2.8
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0016300078952163086,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.004949819252406593,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
@@ -90,13 +75,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.01019974349171488,
-        "rainfall_mm": 2.8
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -105,45 +105,45 @@
       "district_name": "Jhalokati",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 2.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.007943693330613238,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0003336102456163608,
+          "predicted_risk": 0.004457518926329766,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0003336102456163608,
+          "predicted_risk": 0.006342644886247353,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0023787848096824527,
+          "predicted_risk": 0.004612276537584068,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.0003336102456163608,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.007943693330613238,
+        "date": "2026-10-20",
+        "predicted_risk": 0.006342644886247353,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -153,23 +153,8 @@
       "district_name": "Patuakhali",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 1.9
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.002177207830836623,
-          "rainfall_mm": 0.7
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.002177207830836623,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0022056869700995767,
+          "predicted_risk": 0.001730368348663285,
           "rainfall_mm": 0.0
         },
         {
@@ -186,12 +171,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-10-19",
-        "predicted_risk": 0.0022056869700995767,
+        "predicted_risk": 0.001730368348663285,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -201,45 +201,45 @@
       "district_name": "Pirojpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 4.4
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0005593746092176015,
+          "predicted_risk": 0.0003336102456163608,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0005593746092176015,
+          "predicted_risk": 0.0003336102456163608,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0003336102456163608,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.0005593746092176015,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.0014605819290003084,
+        "date": "2026-10-22",
+        "predicted_risk": 0.0005593746092176015,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -248,21 +248,6 @@
       "district_id": 5767,
       "district_name": "Bandarban",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 4.3
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
@@ -275,20 +260,35 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 4.5
+          "predicted_risk": 0.008219715112361073,
+          "rainfall_mm": 5.8
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.005791710166941617,
-          "rainfall_mm": 0.6
+          "predicted_risk": 0.008219715112361073,
+          "rainfall_mm": 0.8
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.009849723007577381,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0023600404490429993,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.005791710166941617,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-22",
-        "predicted_risk": 0.005791710166941617,
-        "rainfall_mm": 0.6
+        "date": "2026-10-23",
+        "predicted_risk": 0.009849723007577381,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -296,21 +296,6 @@
       "district_id": 5768,
       "district_name": "Brahamanbaria",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0018310266383273891,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
@@ -328,14 +313,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.0012635745896236775,
+          "predicted_risk": 0.0013230606175131865,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0012635745896236775,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.0018310266383273891,
+        "date": "2026-10-22",
+        "predicted_risk": 0.0013230606175131865,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -345,21 +345,6 @@
       "district_name": "Chandpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.003190950277663593,
-          "rainfall_mm": 0.7
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0017303683486632854,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0017574196646349821,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0033874275598512905,
           "rainfall_mm": 0.0
@@ -376,14 +361,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.02740110532188295,
+          "predicted_risk": 0.03362571769305679,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.01690592485828214,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.01493255345491956,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.01493255345491956,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.02740110532188295,
+      "risk_in_7_days": 0.01493255345491956,
       "peak_day": {
         "date": "2026-10-22",
-        "predicted_risk": 0.02740110532188295,
+        "predicted_risk": 0.03362571769305679,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -392,21 +392,6 @@
       "district_id": 5770,
       "district_name": "Chittagong",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.004018545967428672,
-          "rainfall_mm": 0.7
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.00197337140336258,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.00197337140336258,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
@@ -425,13 +410,28 @@
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0006777928677454757,
+          "rainfall_mm": 0.1
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.004756612037376263,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.004756612037376263,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.002651164271108056,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0006777928677454757,
+      "risk_in_7_days": 0.002651164271108056,
       "peak_day": {
-        "date": "2026-10-20",
-        "predicted_risk": 0.004530561511635057,
+        "date": "2026-10-23",
+        "predicted_risk": 0.004756612037376263,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -441,28 +441,13 @@
       "district_name": "Comilla",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.004328087265325873,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.002122400295226296,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.002045174564066092,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.002045174564066092,
           "rainfall_mm": 0.0
         },
         {
@@ -474,13 +459,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.004328087265325873,
-        "rainfall_mm": 0.5
+        "date": "2026-10-21",
+        "predicted_risk": 0.0022056869700995767,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -489,21 +489,6 @@
       "district_name": "Cox's Bazar",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0023506406032347124,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.8
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -515,20 +500,35 @@
         },
         {
           "date": "2026-10-21",
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.2
+        },
+        {
+          "date": "2026-10-22",
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
-          "date": "2026-10-22",
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0023506406032347124,
-        "rainfall_mm": 0.0
+        "date": "2026-10-21",
+        "predicted_risk": 0.0018438981381821511,
+        "rainfall_mm": 0.2
       },
       "projection_trend": "steady"
     },
@@ -537,21 +537,6 @@
       "district_name": "Feni",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.006744925333039511,
-          "rainfall_mm": 0.6
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.004714405430697613,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -563,20 +548,35 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.00039082939757398614,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.00039082939757398614,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.00039082939757398614,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.00039082939757398614,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0007643443604393596,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.00039082939757398614,
+      "risk_in_7_days": 0.0007643443604393596,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.006744925333039511,
-        "rainfall_mm": 0.6
+        "date": "2026-10-25",
+        "predicted_risk": 0.0007643443604393596,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -585,21 +585,6 @@
       "district_name": "Khagrachhari",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.007048455668467882,
-          "rainfall_mm": 1.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.007048455668467882,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.006160039324936176,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -618,13 +603,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.007048455668467882,
-        "rainfall_mm": 1.1
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -633,21 +633,6 @@
       "district_name": "Lakshmipur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.008364772644348076,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.006452046907682434,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -659,20 +644,35 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.003989445809617357,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0021059592811713446,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.002425303420482258,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.002425303420482258,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.002425303420482258,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0002620611429891934,
+      "risk_in_7_days": 0.002425303420482258,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.008364772644348076,
-        "rainfall_mm": 0.4
+        "date": "2026-10-23",
+        "predicted_risk": 0.002425303420482258,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -681,46 +681,46 @@
       "district_name": "Noakhali",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.009381745391138825,
-          "rainfall_mm": 3.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.005929616021279227,
-          "rainfall_mm": 0.3
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.004222382394902715,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.00916292814871005,
+          "predicted_risk": 0.0041675748592923875,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0058462643066961965,
+          "predicted_risk": 0.0021224002952262956,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0041675748592923875,
+          "predicted_risk": 0.0021224002952262956,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.007925396298106414,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.007925396298106414,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.007925396298106414,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.007925396298106414,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.009381745391138825,
-        "rainfall_mm": 3.1
+        "date": "2026-10-23",
+        "predicted_risk": 0.007925396298106414,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -729,21 +729,6 @@
       "district_name": "Rangamati",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0035057564930664,
-          "rainfall_mm": 1.8
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0035057564930664,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.003966298433408447,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -755,18 +740,33 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0038527686438895813,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 1.3
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.002122400295226296,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.003966298433408447,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
+        "date": "2026-10-24",
         "predicted_risk": 0.003966298433408447,
         "rainfall_mm": 0.0
       },
@@ -777,21 +777,6 @@
       "district_name": "Dhaka",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0048152211755168465,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.003436109112038791,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.003436109112038791,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0017574196646349821,
           "rainfall_mm": 0.0
@@ -808,14 +793,29 @@
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.00037351496286537345,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0048152211755168465,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0017574196646349821,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -825,23 +825,8 @@
       "district_name": "Faridpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.015866874663133385,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.01784934559915322,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.017589517735122885,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.02528190512050707,
+          "predicted_risk": 0.019941512739499116,
           "rainfall_mm": 0.0
         },
         {
@@ -858,11 +843,26 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-19",
+        "date": "2026-10-20",
         "predicted_risk": 0.02528190512050707,
         "rainfall_mm": 0.0
       },
@@ -873,28 +873,13 @@
       "district_name": "Gazipur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0019924294916524783,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.003877555451570066,
+          "predicted_risk": 0.006173332709781745,
           "rainfall_mm": 0.0
         },
         {
@@ -906,12 +891,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-10-20",
-        "predicted_risk": 0.003877555451570066,
+        "predicted_risk": 0.006173332709781745,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -921,28 +921,13 @@
       "district_name": "Gopalganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0016786894474038086,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0016786894474038086,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.003139271376404117,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.002149454744457347,
+          "predicted_risk": 0.0014605819290003084,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.002149454744457347,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
@@ -954,12 +939,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0016300078952163088,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0016300078952163088,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0016300078952163088,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0,
+      "risk_in_7_days": 0.0016300078952163088,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.003139271376404117,
+        "date": "2026-10-21",
+        "predicted_risk": 0.002149454744457347,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -969,21 +969,6 @@
       "district_name": "Jamalpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.003804398041689969,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0037037397520258654,
-          "rainfall_mm": 0.3
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0019733714033625797,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.003804398041689969,
           "rainfall_mm": 0.0
@@ -1002,13 +987,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
+        "date": "2026-10-19",
         "predicted_risk": 0.003804398041689969,
-        "rainfall_mm": 0.1
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1017,23 +1017,8 @@
       "district_name": "Kishoreganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.004281172166324364,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0043815326197713415,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.004482190909435444,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0006777928677454757,
+          "predicted_risk": 0.004482190909435444,
           "rainfall_mm": 0.0
         },
         {
@@ -1048,14 +1033,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.002138374796745784,
+          "predicted_risk": 0.005091443309475279,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.001460581929000308,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.001460581929000308,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.001460581929000308,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.002138374796745784,
+      "risk_in_7_days": 0.001460581929000308,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.004482190909435444,
+        "date": "2026-10-22",
+        "predicted_risk": 0.005091443309475279,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1065,45 +1065,45 @@
       "district_name": "Madaripur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.002428004945419456,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.00319393279390154,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.00319393279390154,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.00319393279390154,
+          "predicted_risk": 0.005214599343453577,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.005214599343453577,
+          "predicted_risk": 0.007336999638679872,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.001016724963064917,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.001016724963064917,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.001016724963064917,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0034308256436633637,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.001016724963064917,
+      "risk_in_7_days": 0.0034308256436633637,
       "peak_day": {
         "date": "2026-10-21",
-        "predicted_risk": 0.005214599343453577,
+        "predicted_risk": 0.007336999638679872,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1112,21 +1112,6 @@
       "district_id": 5785,
       "district_name": "Manikganj",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.009356398386867802,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.008167885366732462,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.008167885366732462,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.008167885366732462,
@@ -1146,9 +1131,24 @@
           "date": "2026-10-22",
           "predicted_risk": 0.004852583946621201,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0037037397520258654,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.004852583946621201,
+      "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-10-20",
         "predicted_risk": 0.010667885366732464,
@@ -1161,23 +1161,8 @@
       "district_name": "Munshiganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.004982349217721299,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.012736093163861626,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.004982349217721299,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.01050117213241299,
+          "predicted_risk": 0.008556615704566735,
           "rainfall_mm": 0.0
         },
         {
@@ -1192,14 +1177,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.02675147291769983,
+          "predicted_risk": 0.024931747624798006,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.030775270046764027,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.034017809954313694,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.02790835881236028,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.02675147291769983,
+      "risk_in_7_days": 0.02790835881236028,
       "peak_day": {
-        "date": "2026-10-22",
-        "predicted_risk": 0.02675147291769983,
+        "date": "2026-10-24",
+        "predicted_risk": 0.034017809954313694,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1208,21 +1208,6 @@
       "district_id": 5787,
       "district_name": "Mymensingh",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0038363276298346294,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0038363276298346294,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.00383632762983463,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.0021059592811713446,
@@ -1242,12 +1227,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.00383632762983463,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0021059592811713446,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1256,21 +1256,6 @@
       "district_id": 5788,
       "district_name": "Narayanganj",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.009490319773660699,
-          "rainfall_mm": 0.6
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.008281112270694653,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.008194633797147483,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.005697573170149001,
@@ -1290,13 +1275,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.00040338447246488537,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.008285875970915178,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.017563149145882147,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.015517974581816052,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.00040338447246488537,
+      "risk_in_7_days": 0.015517974581816052,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.009490319773660699,
-        "rainfall_mm": 0.6
+        "date": "2026-10-24",
+        "predicted_risk": 0.017563149145882147,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1305,21 +1305,6 @@
       "district_name": "Narsingdi",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.017114931366271065,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.005251232658257883,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0010828140328385338,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
@@ -1338,13 +1323,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0002620611429891934,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.017114931366271065,
-        "rainfall_mm": 0.4
+        "date": "2026-10-19",
+        "predicted_risk": 0.0002620611429891934,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1353,23 +1353,8 @@
       "district_name": "Netrakona",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0007875316655853376,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0007875316655853376,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0007875316655853376,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0007875316655853376,
+          "predicted_risk": 0.002618558303912727,
           "rainfall_mm": 0.0
         },
         {
@@ -1384,14 +1369,29 @@
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.0012635745896236775,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0007875316655853376,
+        "date": "2026-10-19",
+        "predicted_risk": 0.002618558303912727,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1401,45 +1401,45 @@
       "district_name": "Rajbari",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.01064910994957181,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.009101586234751059,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.009475101197616432,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.011835141646659433,
+          "predicted_risk": 0.011275920781238775,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.013874600445366507,
+          "predicted_risk": 0.012430117697659018,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.012803632660524391,
+          "predicted_risk": 0.012430117697659018,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.025119822819750302,
+          "predicted_risk": 0.024544783300776047,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.020737062957598917,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.005396601544877113,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.007240499683059265,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.025119822819750302,
+      "risk_in_7_days": 0.007240499683059265,
       "peak_day": {
         "date": "2026-10-22",
-        "predicted_risk": 0.025119822819750302,
+        "predicted_risk": 0.024544783300776047,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1449,28 +1449,13 @@
       "district_name": "Shariatpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0013230606175131867,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.010335912006497921,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.006084807099397661,
+          "predicted_risk": 0.0044288410530807076,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.006084807099397661,
+          "predicted_risk": 0.0044288410530807076,
           "rainfall_mm": 0.0
         },
         {
@@ -1480,14 +1465,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.011165340375706007,
+          "predicted_risk": 0.011239597964408644,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.014160057071361667,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.019706145203536106,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.019706145203536106,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.011165340375706007,
+      "risk_in_7_days": 0.019706145203536106,
       "peak_day": {
-        "date": "2026-10-22",
-        "predicted_risk": 0.011165340375706007,
+        "date": "2026-10-24",
+        "predicted_risk": 0.019706145203536106,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1497,21 +1497,6 @@
       "district_name": "Sherpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
@@ -1523,19 +1508,34 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0038364282091894446,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0002620611429891934,
+        "date": "2026-10-21",
+        "predicted_risk": 0.0038364282091894446,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1545,46 +1545,46 @@
       "district_name": "Tangail",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.002557838401200872,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0017226430719895019,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0050546931645158045,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0034530114206527875,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0017226430719895019,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.002557838401200872,
-        "rainfall_mm": 0.1
+        "date": "2026-10-19",
+        "predicted_risk": 0.0050546931645158045,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1593,21 +1593,6 @@
       "district_name": "Bagerhat",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.003190950277663593,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0003336102456163608,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0003336102456163608,
           "rainfall_mm": 0.0
@@ -1626,12 +1611,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.003190950277663593,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0003336102456163608,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1641,28 +1641,13 @@
       "district_name": "Chuadanga",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.005476570597104019,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0022957772582116787,
           "rainfall_mm": 0.0
         },
         {
@@ -1674,12 +1659,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0,
+        "date": "2026-10-19",
+        "predicted_risk": 0.005476570597104019,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1689,21 +1689,6 @@
       "district_name": "Jessore",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.002463123082049403,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0024081612164087605,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0006777928677454757,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
@@ -1722,13 +1707,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.002463123082049403,
-        "rainfall_mm": 0.1
+        "date": "2026-10-19",
+        "predicted_risk": 0.0006777928677454757,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -1737,28 +1737,13 @@
       "district_name": "Jhenaidah",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0015406509509777657,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
@@ -1770,12 +1755,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-20",
-        "predicted_risk": 0.0015406509509777657,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1785,21 +1785,6 @@
       "district_name": "Khulna",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -1816,14 +1801,29 @@
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.0023790674900489215,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0,
+        "date": "2026-10-22",
+        "predicted_risk": 0.0023790674900489215,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1833,21 +1833,6 @@
       "district_name": "Kushtia",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -1859,19 +1844,34 @@
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0024634765714635375,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0,
+        "date": "2026-10-21",
+        "predicted_risk": 0.0024634765714635375,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1881,21 +1881,6 @@
       "district_name": "Magura",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -1914,11 +1899,26 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
+        "date": "2026-10-19",
         "predicted_risk": 0.0,
         "rainfall_mm": 0.0
       },
@@ -1929,21 +1929,6 @@
       "district_name": "Meherpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.00207028437724982,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -1962,12 +1947,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.00207028437724982,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -1976,21 +1976,6 @@
       "district_id": 5803,
       "district_name": "Narail",
       "daily": [
-        {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
         {
           "date": "2026-10-19",
           "predicted_risk": 0.0002620611429891934,
@@ -2010,6 +1995,21 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
@@ -2025,23 +2025,8 @@
       "district_name": "Satkhira",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.004837841076469114,
-          "rainfall_mm": 0.8
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0016786894474038086,
           "rainfall_mm": 0.0
         },
         {
@@ -2056,15 +2041,30 @@
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.0021224002952262965,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.004837841076469114,
-        "rainfall_mm": 0.8
+        "date": "2026-10-22",
+        "predicted_risk": 0.0021224002952262965,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2073,28 +2073,13 @@
       "district_name": "Habiganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0033280658130644615,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.006618670217320889,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.004169637322489102,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0024392689738258165,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0038998509028261253,
           "rainfall_mm": 0.0
         },
         {
@@ -2106,12 +2091,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0002620611429891934,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.006618670217320889,
+        "date": "2026-10-20",
+        "predicted_risk": 0.0038998509028261253,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2121,21 +2121,6 @@
       "district_name": "Maulvibazar",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.000725418827058998,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.000725418827058998,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.000725418827058998,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.000725418827058998,
           "rainfall_mm": 0.0
@@ -2154,11 +2139,26 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
+        "date": "2026-10-19",
         "predicted_risk": 0.000725418827058998,
         "rainfall_mm": 0.0
       },
@@ -2169,45 +2169,45 @@
       "district_name": "Sunamganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.00802291418577867,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.011170486300407007,
-          "rainfall_mm": 0.3
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.009440117951743722,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.011284016089925875,
+          "predicted_risk": 0.013423636842534255,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.011284016089925875,
+          "predicted_risk": 0.0069033090913308386,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.007335109963775901,
+          "predicted_risk": 0.0049750695147329025,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.002417539560801646,
+          "predicted_risk": 0.0043909109641642255,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.004319430031270615,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0018438981381821511,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0018438981381821511,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.002417539560801646,
+      "risk_in_7_days": 0.0018438981381821511,
       "peak_day": {
         "date": "2026-10-19",
-        "predicted_risk": 0.011284016089925875,
+        "predicted_risk": 0.013423636842534255,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2217,23 +2217,8 @@
       "district_name": "Sylhet",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0057793691419635185,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.021560200923691618,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0145688048397377,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.010547698870718927,
+          "predicted_risk": 0.008703800732536775,
           "rainfall_mm": 0.0
         },
         {
@@ -2250,13 +2235,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.002333908229224035,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.002333908229224035,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.021560200923691618,
-        "rainfall_mm": 0.2
+        "date": "2026-10-19",
+        "predicted_risk": 0.008703800732536775,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2265,45 +2265,45 @@
       "district_name": "Bogra",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.001748760652587592,
-          "rainfall_mm": 0.1
-        },
-        {
-          "date": "2026-10-17",
+          "date": "2026-10-19",
           "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
         },
         {
-          "date": "2026-10-18",
-          "predicted_risk": 0.004756612037376263,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-19",
-          "predicted_risk": 0.002651164271108056,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-20",
-          "predicted_risk": 0.0043815326197713415,
+          "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.002800193162971772,
+          "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0006777928677454757,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0006777928677454757,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0006777928677454757,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.004756612037376263,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0006777928677454757,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2313,23 +2313,8 @@
       "district_name": "Joypurhat",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0018438981381821511,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0002620611429891934,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
@@ -2344,14 +2329,29 @@
         },
         {
           "date": "2026-10-22",
-          "predicted_risk": 0.007979495053967776,
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.007979495053967776,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-22",
-        "predicted_risk": 0.007979495053967776,
+        "date": "2026-10-20",
+        "predicted_risk": 0.0002620611429891934,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2361,21 +2361,6 @@
       "district_name": "Naogaon",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0023600404490429993,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0023600404490429993,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -2394,13 +2379,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.0023600404490429993,
-        "rainfall_mm": 0.4
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2409,23 +2409,8 @@
       "district_name": "Natore",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.007637767016127897,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.005224119130731805,
-          "rainfall_mm": 0.7
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.005567482638878077,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.007584159579774804,
+          "predicted_risk": 0.005224119130731805,
           "rainfall_mm": 0.0
         },
         {
@@ -2442,13 +2427,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.007637767016127897,
-        "rainfall_mm": 0.5
+        "date": "2026-10-19",
+        "predicted_risk": 0.005224119130731805,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2457,21 +2457,6 @@
       "district_name": "Nawabganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 1.4
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -2490,13 +2475,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0025,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.0,
-        "rainfall_mm": 1.4
+        "date": "2026-10-23",
+        "predicted_risk": 0.0025,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2505,28 +2505,13 @@
       "district_name": "Pabna",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0023436397109654135,
+          "predicted_risk": 0.004737180043015533,
           "rainfall_mm": 0.0
         },
         {
@@ -2538,12 +2523,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-10-20",
-        "predicted_risk": 0.0023436397109654135,
+        "predicted_risk": 0.004737180043015533,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2553,21 +2553,6 @@
       "district_name": "Rajshahi",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.001730368348663285,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
@@ -2586,12 +2571,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.001730368348663285,
+        "date": "2026-10-19",
+        "predicted_risk": 0.0002620611429891934,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2601,37 +2601,37 @@
       "district_name": "Sirajganj",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0051281828324977585,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.006959209470825147,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.009553092330470157,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.011890692517302848,
+          "predicted_risk": 0.006959209470825147,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.03168741590546269,
+          "predicted_risk": 0.03106050128374892,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.03168741590546269,
+          "predicted_risk": 0.03106050128374892,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
+          "predicted_risk": 0.00306959091181103,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.00306959091181103,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.007093139139077458,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
           "predicted_risk": 0.00306959091181103,
           "rainfall_mm": 0.0
         }
@@ -2639,7 +2639,7 @@
       "risk_in_7_days": 0.00306959091181103,
       "peak_day": {
         "date": "2026-10-20",
-        "predicted_risk": 0.03168741590546269,
+        "predicted_risk": 0.03106050128374892,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2649,21 +2649,6 @@
       "district_name": "Dinajpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0016300078952163086,
-          "rainfall_mm": 0.9
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0017303683486632854,
-          "rainfall_mm": 0.3
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -2682,13 +2667,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.0017303683486632854,
-        "rainfall_mm": 0.3
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -2697,28 +2697,13 @@
       "district_name": "Gaibandha",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0002620611429891934,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0017226430719895016,
+          "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0017226430719895016,
+          "predicted_risk": 0.0002620611429891934,
           "rainfall_mm": 0.0
         },
         {
@@ -2730,12 +2715,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
         "date": "2026-10-19",
-        "predicted_risk": 0.0017226430719895016,
+        "predicted_risk": 0.0002620611429891934,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2745,46 +2745,46 @@
       "district_name": "Kurigram",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.010737852413315131,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.006197497609290705,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.002360040449042999,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.002360040449042999,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.002360040449042999,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0012635745896236775,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-16",
-        "predicted_risk": 0.010737852413315131,
-        "rainfall_mm": 0.0
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.1
       },
       "projection_trend": "steady"
     },
@@ -2793,28 +2793,13 @@
       "district_name": "Lalmonirhat",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0016786894474038088,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0016786894474038088,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0054793421733169145,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0016786894474038088,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.005152595480802269,
+          "rainfall_mm": 0.3
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0016786894474038088,
+          "predicted_risk": 0.0033086973426201174,
           "rainfall_mm": 0.0
         },
         {
@@ -2826,13 +2811,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.0054793421733169145,
-        "rainfall_mm": 0.0
+        "date": "2026-10-19",
+        "predicted_risk": 0.005152595480802269,
+        "rainfall_mm": 0.3
       },
       "projection_trend": "steady"
     },
@@ -2841,28 +2841,13 @@
       "district_name": "Nilphamari",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.004739986618232977,
-          "rainfall_mm": 0.9
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0051727070706177915,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0016300078952163086,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.0017303683486632854,
           "rainfall_mm": 0.0
         },
         {
@@ -2874,12 +2859,27 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.0051727070706177915,
+        "date": "2026-10-20",
+        "predicted_risk": 0.0017303683486632854,
         "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
@@ -2889,46 +2889,46 @@
       "district_name": "Panchagarh",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.00207028437724982,
-          "rainfall_mm": 0.5
-        },
-        {
           "date": "2026-10-19",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "predicted_risk": 0.001730368348663285,
+          "rainfall_mm": 0.2
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0,
+          "predicted_risk": 0.001730368348663285,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.001730368348663285,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-18",
-        "predicted_risk": 0.00207028437724982,
-        "rainfall_mm": 0.5
+        "date": "2026-10-19",
+        "predicted_risk": 0.001730368348663285,
+        "rainfall_mm": 0.2
       },
       "projection_trend": "steady"
     },
@@ -2937,24 +2937,9 @@
       "district_name": "Rangpur",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0013230606175131867,
-          "rainfall_mm": 1.1
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0017303683486632854,
-          "rainfall_mm": 0.7
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
+          "rainfall_mm": 0.1
         },
         {
           "date": "2026-10-20",
@@ -2970,13 +2955,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.0017303683486632854,
-        "rainfall_mm": 0.7
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.1
       },
       "projection_trend": "steady"
     },
@@ -2985,21 +2985,6 @@
       "district_name": "Thakurgaon",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0014605819290003084,
-          "rainfall_mm": 0.2
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.007265176780873339,
-          "rainfall_mm": 0.4
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.005244510231321302,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
@@ -3018,13 +3003,28 @@
           "date": "2026-10-22",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
       "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-17",
-        "predicted_risk": 0.007265176780873339,
-        "rainfall_mm": 0.4
+        "date": "2026-10-19",
+        "predicted_risk": 0.0,
+        "rainfall_mm": 0.0
       },
       "projection_trend": "steady"
     },
@@ -3033,44 +3033,44 @@
       "district_name": "Barguna",
       "daily": [
         {
-          "date": "2026-10-16",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.5
-        },
-        {
-          "date": "2026-10-17",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.3
-        },
-        {
-          "date": "2026-10-18",
-          "predicted_risk": 0.0,
-          "rainfall_mm": 0.0
-        },
-        {
           "date": "2026-10-19",
           "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-20",
-          "predicted_risk": 0.0012635745896236775,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-21",
-          "predicted_risk": 0.0012635745896236775,
+          "predicted_risk": 0.0,
           "rainfall_mm": 0.0
         },
         {
           "date": "2026-10-22",
           "predicted_risk": 0.0012635745896236775,
           "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted_risk": 0.0,
+          "rainfall_mm": 0.0
         }
       ],
-      "risk_in_7_days": 0.0012635745896236775,
+      "risk_in_7_days": 0.0,
       "peak_day": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "predicted_risk": 0.0012635745896236775,
         "rainfall_mm": 0.0
       },
