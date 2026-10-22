@@ -1,7 +1,17 @@
 {
-  "generated_at": "2026-10-19T07:04:35Z",
+  "generated_at": "2026-10-22T06:47:05Z",
   "forecast_days": 7,
   "sites_monitored": 10,
   "risk_cut": 0.391,
-  "alerts": []
+  "alerts": [
+    {
+      "name": "Hotspot 7",
+      "lat": 23.843,
+      "lon": 90.3736,
+      "heat_risk": 0.519,
+      "heatwave_days": 1,
+      "peak_tmax_c": 36.2,
+      "worst_category": "Mild"
+    }
+  ]
 }
