@@ -54,6 +54,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # allow `script
 
 from scripts.runners import ModelRunFailed, ModelUnavailable  # noqa: E402
 from scripts.runners import heat as heat_runner  # noqa: E402
+from scripts.runners import air as air_runner  # noqa: E402
 from scripts.runners import flood as flood_runner  # noqa: E402
 from scripts.runners import flood_projection as flood_projection_runner  # noqa: E402
 from scripts.runners import deforestation as deforestation_runner  # noqa: E402
@@ -68,6 +69,7 @@ MODELS = {
     "flood": (flood_runner.run, flood_runner.OUTPUT_FILES),
     "flood_projection": (flood_projection_runner.run, flood_projection_runner.OUTPUT_FILES),
     "deforestation": (deforestation_runner.run, deforestation_runner.OUTPUT_FILES),
+    "air": (air_runner.run, air_runner.OUTPUT_FILES),
 }
 
 
