@@ -292,6 +292,30 @@ def _check_heat_live(data: Any) -> None:
         )
 
 
+def _check_air_live(data: Any) -> None:
+    if not isinstance(data, dict):
+        raise ValidationError("air_live.json must be an object")
+    _require(data, "generated_at", "status", "districts", "source", "disclosure",
+              where="air_live.json: ")
+    if data["status"] not in ("ok", "unavailable"):
+        raise ValidationError(
+            f"air_live.json 'status' must be 'ok' or 'unavailable', got {data['status']!r}"
+        )
+    if not isinstance(data["districts"], list):
+        raise ValidationError("air_live.json 'districts' must be a list")
+    for i, row in enumerate(data["districts"]):
+        if not isinstance(row, dict):
+            raise ValidationError(f"air_live.json.districts[{i}] is not an object")
+        _require(row, "name", "pm2_5", "us_aqi", "aqi_category", "forecast",
+                  where=f"air_live.json.districts[{i}]: ")
+        if not isinstance(row["pm2_5"], (int, float)) or row["pm2_5"] < 0:
+            raise ValidationError(f"air_live.json.districts[{i}]: pm2_5 must be a number >= 0")
+        if not isinstance(row["us_aqi"], (int, float)) or not (0 <= row["us_aqi"] <= 500):
+            raise ValidationError(f"air_live.json.districts[{i}]: us_aqi must be between 0 and 500")
+        if not isinstance(row["forecast"], list):
+            raise ValidationError(f"air_live.json.districts[{i}]: forecast must be a list")
+
+
 REQUIRED_FIELDS = {
     "heat_risk.json": _check_heat_risk,
     "heat_trend.json": _check_heat_trend,
@@ -299,6 +323,7 @@ REQUIRED_FIELDS = {
     "heat_hotspots.geojson": lambda d: _check_geojson(d, "heat_hotspots.geojson"),
     "heat_alerts.json": _check_heat_alerts,
     "heat_live.json": _check_heat_live,
+    "air_live.json": _check_air_live,
     "flood_grid.json": _check_flood_grid,
     "flood_trend.json": _check_flood_trend,
     "flood_top_risk_areas.json": _check_flood_top_risk_areas,
