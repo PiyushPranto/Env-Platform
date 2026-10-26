@@ -55,7 +55,7 @@ const WHATSAPP_SANDBOX_JOIN_CODE = "join your-sandbox-code";
 const OTHER_MODULES = [
   { key: "flood", labelKey: "navFlood", icon: Droplets, locked: false },
   { key: "forest", labelKey: "navForest", icon: TreeDeciduous, locked: false },
-  { key: "air", labelKey: "navAir", icon: Wind, locked: true },
+  { key: "air", labelKey: "navAir", icon: Wind, locked: false },
 ];
 
 // Shared teal -> green -> amber -> orange -> red interpolation, stretched
@@ -1148,6 +1148,321 @@ function useCommunityStats() {
 }
 
 // ---------------------------------------------------------------------------
+// Air quality — live, national (64 districts) from GET /air/live.
+// Modelled atmospheric data (CAMS via Open-Meteo), NOT ground-sensor readings,
+// and coarse over Bangladesh — the disclosure is shown on the page. Like the
+// other modules there is no fake fallback: a failed fetch shows an explicit
+// error state, and a backend that hasn't produced the file yet shows a
+// "not yet run" notice instead of empty charts.
+// ---------------------------------------------------------------------------
+
+function useAirData() {
+  const [districts, setDistricts] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/air/live`);
+        if (!res.ok) throw new Error(`/air/live returned ${res.status}`);
+        const body = await res.json();
+        if (cancelled) return;
+        setDistricts(body.districts || []);
+        setMeta({
+          status: body.status,
+          generatedAt: body.generated_at,
+          source: body.source,
+          disclosure: body.disclosure,
+          meanPm25: body.national_mean_pm2_5,
+          meanAqi: body.national_mean_us_aqi,
+        });
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load air quality data:", err);
+          setError(err.message || "Failed to load air quality data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { districts, meta, loading, error };
+}
+
+// Standard US AQI bands (index value, not a PM2.5 concentration).
+const AQI_BANDS = [
+  { max: 50, key: "good", color: "#22c55e", range: "0–50" },
+  { max: 100, key: "moderate", color: "#eab308", range: "51–100" },
+  { max: 150, key: "usg", color: "#f97316", range: "101–150" },
+  { max: 200, key: "unhealthy", color: "#ef4444", range: "151–200" },
+  { max: 300, key: "veryUnhealthy", color: "#a855f7", range: "201–300" },
+  { max: Infinity, key: "hazardous", color: "#9f1239", range: "301+" },
+];
+
+function aqiBand(aqi) {
+  return AQI_BANDS.find((b) => aqi <= b.max) || AQI_BANDS[AQI_BANDS.length - 1];
+}
+
+const AIR_TXT = {
+  en: {
+    title: "Air quality — live by district",
+    sub: "Current US AQI per district, from modelled atmospheric data",
+    kpiPm: "National mean PM2.5",
+    kpiPmSub: (n) => `µg/m³, average of ${n} districts`,
+    kpiAqi: "National mean AQI",
+    kpiBad: "Districts above AQI 150",
+    kpiBadSub: "Unhealthy or worse",
+    kpiWorst: "Most polluted district",
+    liveLabel: "Live data",
+    liveValue: "Refreshed every 3 days",
+    liveUpdated: (d) => `Last updated ${d}`,
+    rankTitle: "Most polluted districts",
+    rankSub: "Ranked by current US AQI",
+    mapNote: "Colour = current US AQI. Click a district for details.",
+    noData: "No data",
+    forecastTitle: (n) => `5-day PM2.5 forecast — ${n}`,
+    forecastSub: "Daily mean PM2.5 (µg/m³)",
+    pm25: "PM2.5", pm10: "PM10", no2: "NO₂", o3: "O₃",
+    unit: "µg/m³",
+    close: "Close",
+    searchNone: "No district matches your search.",
+    notRun: "Air quality data hasn't been generated yet.",
+    notRunSub: "The automation will produce it on its next run.",
+    modelled: "Modelled data",
+    bands: {
+      good: "Good", moderate: "Moderate", usg: "Unhealthy for sensitive groups",
+      unhealthy: "Unhealthy", veryUnhealthy: "Very unhealthy", hazardous: "Hazardous",
+    },
+    advice: {
+      good: "No restrictions on outdoor activity.",
+      moderate: "Fine for most people. Unusually sensitive people may limit long outdoor exertion.",
+      usg: "Children, older adults and people with asthma or heart disease should cut down on long outdoor exertion.",
+      unhealthy: "Everyone should reduce heavy outdoor exertion. Wear an N95/KN95 mask outdoors.",
+      veryUnhealthy: "Avoid outdoor activity, keep windows closed, and sensitive groups should stay indoors.",
+      hazardous: "Stay indoors. If you must go out, wear an N95/KN95 mask.",
+    },
+  },
+  bn: {
+    title: "বায়ুর মান — জেলাভিত্তিক সরাসরি তথ্য",
+    sub: "মডেলভিত্তিক বায়ুমণ্ডলীয় তথ্য থেকে প্রতিটি জেলার বর্তমান US AQI",
+    kpiPm: "জাতীয় গড় PM2.5",
+    kpiPmSub: (n) => `µg/m³, ${n}টি জেলার গড়`,
+    kpiAqi: "জাতীয় গড় AQI",
+    kpiBad: "AQI ১৫০-এর বেশি জেলা",
+    kpiBadSub: "অস্বাস্থ্যকর বা তার চেয়ে খারাপ",
+    kpiWorst: "সবচেয়ে দূষিত জেলা",
+    liveLabel: "সরাসরি তথ্য",
+    liveValue: "প্রতি ৩ দিনে হালনাগাদ",
+    liveUpdated: (d) => `সর্বশেষ হালনাগাদ ${d}`,
+    rankTitle: "সবচেয়ে দূষিত জেলা",
+    rankSub: "বর্তমান US AQI অনুযায়ী সাজানো",
+    mapNote: "রং = বর্তমান US AQI। বিস্তারিত জানতে জেলায় ক্লিক করুন।",
+    noData: "তথ্য নেই",
+    forecastTitle: (n) => `৫ দিনের PM2.5 পূর্বাভাস — ${n}`,
+    forecastSub: "দৈনিক গড় PM2.5 (µg/m³)",
+    pm25: "PM2.5", pm10: "PM10", no2: "NO₂", o3: "O₃",
+    unit: "µg/m³",
+    close: "বন্ধ করুন",
+    searchNone: "আপনার অনুসন্ধানের সাথে কোনো জেলা মেলেনি।",
+    notRun: "বায়ুর মানের তথ্য এখনো তৈরি হয়নি।",
+    notRunSub: "পরবর্তী স্বয়ংক্রিয় রানে এটি তৈরি হবে।",
+    modelled: "মডেলভিত্তিক তথ্য",
+    bands: {
+      good: "ভালো", moderate: "মোটামুটি", usg: "সংবেদনশীল গোষ্ঠীর জন্য অস্বাস্থ্যকর",
+      unhealthy: "অস্বাস্থ্যকর", veryUnhealthy: "অত্যন্ত অস্বাস্থ্যকর", hazardous: "বিপজ্জনক",
+    },
+    advice: {
+      good: "বাইরের কার্যকলাপে কোনো বিধিনিষেধ নেই।",
+      moderate: "অধিকাংশ মানুষের জন্য ঠিক আছে। অতিসংবেদনশীলরা দীর্ঘক্ষণ বাইরে পরিশ্রম কমাতে পারেন।",
+      usg: "শিশু, প্রবীণ এবং হাঁপানি বা হৃদরোগে আক্রান্তদের বাইরে দীর্ঘক্ষণ পরিশ্রম কমানো উচিত।",
+      unhealthy: "সবাই বাইরের কঠোর পরিশ্রম কমান। বাইরে গেলে N95/KN95 মাস্ক পরুন।",
+      veryUnhealthy: "বাইরের কার্যকলাপ এড়িয়ে চলুন, জানালা বন্ধ রাখুন; সংবেদনশীলরা ঘরেই থাকুন।",
+      hazardous: "ঘরের ভেতরে থাকুন। বাইরে যেতেই হলে N95/KN95 মাস্ক পরুন।",
+    },
+    disclosure: "এটি মডেলভিত্তিক বায়ুমণ্ডলীয় তথ্য, ভূমি-সেন্সরের পরিমাপ নয়। বাংলাদেশে এর রেজোলিউশন মোটা (কয়েক দশ কিলোমিটার), তাই মানগুলো আঞ্চলিক অনুমান।",
+  },
+};
+
+function AirModuleContent({ data, lang, search }) {
+  const t = AIR_TXT[lang] || AIR_TXT.en;
+  const { districts, meta, loading, error } = data;
+  const [selectedName, setSelectedName] = useState(null);
+
+  const sorted = useMemo(
+    () => [...(districts || [])].sort((a, b) => b.us_aqi - a.us_aqi),
+    [districts]
+  );
+  const filtered = useMemo(
+    () => sorted.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
+    [sorted, search]
+  );
+
+  if (loading || error) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 animate-fade-in">
+        <DataStateNotice loading={loading} error={error} label="air quality data" />
+      </div>
+    );
+  }
+  if (!districts || districts.length === 0 || meta?.status !== "ok") {
+    return (
+      <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
+        <div className="text-center max-w-sm">
+          <div className="flex justify-center mb-4"><IconBadge icon={Wind} tone="slate" /></div>
+          <p className="text-stone-100 font-medium">{t.notRun}</p>
+          <p className="text-sm text-stone-400 mt-1.5">{t.notRunSub}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const shown = districts.find((d) => d.name === selectedName) || sorted[0];
+  const shownBand = aqiBand(shown.us_aqi);
+  const worst = sorted[0];
+  const badCount = sorted.filter((d) => d.us_aqi > 150).length;
+  const meanBand = aqiBand(meta.meanAqi ?? 0);
+  const updated = meta.generatedAt
+    ? new Date(meta.generatedAt).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", {
+        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+      })
+    : null;
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 animate-fade-in">
+      <div>
+        <h2 className="text-base font-medium text-stone-100">{t.title}</h2>
+        <p className="text-xs text-stone-400 mt-0.5">{t.sub}</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi label={t.kpiPm} value={meta.meanPm25 ?? "—"} sub={t.kpiPmSub(districts.length)} icon={Wind} tone="orange" />
+        <Kpi label={t.kpiAqi} value={meta.meanAqi ?? "—"} sub={t.bands[meanBand.key]} icon={Info} />
+        <Kpi label={t.kpiBad} value={badCount} sub={t.kpiBadSub} icon={AlertTriangle} tone={badCount > 0 ? "red" : "slate"} />
+        <Kpi label={t.kpiWorst} value={worst.name} sub={`AQI ${worst.us_aqi} · ${t.bands[aqiBand(worst.us_aqi).key]}`} icon={MapPin} />
+      </div>
+
+      {updated && <LiveRefreshBox label={t.liveLabel} value={t.liveValue} dateStr={t.liveUpdated(updated)} />}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{t.modelled}</Eyebrow>
+          <h3 className="text-sm font-medium text-stone-100 mt-0.5">{t.rankSub}</h3>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+            {AQI_BANDS.map((b) => (
+              <span key={b.key} className="inline-flex items-center gap-1.5 text-[10px] text-stone-400">
+                <span className="w-2 h-2 rounded-full" style={{ background: b.color }} />
+                {b.range}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center justify-center py-4">
+            <BangladeshDistrictMap
+              valueByDistrict={Object.fromEntries(districts.map((d) => [d.name, d.us_aqi]))}
+              colorFn={(v) => (v === null || v === undefined ? "#44403c" : aqiBand(v).color)}
+              labelFn={(v) => (v === null || v === undefined ? t.noData : `AQI ${Math.round(v)} · ${t.bands[aqiBand(v).key]}`)}
+              onSelect={(name) => setSelectedName(name)}
+              selectedName={shown.name}
+            />
+          </div>
+          <p className="text-[11px] text-stone-500 text-center">{t.mapNote}</p>
+        </div>
+
+        <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+          <Eyebrow>{t.rankTitle}</Eyebrow>
+          <p className="text-[11px] text-stone-500 mb-3 mt-0.5">{t.rankSub}</p>
+          <div className="space-y-1 max-h-[360px] overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-stone-500 text-center py-6">{t.searchNone}</p>
+            ) : (
+              filtered.map((d) => {
+                const b = aqiBand(d.us_aqi);
+                const isSelected = shown.name === d.name;
+                return (
+                  <button
+                    key={d.name}
+                    onClick={() => setSelectedName(d.name)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all duration-150 ${
+                      isSelected ? "bg-stone-700/70 ring-1 ring-stone-500" : "hover:bg-stone-800/80"
+                    }`}
+                  >
+                    <span className="text-[11px] text-stone-500 w-4 tabular-nums">{sorted.indexOf(d) + 1}</span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: b.color }} />
+                    <span className="flex-1 text-sm text-stone-200">{d.name}</span>
+                    <span className="text-xs text-stone-400 tabular-nums">AQI {d.us_aqi}</span>
+                    <ChevronRight size={13} className={`text-stone-500 transition-transform ${isSelected ? "translate-x-0.5" : ""}`} />
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4 border border-stone-700 bg-stone-800/50 flex items-start gap-4 shadow-sm shadow-black/20" style={{ borderLeft: `4px solid ${shownBand.color}` }}>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-sm text-stone-100 font-medium">{shown.name}</span>
+            <span className="text-xs font-medium" style={{ color: shownBand.color }}>
+              AQI {shown.us_aqi} · {t.bands[shownBand.key]}
+            </span>
+          </div>
+          <div className="text-xs text-stone-400 mt-1">
+            {t.pm25} {shown.pm2_5} · {t.pm10} {shown.pm10 ?? "—"} · {t.no2} {shown.no2 ?? "—"} · {t.o3} {shown.o3 ?? "—"} ({t.unit})
+          </div>
+          <p className="text-sm text-stone-300 mt-2">{t.advice[shownBand.key]}</p>
+        </div>
+        {selectedName && (
+          <button onClick={() => setSelectedName(null)} aria-label={t.close} className="text-stone-400 hover:text-stone-200 hover:bg-black/20 rounded-lg p-1 transition-colors">
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      <div className="bg-gradient-to-b from-stone-800/70 to-stone-800/30 border border-stone-700 rounded-2xl p-5 shadow-sm shadow-black/20">
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp size={14} className="text-emerald-400/80" />
+          <h3 className="text-sm font-medium text-stone-100">{t.forecastTitle(shown.name)}</h3>
+        </div>
+        <p className="text-xs text-stone-400 mb-3">{t.forecastSub}</p>
+        <div style={{ width: "100%", height: 200 }}>
+          <ResponsiveContainer>
+            <LineChart data={shown.forecast || []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(d) => d.slice(5)} />
+              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[0, "auto"]} />
+              <Tooltip
+                contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,0,0,0.5)" }}
+                labelStyle={{ color: "#cbd5e1", marginBottom: 2 }}
+                cursor={{ stroke: "#334155", strokeWidth: 1 }}
+              />
+              <Line type="monotone" dataKey="pm2_5_mean" stroke="#fb923c" strokeWidth={2.5} dot={{ r: 3 }} name="PM2.5" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2 text-[11px] text-stone-500">
+        <Info size={13} className="shrink-0 mt-0.5" />
+        <p>
+          {lang === "bn" ? t.disclosure : meta.disclosure}
+          {meta.source ? ` ${lang === "bn" ? "উৎস" : "Source"}: ${meta.source}.` : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
 
@@ -1515,7 +1830,7 @@ const GOVT_I18N = {
     govtDashboard: "Government dashboard",
     navHeat: "Heat monitoring",
     navFlood: "Flood monitoring",
-    navAir: "Air pollution (future work)",
+    navAir: "Air pollution",
     navForest: "Deforestation",
     signOut: "Sign out",
     menu: "Menu",
@@ -1683,7 +1998,7 @@ const GOVT_I18N = {
     govtDashboard: "সরকারি ড্যাশবোর্ড",
     navHeat: "তাপ পর্যবেক্ষণ",
     navFlood: "বন্যা পর্যবেক্ষণ",
-    navAir: "বায়ু দূষণ (ভবিষ্যৎ কাজ)",
+    navAir: "বায়ু দূষণ",
     navForest: "বন উজাড়",
     signOut: "সাইন আউট",
     menu: "মেনু",
@@ -1870,16 +2185,19 @@ function GovtDashboard({ role, officerId, onLogout }) {
   const floodDhaka = useFloodDhakaData();
   const floodNational = useNationalFloodData();
   const deforestation = useDeforestationData();
+  const air = useAirData();
   const citizenReports = useCitizenReports();
   const officersList = useOfficersList();
 
   const activeLoading =
     activeModule === "flood" ? (floodTab === "national" ? floodNational.loading : floodDhaka.loading)
     : activeModule === "forest" ? deforestation.loading
+    : activeModule === "air" ? air.loading
     : loading;
   const activeError =
     activeModule === "flood" ? (floodTab === "national" ? floodNational.error : floodDhaka.error)
     : activeModule === "forest" ? deforestation.error
+    : activeModule === "air" ? air.error
     : error;
 
   const filteredDistricts = useMemo(
@@ -2167,6 +2485,8 @@ function GovtDashboard({ role, officerId, onLogout }) {
             lang={lang}
             search={search}
           />
+        ) : activeModule === "air" ? (
+          <AirModuleContent data={air} lang={lang} search={search} />
         ) : activeModule !== "heat" ? (
           <div className="flex-1 flex items-center justify-center p-10 animate-fade-in">
             <div className="text-center max-w-sm">

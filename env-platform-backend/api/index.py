@@ -232,6 +232,7 @@ def root():
             "/deforestation/community-stats",
             "/auth/officers",
             "/alerts/subscribe", "/alerts/unsubscribe",
+            "/air/live",
             "/model/refresh-status",
             "/data/export", "/data/export.csv",
         ],
@@ -344,6 +345,31 @@ def heat_live():
             "live": [],
             "comparable_to_seasonal": False,
             "note": "Live heat re-scoring has not run yet.",
+        }
+
+
+# ---------------------------------------------------------------------------
+# Air quality - live, national (64 districts). Modelled CAMS data via the
+# Open-Meteo Air Quality API (not ground sensors; coarse over Bangladesh),
+# refreshed every 3 days by the automation. See scripts/models/air_export.py.
+# ---------------------------------------------------------------------------
+
+@app.get("/air/live")
+def air_live():
+    """Current PM2.5, PM10, NO2, O3 and US AQI per district (64), sorted
+    worst-first, each with a 5-day forecast (daily mean PM2.5, daily max AQI).
+    Modelled atmospheric data, not sensor readings; show the `disclosure`
+    field to users. Falls back to a labeled not-yet-run payload if the
+    automation hasn't produced this file yet."""
+    try:
+        return _load("air_live.json")
+    except HTTPException:
+        return {
+            "generated_at": None,
+            "status": "not_yet_run",
+            "districts_scored": 0,
+            "districts": [],
+            "note": "Air quality automation has not run yet.",
         }
 
 
