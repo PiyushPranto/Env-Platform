@@ -3,35 +3,35 @@
     "heat": {
       "status": "success",
       "reason": null,
-      "checked_at": "2026-10-28T07:40:55Z",
-      "last_updated": "2026-10-28T07:40:55Z"
+      "checked_at": "2026-10-31T07:40:41Z",
+      "last_updated": "2026-10-31T07:40:41Z"
     },
     "flood": {
       "status": "success",
       "reason": null,
-      "checked_at": "2026-10-28T07:41:05Z",
-      "last_updated": "2026-10-28T07:41:05Z"
+      "checked_at": "2026-10-31T07:40:49Z",
+      "last_updated": "2026-10-31T07:40:49Z"
     },
     "deforestation": {
       "status": "skipped",
       "reason": "No model code found: scripts/models/deforestation_export.py does not exist. Add a real export script there (see scripts/models/_template_export.py) with a generate(staging_dir) function that runs the actual deforestation model and writes its real output files into staging_dir. Until that file exists, this model is intentionally skipped rather than faked.",
-      "checked_at": "2026-10-28T07:41:12Z",
+      "checked_at": "2026-10-31T07:40:55Z",
       "last_updated": null
     },
     "flood_projection": {
       "status": "success",
       "reason": null,
-      "checked_at": "2026-10-28T07:41:12Z",
-      "last_updated": "2026-10-28T07:41:12Z"
+      "checked_at": "2026-10-31T07:40:55Z",
+      "last_updated": "2026-10-31T07:40:55Z"
     },
     "air": {
       "status": "success",
       "reason": null,
-      "checked_at": "2026-10-28T07:41:16Z",
-      "last_updated": "2026-10-28T07:41:16Z"
+      "checked_at": "2026-10-31T07:41:00Z",
+      "last_updated": "2026-10-31T07:41:00Z"
     }
   },
-  "last_run_at": "2026-10-28T07:41:16Z",
+  "last_run_at": "2026-10-31T07:41:00Z",
   "last_run_had_updates": true,
   "last_run_had_failures": false
 }
