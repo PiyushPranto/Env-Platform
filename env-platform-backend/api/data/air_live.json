@@ -1,2301 +1,2286 @@
 {
-  "generated_at": "2026-11-10T08:55:26+00:00",
+  "generated_at": "2026-11-13T08:52:50+00:00",
   "status": "ok",
   "districts_scored": 64,
   "districts_missing": [],
   "districts": [
     {
-      "name": "Bogra",
-      "pm2_5": 29.4,
-      "pm10": 30.6,
-      "no2": 0.5,
-      "o3": 179.0,
-      "us_aqi": 192,
+      "name": "Netrakona",
+      "pm2_5": 21.8,
+      "pm10": 25.3,
+      "no2": 0.0,
+      "o3": 142.0,
+      "us_aqi": 182,
       "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 104.5,
-          "us_aqi_max": 193
+          "date": "2026-11-13",
+          "pm2_5_mean": 97.2,
+          "us_aqi_max": 183
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 73.8,
+          "date": "2026-11-14",
+          "pm2_5_mean": 82.3,
+          "us_aqi_max": 180
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 103.5,
           "us_aqi_max": 185
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 108.4,
-          "us_aqi_max": 195
+          "date": "2026-11-16",
+          "pm2_5_mean": 84.8,
+          "us_aqi_max": 184
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 62.2,
-          "us_aqi_max": 188
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 49.9,
-          "us_aqi_max": 155
-        }
-      ]
-    },
-    {
-      "name": "Natore",
-      "pm2_5": 33.5,
-      "pm10": 35.2,
-      "no2": 0.2,
-      "o3": 180.0,
-      "us_aqi": 185,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 100.7,
-          "us_aqi_max": 186
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 63.1,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 85.5,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 68.1,
-          "us_aqi_max": 171
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 48.1,
-          "us_aqi_max": 159
-        }
-      ]
-    },
-    {
-      "name": "Rajshahi",
-      "pm2_5": 34.2,
-      "pm10": 35.9,
-      "no2": 0.1,
-      "o3": 174.0,
-      "us_aqi": 181,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 99.2,
-          "us_aqi_max": 181
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 64.6,
-          "us_aqi_max": 181
-        },
-        {
-          "date": "2026-11-12",
+          "date": "2026-11-17",
           "pm2_5_mean": 87.1,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 71.8,
-          "us_aqi_max": 173
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 58.6,
-          "us_aqi_max": 162
+          "us_aqi_max": 174
         }
       ]
     },
     {
       "name": "Chuadanga",
-      "pm2_5": 37.0,
-      "pm10": 38.9,
-      "no2": 1.1,
-      "o3": 198.0,
+      "pm2_5": 35.0,
+      "pm10": 40.9,
+      "no2": 0.4,
+      "o3": 159.0,
       "us_aqi": 177,
       "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 86.3,
-          "us_aqi_max": 177
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.2,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 78.5,
-          "us_aqi_max": 165
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 84.1,
-          "us_aqi_max": 174
+          "pm2_5_mean": 91.5,
+          "us_aqi_max": 179
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 65.6,
-          "us_aqi_max": 170
-        }
-      ]
-    },
-    {
-      "name": "Meherpur",
-      "pm2_5": 37.0,
-      "pm10": 38.9,
-      "no2": 1.1,
-      "o3": 198.0,
-      "us_aqi": 177,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 86.3,
-          "us_aqi_max": 177
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.2,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 78.5,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 84.1,
-          "us_aqi_max": 174
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 65.6,
-          "us_aqi_max": 170
-        }
-      ]
-    },
-    {
-      "name": "Naogaon",
-      "pm2_5": 30.9,
-      "pm10": 32.4,
-      "no2": 0.5,
-      "o3": 170.0,
-      "us_aqi": 175,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 88.3,
+          "pm2_5_mean": 95.3,
           "us_aqi_max": 176
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 73.4,
-          "us_aqi_max": 173
+          "date": "2026-11-15",
+          "pm2_5_mean": 136.7,
+          "us_aqi_max": 213
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 107.5,
-          "us_aqi_max": 191
+          "date": "2026-11-16",
+          "pm2_5_mean": 123.4,
+          "us_aqi_max": 217
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 70.3,
-          "us_aqi_max": 187
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 59.6,
-          "us_aqi_max": 161
+          "date": "2026-11-17",
+          "pm2_5_mean": 93.0,
+          "us_aqi_max": 199
         }
       ]
     },
     {
       "name": "Jhenaidah",
-      "pm2_5": 33.5,
-      "pm10": 34.9,
+      "pm2_5": 32.2,
+      "pm10": 37.4,
       "no2": 0.4,
-      "o3": 183.0,
-      "us_aqi": 173,
+      "o3": 151.0,
+      "us_aqi": 177,
       "aqi_category": "Unhealthy",
       "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 80.3,
-          "us_aqi_max": 173
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.1,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 78.0,
-          "us_aqi_max": 165
-        },
         {
           "date": "2026-11-13",
-          "pm2_5_mean": 75.0,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 54.4,
-          "us_aqi_max": 164
-        }
-      ]
-    },
-    {
-      "name": "Kushtia",
-      "pm2_5": 33.1,
-      "pm10": 35.2,
-      "no2": 0.7,
-      "o3": 177.0,
-      "us_aqi": 172,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 83.6,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 54.4,
-          "us_aqi_max": 170
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 73.0,
-          "us_aqi_max": 162
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 68.9,
-          "us_aqi_max": 163
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 50.4,
-          "us_aqi_max": 160
-        }
-      ]
-    },
-    {
-      "name": "Pabna",
-      "pm2_5": 33.1,
-      "pm10": 35.2,
-      "no2": 0.7,
-      "o3": 177.0,
-      "us_aqi": 172,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 83.6,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 54.4,
-          "us_aqi_max": 170
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 73.0,
-          "us_aqi_max": 162
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 68.9,
-          "us_aqi_max": 163
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 50.4,
-          "us_aqi_max": 160
-        }
-      ]
-    },
-    {
-      "name": "Gazipur",
-      "pm2_5": 35.3,
-      "pm10": 36.2,
-      "no2": 2.6,
-      "o3": 228.0,
-      "us_aqi": 170,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 81.4,
-          "us_aqi_max": 192
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 65.6,
-          "us_aqi_max": 169
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 85.6,
-          "us_aqi_max": 171
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 106.2,
-          "us_aqi_max": 190
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 65.8,
-          "us_aqi_max": 186
-        }
-      ]
-    },
-    {
-      "name": "Joypurhat",
-      "pm2_5": 21.7,
-      "pm10": 23.1,
-      "no2": 1.6,
-      "o3": 183.0,
-      "us_aqi": 167,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 70.4,
-          "us_aqi_max": 167
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 72.1,
-          "us_aqi_max": 161
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 82.2,
-          "us_aqi_max": 177
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 47.6,
-          "us_aqi_max": 169
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 50.5,
-          "us_aqi_max": 137
-        }
-      ]
-    },
-    {
-      "name": "Magura",
-      "pm2_5": 33.6,
-      "pm10": 34.7,
-      "no2": 0.7,
-      "o3": 216.0,
-      "us_aqi": 167,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 78.1,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 55.1,
-          "us_aqi_max": 166
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 79.7,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 81.6,
-          "us_aqi_max": 175
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 50.2,
-          "us_aqi_max": 169
-        }
-      ]
-    },
-    {
-      "name": "Rajbari",
-      "pm2_5": 33.6,
-      "pm10": 34.7,
-      "no2": 0.7,
-      "o3": 216.0,
-      "us_aqi": 167,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 78.1,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 55.1,
-          "us_aqi_max": 166
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 79.7,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 81.6,
-          "us_aqi_max": 175
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 50.2,
-          "us_aqi_max": 169
-        }
-      ]
-    },
-    {
-      "name": "Dhaka",
-      "pm2_5": 43.0,
-      "pm10": 43.9,
-      "no2": 6.1,
-      "o3": 273.0,
-      "us_aqi": 164,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 81.1,
-          "us_aqi_max": 211
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 63.2,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 66.0,
-          "us_aqi_max": 156
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 108.0,
-          "us_aqi_max": 188
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 72.1,
-          "us_aqi_max": 188
-        }
-      ]
-    },
-    {
-      "name": "Faridpur",
-      "pm2_5": 39.6,
-      "pm10": 40.5,
-      "no2": 3.5,
-      "o3": 254.0,
-      "us_aqi": 164,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 77.4,
-          "us_aqi_max": 212
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 60.1,
-          "us_aqi_max": 175
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 76.9,
+          "pm2_5_mean": 87.4,
           "us_aqi_max": 178
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 88.0,
-          "us_aqi_max": 176
-        },
-        {
           "date": "2026-11-14",
-          "pm2_5_mean": 52.5,
-          "us_aqi_max": 173
-        }
-      ]
-    },
-    {
-      "name": "Manikganj",
-      "pm2_5": 36.3,
-      "pm10": 37.4,
-      "no2": 2.0,
-      "o3": 224.0,
-      "us_aqi": 164,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 82.0,
-          "us_aqi_max": 194
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 62.5,
-          "us_aqi_max": 169
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 101.5,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 92.2,
-          "us_aqi_max": 184
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 49.9,
-          "us_aqi_max": 176
-        }
-      ]
-    },
-    {
-      "name": "Munshiganj",
-      "pm2_5": 43.0,
-      "pm10": 43.9,
-      "no2": 6.1,
-      "o3": 273.0,
-      "us_aqi": 164,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 81.1,
-          "us_aqi_max": 211
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 63.2,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 66.0,
-          "us_aqi_max": 156
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 108.0,
-          "us_aqi_max": 188
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 72.1,
-          "us_aqi_max": 188
-        }
-      ]
-    },
-    {
-      "name": "Narayanganj",
-      "pm2_5": 43.0,
-      "pm10": 43.9,
-      "no2": 6.1,
-      "o3": 273.0,
-      "us_aqi": 164,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 81.1,
-          "us_aqi_max": 211
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 63.2,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 66.0,
-          "us_aqi_max": 156
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 108.0,
-          "us_aqi_max": 188
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 72.1,
-          "us_aqi_max": 188
-        }
-      ]
-    },
-    {
-      "name": "Jamalpur",
-      "pm2_5": 28.1,
-      "pm10": 29.2,
-      "no2": 1.3,
-      "o3": 164.0,
-      "us_aqi": 163,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 73.2,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 67.4,
-          "us_aqi_max": 163
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 83.6,
+          "pm2_5_mean": 80.9,
           "us_aqi_max": 173
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 66.1,
-          "us_aqi_max": 170
+          "date": "2026-11-15",
+          "pm2_5_mean": 138.6,
+          "us_aqi_max": 213
         },
         {
-          "date": "2026-11-14",
-          "pm2_5_mean": 36.7,
-          "us_aqi_max": 158
+          "date": "2026-11-16",
+          "pm2_5_mean": 129.7,
+          "us_aqi_max": 223
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 100.2,
+          "us_aqi_max": 204
         }
       ]
     },
     {
-      "name": "Narsingdi",
-      "pm2_5": 23.9,
-      "pm10": 24.7,
-      "no2": 3.9,
-      "o3": 208.0,
-      "us_aqi": 163,
+      "name": "Meherpur",
+      "pm2_5": 35.0,
+      "pm10": 40.9,
+      "no2": 0.4,
+      "o3": 159.0,
+      "us_aqi": 177,
       "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 73.0,
-          "us_aqi_max": 171
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 54.4,
-          "us_aqi_max": 163
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 58.8,
-          "us_aqi_max": 152
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 72.6,
-          "us_aqi_max": 168
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 80.6,
-          "us_aqi_max": 166
-        }
-      ]
-    },
-    {
-      "name": "Nawabganj",
-      "pm2_5": 31.7,
-      "pm10": 33.5,
-      "no2": 1.4,
-      "o3": 167.0,
-      "us_aqi": 162,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 78.8,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 73.3,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 86.5,
-          "us_aqi_max": 175
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 68.7,
-          "us_aqi_max": 172
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 73.4,
-          "us_aqi_max": 164
-        }
-      ]
-    },
-    {
-      "name": "Netrakona",
-      "pm2_5": 13.4,
-      "pm10": 14.1,
-      "no2": 0.0,
-      "o3": 125.0,
-      "us_aqi": 161,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 61.9,
-          "us_aqi_max": 162
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 47.8,
-          "us_aqi_max": 155
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 48.1,
-          "us_aqi_max": 145
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 68.8,
-          "us_aqi_max": 158
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 95.8,
-          "us_aqi_max": 182
-        }
-      ]
-    },
-    {
-      "name": "Jessore",
-      "pm2_5": 28.4,
-      "pm10": 29.7,
-      "no2": 0.7,
-      "o3": 178.0,
-      "us_aqi": 160,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 61.7,
-          "us_aqi_max": 160
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 44.9,
-          "us_aqi_max": 154
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 75.9,
-          "us_aqi_max": 164
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 75.6,
-          "us_aqi_max": 167
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 59.3,
-          "us_aqi_max": 164
-        }
-      ]
-    },
-    {
-      "name": "Mymensingh",
-      "pm2_5": 22.1,
-      "pm10": 22.8,
-      "no2": 0.0,
-      "o3": 158.0,
-      "us_aqi": 160,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 76.3,
-          "us_aqi_max": 164
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 64.3,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 83.5,
-          "us_aqi_max": 170
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 84.8,
+          "pm2_5_mean": 91.5,
           "us_aqi_max": 179
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 52.2,
-          "us_aqi_max": 171
-        }
-      ]
-    },
-    {
-      "name": "Gaibandha",
-      "pm2_5": 18.3,
-      "pm10": 19.5,
-      "no2": 3.6,
-      "o3": 189.0,
-      "us_aqi": 159,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 62.4,
-          "us_aqi_max": 160
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 58.3,
-          "us_aqi_max": 155
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 47.1,
-          "us_aqi_max": 152
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 35.8,
-          "us_aqi_max": 129
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 41.5,
-          "us_aqi_max": 117
-        }
-      ]
-    },
-    {
-      "name": "Sirajganj",
-      "pm2_5": 31.0,
-      "pm10": 32.6,
-      "no2": 0.9,
-      "o3": 186.0,
-      "us_aqi": 158,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 70.4,
-          "us_aqi_max": 160
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 58.6,
-          "us_aqi_max": 161
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 73.2,
-          "us_aqi_max": 164
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 65.8,
-          "us_aqi_max": 165
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 38.5,
-          "us_aqi_max": 157
-        }
-      ]
-    },
-    {
-      "name": "Gopalganj",
-      "pm2_5": 30.7,
-      "pm10": 32.0,
-      "no2": 1.4,
-      "o3": 201.0,
-      "us_aqi": 157,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 65.2,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.4,
-          "us_aqi_max": 157
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 71.5,
-          "us_aqi_max": 160
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 103.3,
-          "us_aqi_max": 185
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 61.9,
-          "us_aqi_max": 184
-        }
-      ]
-    },
-    {
-      "name": "Madaripur",
-      "pm2_5": 30.7,
-      "pm10": 32.0,
-      "no2": 1.4,
-      "o3": 201.0,
-      "us_aqi": 157,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 65.2,
-          "us_aqi_max": 182
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.4,
-          "us_aqi_max": 157
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 71.5,
-          "us_aqi_max": 160
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 103.3,
-          "us_aqi_max": 185
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 61.9,
-          "us_aqi_max": 184
-        }
-      ]
-    },
-    {
-      "name": "Narail",
-      "pm2_5": 27.6,
-      "pm10": 28.8,
-      "no2": 0.2,
-      "o3": 190.0,
-      "us_aqi": 153,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 55.8,
-          "us_aqi_max": 170
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 50.3,
-          "us_aqi_max": 150
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 80.9,
-          "us_aqi_max": 167
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 86.3,
+          "pm2_5_mean": 95.3,
           "us_aqi_max": 176
         },
         {
-          "date": "2026-11-14",
-          "pm2_5_mean": 56.9,
-          "us_aqi_max": 172
-        }
-      ]
-    },
-    {
-      "name": "Tangail",
-      "pm2_5": 32.5,
-      "pm10": 33.8,
-      "no2": 0.9,
-      "o3": 192.0,
-      "us_aqi": 153,
-      "aqi_category": "Unhealthy",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 64.5,
-          "us_aqi_max": 162
+          "date": "2026-11-15",
+          "pm2_5_mean": 136.7,
+          "us_aqi_max": 213
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 55.5,
-          "us_aqi_max": 156
+          "date": "2026-11-16",
+          "pm2_5_mean": 123.4,
+          "us_aqi_max": 217
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 85.4,
-          "us_aqi_max": 171
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 78.4,
-          "us_aqi_max": 173
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 35.3,
-          "us_aqi_max": 166
+          "date": "2026-11-17",
+          "pm2_5_mean": 93.0,
+          "us_aqi_max": 199
         }
       ]
     },
     {
       "name": "Kishoreganj",
-      "pm2_5": 15.1,
-      "pm10": 16.2,
-      "no2": 0.9,
-      "o3": 146.0,
-      "us_aqi": 148,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "pm2_5": 26.4,
+      "pm10": 30.9,
+      "no2": 0.7,
+      "o3": 153.0,
+      "us_aqi": 171,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 52.2,
-          "us_aqi_max": 150
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 48.8,
-          "us_aqi_max": 142
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 63.7,
-          "us_aqi_max": 156
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 62.8,
-          "us_aqi_max": 160
+          "pm2_5_mean": 80.5,
+          "us_aqi_max": 172
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 67.0,
-          "us_aqi_max": 159
+          "pm2_5_mean": 60.4,
+          "us_aqi_max": 168
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 91.8,
+          "us_aqi_max": 174
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 107.5,
+          "us_aqi_max": 192
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 78.9,
+          "us_aqi_max": 187
+        }
+      ]
+    },
+    {
+      "name": "Kushtia",
+      "pm2_5": 33.4,
+      "pm10": 39.9,
+      "no2": 0.5,
+      "o3": 149.0,
+      "us_aqi": 170,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 74.8,
+          "us_aqi_max": 172
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 75.0,
+          "us_aqi_max": 164
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 134.8,
+          "us_aqi_max": 209
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 120.8,
+          "us_aqi_max": 214
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 97.3,
+          "us_aqi_max": 197
+        }
+      ]
+    },
+    {
+      "name": "Narsingdi",
+      "pm2_5": 30.7,
+      "pm10": 35.2,
+      "no2": 3.4,
+      "o3": 184.0,
+      "us_aqi": 170,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 77.5,
+          "us_aqi_max": 170
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 66.7,
+          "us_aqi_max": 166
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 112.1,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 154.5,
+          "us_aqi_max": 226
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 134.6,
+          "us_aqi_max": 238
+        }
+      ]
+    },
+    {
+      "name": "Pabna",
+      "pm2_5": 33.4,
+      "pm10": 39.9,
+      "no2": 0.5,
+      "o3": 149.0,
+      "us_aqi": 170,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 74.8,
+          "us_aqi_max": 172
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 75.0,
+          "us_aqi_max": 164
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 134.8,
+          "us_aqi_max": 209
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 120.8,
+          "us_aqi_max": 214
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 97.3,
+          "us_aqi_max": 197
+        }
+      ]
+    },
+    {
+      "name": "Magura",
+      "pm2_5": 30.5,
+      "pm10": 35.2,
+      "no2": 0.3,
+      "o3": 156.0,
+      "us_aqi": 169,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 76.6,
+          "us_aqi_max": 169
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 68.7,
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 132.1,
+          "us_aqi_max": 205
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 137.2,
+          "us_aqi_max": 232
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 97.5,
+          "us_aqi_max": 212
+        }
+      ]
+    },
+    {
+      "name": "Narail",
+      "pm2_5": 31.9,
+      "pm10": 35.6,
+      "no2": 0.6,
+      "o3": 157.0,
+      "us_aqi": 169,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 76.5,
+          "us_aqi_max": 170
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 71.6,
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 135.4,
+          "us_aqi_max": 208
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 140.7,
+          "us_aqi_max": 233
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 103.5,
+          "us_aqi_max": 215
+        }
+      ]
+    },
+    {
+      "name": "Rajbari",
+      "pm2_5": 30.5,
+      "pm10": 35.2,
+      "no2": 0.3,
+      "o3": 156.0,
+      "us_aqi": 169,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 76.6,
+          "us_aqi_max": 169
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 68.7,
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 132.1,
+          "us_aqi_max": 205
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 137.2,
+          "us_aqi_max": 232
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 97.5,
+          "us_aqi_max": 212
+        }
+      ]
+    },
+    {
+      "name": "Jessore",
+      "pm2_5": 33.5,
+      "pm10": 37.4,
+      "no2": 0.6,
+      "o3": 156.0,
+      "us_aqi": 168,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 80.3,
+          "us_aqi_max": 169
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 81.4,
+          "us_aqi_max": 168
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 145.0,
+          "us_aqi_max": 219
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 131.7,
+          "us_aqi_max": 225
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 100.9,
+          "us_aqi_max": 206
+        }
+      ]
+    },
+    {
+      "name": "Manikganj",
+      "pm2_5": 28.9,
+      "pm10": 34.2,
+      "no2": 0.7,
+      "o3": 158.0,
+      "us_aqi": 168,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.4,
+          "us_aqi_max": 172
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 55.5,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 113.8,
+          "us_aqi_max": 190
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 121.5,
+          "us_aqi_max": 214
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 102.3,
+          "us_aqi_max": 197
+        }
+      ]
+    },
+    {
+      "name": "Gazipur",
+      "pm2_5": 28.9,
+      "pm10": 33.2,
+      "no2": 1.1,
+      "o3": 164.0,
+      "us_aqi": 167,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 71.3,
+          "us_aqi_max": 168
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 53.4,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 113.1,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 147.4,
+          "us_aqi_max": 232
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 128.4,
+          "us_aqi_max": 222
+        }
+      ]
+    },
+    {
+      "name": "Gopalganj",
+      "pm2_5": 30.4,
+      "pm10": 34.0,
+      "no2": 0.9,
+      "o3": 164.0,
+      "us_aqi": 164,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.0,
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 65.0,
+          "us_aqi_max": 160
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 120.5,
+          "us_aqi_max": 194
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 148.2,
+          "us_aqi_max": 235
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 100.5,
+          "us_aqi_max": 223
+        }
+      ]
+    },
+    {
+      "name": "Madaripur",
+      "pm2_5": 30.4,
+      "pm10": 34.0,
+      "no2": 0.9,
+      "o3": 164.0,
+      "us_aqi": 164,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.0,
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 65.0,
+          "us_aqi_max": 160
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 120.5,
+          "us_aqi_max": 194
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 148.2,
+          "us_aqi_max": 235
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 100.5,
+          "us_aqi_max": 223
+        }
+      ]
+    },
+    {
+      "name": "Dhaka",
+      "pm2_5": 34.0,
+      "pm10": 38.0,
+      "no2": 4.1,
+      "o3": 203.0,
+      "us_aqi": 162,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.6,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 56.6,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 112.9,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 145.0,
+          "us_aqi_max": 233
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 114.7,
+          "us_aqi_max": 219
+        }
+      ]
+    },
+    {
+      "name": "Munshiganj",
+      "pm2_5": 34.0,
+      "pm10": 38.0,
+      "no2": 4.1,
+      "o3": 203.0,
+      "us_aqi": 162,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.6,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 56.6,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 112.9,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 145.0,
+          "us_aqi_max": 233
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 114.7,
+          "us_aqi_max": 219
+        }
+      ]
+    },
+    {
+      "name": "Narayanganj",
+      "pm2_5": 34.0,
+      "pm10": 38.0,
+      "no2": 4.1,
+      "o3": 203.0,
+      "us_aqi": 162,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 70.6,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 56.6,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 112.9,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 145.0,
+          "us_aqi_max": 233
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 114.7,
+          "us_aqi_max": 219
+        }
+      ]
+    },
+    {
+      "name": "Rajshahi",
+      "pm2_5": 36.6,
+      "pm10": 43.0,
+      "no2": 0.3,
+      "o3": 152.0,
+      "us_aqi": 162,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 61.2,
+          "us_aqi_max": 167
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 92.7,
+          "us_aqi_max": 173
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 162.4,
+          "us_aqi_max": 235
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 160.8,
+          "us_aqi_max": 260
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 90.9,
+          "us_aqi_max": 235
         }
       ]
     },
     {
       "name": "Shariatpur",
-      "pm2_5": 31.1,
-      "pm10": 32.0,
+      "pm2_5": 35.7,
+      "pm10": 39.5,
       "no2": 2.5,
-      "o3": 222.0,
-      "us_aqi": 147,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "o3": 209.0,
+      "us_aqi": 162,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 55.5,
-          "us_aqi_max": 186
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 38.4,
-          "us_aqi_max": 150
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 42.4,
-          "us_aqi_max": 136
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 93.4,
-          "us_aqi_max": 191
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 72.1,
-          "us_aqi_max": 178
-        }
-      ]
-    },
-    {
-      "name": "Dinajpur",
-      "pm2_5": 19.6,
-      "pm10": 20.9,
-      "no2": 0.2,
-      "o3": 155.0,
-      "us_aqi": 144,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 57.7,
-          "us_aqi_max": 150
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 74.2,
-          "us_aqi_max": 163
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 63.8,
-          "us_aqi_max": 164
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 53.8,
-          "us_aqi_max": 156
+          "pm2_5_mean": 75.9,
+          "us_aqi_max": 174
         },
         {
           "date": "2026-11-14",
           "pm2_5_mean": 62.4,
-          "us_aqi_max": 159
+          "us_aqi_max": 165
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 105.8,
+          "us_aqi_max": 184
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 134.8,
+          "us_aqi_max": 213
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 111.9,
+          "us_aqi_max": 209
         }
       ]
     },
     {
-      "name": "Brahamanbaria",
-      "pm2_5": 15.2,
-      "pm10": 16.0,
-      "no2": 2.2,
-      "o3": 177.0,
-      "us_aqi": 143,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "name": "Faridpur",
+      "pm2_5": 28.2,
+      "pm10": 32.4,
+      "no2": 0.7,
+      "o3": 157.0,
+      "us_aqi": 161,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 51.8,
-          "us_aqi_max": 147
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 35.5,
-          "us_aqi_max": 141
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 33.2,
-          "us_aqi_max": 125
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 50.6,
-          "us_aqi_max": 140
+          "pm2_5_mean": 65.3,
+          "us_aqi_max": 161
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 65.7,
-          "us_aqi_max": 173
+          "pm2_5_mean": 57.9,
+          "us_aqi_max": 157
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 114.9,
+          "us_aqi_max": 190
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 137.1,
+          "us_aqi_max": 230
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 90.6,
+          "us_aqi_max": 212
         }
       ]
     },
     {
       "name": "Jhalokati",
-      "pm2_5": 19.6,
-      "pm10": 20.5,
-      "no2": 1.2,
-      "o3": 129.0,
-      "us_aqi": 138,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "pm2_5": 37.0,
+      "pm10": 40.5,
+      "no2": 1.0,
+      "o3": 165.0,
+      "us_aqi": 161,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 45.5,
-          "us_aqi_max": 181
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 31.7,
-          "us_aqi_max": 125
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 43.3,
-          "us_aqi_max": 112
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 88.5,
-          "us_aqi_max": 173
+          "pm2_5_mean": 78.4,
+          "us_aqi_max": 167
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 72.6,
-          "us_aqi_max": 174
+          "pm2_5_mean": 68.3,
+          "us_aqi_max": 166
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 114.7,
+          "us_aqi_max": 193
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 124.8,
+          "us_aqi_max": 198
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 118.4,
+          "us_aqi_max": 214
         }
       ]
     },
     {
       "name": "Pirojpur",
-      "pm2_5": 19.6,
-      "pm10": 20.5,
-      "no2": 1.2,
-      "o3": 129.0,
-      "us_aqi": 138,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "pm2_5": 37.0,
+      "pm10": 40.5,
+      "no2": 1.0,
+      "o3": 165.0,
+      "us_aqi": 161,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 45.5,
-          "us_aqi_max": 181
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 31.7,
-          "us_aqi_max": 125
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 43.3,
-          "us_aqi_max": 112
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 88.5,
-          "us_aqi_max": 173
+          "pm2_5_mean": 78.4,
+          "us_aqi_max": 167
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 72.6,
-          "us_aqi_max": 174
+          "pm2_5_mean": 68.3,
+          "us_aqi_max": 166
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 114.7,
+          "us_aqi_max": 193
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 124.8,
+          "us_aqi_max": 198
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 118.4,
+          "us_aqi_max": 214
         }
       ]
     },
     {
-      "name": "Comilla",
-      "pm2_5": 20.3,
-      "pm10": 21.1,
-      "no2": 1.3,
-      "o3": 189.0,
-      "us_aqi": 130,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "name": "Mymensingh",
+      "pm2_5": 23.9,
+      "pm10": 27.5,
+      "no2": 0.0,
+      "o3": 148.0,
+      "us_aqi": 159,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 49.1,
+          "date": "2026-11-13",
+          "pm2_5_mean": 59.2,
+          "us_aqi_max": 169
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 50.2,
           "us_aqi_max": 153
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 26.5,
-          "us_aqi_max": 134
+          "date": "2026-11-15",
+          "pm2_5_mean": 98.3,
+          "us_aqi_max": 177
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 28.4,
-          "us_aqi_max": 95
+          "date": "2026-11-16",
+          "pm2_5_mean": 134.4,
+          "us_aqi_max": 220
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 50.6,
-          "us_aqi_max": 137
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 66.7,
-          "us_aqi_max": 168
+          "date": "2026-11-17",
+          "pm2_5_mean": 91.0,
+          "us_aqi_max": 209
         }
       ]
     },
     {
-      "name": "Rangpur",
-      "pm2_5": 17.3,
-      "pm10": 19.0,
-      "no2": 0.9,
-      "o3": 154.0,
-      "us_aqi": 130,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "name": "Natore",
+      "pm2_5": 33.4,
+      "pm10": 39.8,
+      "no2": 0.3,
+      "o3": 149.0,
+      "us_aqi": 159,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 48.9,
-          "us_aqi_max": 131
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 67.2,
-          "us_aqi_max": 158
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 61.3,
-          "us_aqi_max": 162
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 47.7,
-          "us_aqi_max": 154
+          "pm2_5_mean": 55.0,
+          "us_aqi_max": 166
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 53.3,
-          "us_aqi_max": 150
+          "pm2_5_mean": 77.2,
+          "us_aqi_max": 162
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 156.3,
+          "us_aqi_max": 230
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 154.7,
+          "us_aqi_max": 247
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 111.0,
+          "us_aqi_max": 229
+        }
+      ]
+    },
+    {
+      "name": "Nawabganj",
+      "pm2_5": 37.6,
+      "pm10": 43.7,
+      "no2": 1.2,
+      "o3": 150.0,
+      "us_aqi": 159,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 68.4,
+          "us_aqi_max": 162
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 116.3,
+          "us_aqi_max": 191
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 149.3,
+          "us_aqi_max": 223
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 137.3,
+          "us_aqi_max": 248
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 85.1,
+          "us_aqi_max": 212
         }
       ]
     },
     {
       "name": "Barisal",
-      "pm2_5": 20.7,
-      "pm10": 21.7,
-      "no2": 1.3,
-      "o3": 160.0,
-      "us_aqi": 128,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "pm2_5": 36.6,
+      "pm10": 39.9,
+      "no2": 1.6,
+      "o3": 198.0,
+      "us_aqi": 156,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 42.3,
-          "us_aqi_max": 161
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 25.5,
-          "us_aqi_max": 117
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 29.2,
-          "us_aqi_max": 86
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 74.1,
-          "us_aqi_max": 174
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 69.4,
+          "pm2_5_mean": 74.2,
           "us_aqi_max": 165
-        }
-      ]
-    },
-    {
-      "name": "Patuakhali",
-      "pm2_5": 17.8,
-      "pm10": 18.7,
-      "no2": 0.9,
-      "o3": 138.0,
-      "us_aqi": 126,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 38.4,
-          "us_aqi_max": 166
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 21.8,
-          "us_aqi_max": 107
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 27.0,
-          "us_aqi_max": 79
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 67.4,
-          "us_aqi_max": 158
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 71.6,
-          "us_aqi_max": 164
+          "pm2_5_mean": 62.6,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 101.0,
+          "us_aqi_max": 181
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 123.2,
+          "us_aqi_max": 197
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 120.5,
+          "us_aqi_max": 210
         }
       ]
     },
     {
       "name": "Chandpur",
-      "pm2_5": 27.7,
-      "pm10": 28.9,
-      "no2": 1.8,
-      "o3": 194.0,
-      "us_aqi": 124,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 45.1,
-          "us_aqi_max": 155
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 25.2,
-          "us_aqi_max": 124
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 27.2,
-          "us_aqi_max": 101
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 69.3,
-          "us_aqi_max": 161
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 77.4,
-          "us_aqi_max": 172
-        }
-      ]
-    },
-    {
-      "name": "Sherpur",
-      "pm2_5": 15.4,
-      "pm10": 16.4,
+      "pm2_5": 30.0,
+      "pm10": 33.2,
       "no2": 1.9,
-      "o3": 155.0,
-      "us_aqi": 124,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "o3": 193.0,
+      "us_aqi": 153,
+      "aqi_category": "Unhealthy",
       "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 42.7,
-          "us_aqi_max": 126
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 36.8,
-          "us_aqi_max": 118
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 31.2,
-          "us_aqi_max": 121
-        },
         {
           "date": "2026-11-13",
-          "pm2_5_mean": 26.6,
-          "us_aqi_max": 108
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 27.7,
-          "us_aqi_max": 116
-        }
-      ]
-    },
-    {
-      "name": "Lalmonirhat",
-      "pm2_5": 14.5,
-      "pm10": 15.4,
-      "no2": 0.2,
-      "o3": 139.0,
-      "us_aqi": 123,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 45.9,
-          "us_aqi_max": 124
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 65.5,
-          "us_aqi_max": 156
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 60.4,
+          "pm2_5_mean": 66.8,
           "us_aqi_max": 161
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 51.1,
-          "us_aqi_max": 154
+          "date": "2026-11-14",
+          "pm2_5_mean": 66.2,
+          "us_aqi_max": 158
         },
         {
-          "date": "2026-11-14",
-          "pm2_5_mean": 59.8,
-          "us_aqi_max": 155
+          "date": "2026-11-15",
+          "pm2_5_mean": 93.0,
+          "us_aqi_max": 176
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 123.6,
+          "us_aqi_max": 198
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 136.2,
+          "us_aqi_max": 216
         }
       ]
     },
     {
-      "name": "Nilphamari",
-      "pm2_5": 14.5,
-      "pm10": 15.1,
-      "no2": 0.1,
-      "o3": 142.0,
-      "us_aqi": 122,
-      "aqi_category": "Unhealthy for Sensitive Groups",
+      "name": "Patuakhali",
+      "pm2_5": 34.5,
+      "pm10": 37.6,
+      "no2": 1.1,
+      "o3": 179.0,
+      "us_aqi": 153,
+      "aqi_category": "Unhealthy",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 47.4,
-          "us_aqi_max": 128
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 54.8,
-          "us_aqi_max": 148
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 54.3,
-          "us_aqi_max": 152
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 55.2,
-          "us_aqi_max": 147
+          "pm2_5_mean": 72.9,
+          "us_aqi_max": 161
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 62.6,
+          "pm2_5_mean": 69.1,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 100.5,
+          "us_aqi_max": 183
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 111.7,
+          "us_aqi_max": 188
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 121.9,
+          "us_aqi_max": 212
+        }
+      ]
+    },
+    {
+      "name": "Tangail",
+      "pm2_5": 28.3,
+      "pm10": 34.1,
+      "no2": 0.7,
+      "o3": 160.0,
+      "us_aqi": 151,
+      "aqi_category": "Unhealthy",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 45.4,
+          "us_aqi_max": 160
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 48.3,
+          "us_aqi_max": 125
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 106.8,
+          "us_aqi_max": 186
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 124.2,
+          "us_aqi_max": 204
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 123.1,
+          "us_aqi_max": 209
+        }
+      ]
+    },
+    {
+      "name": "Naogaon",
+      "pm2_5": 32.7,
+      "pm10": 38.1,
+      "no2": 0.2,
+      "o3": 146.0,
+      "us_aqi": 150,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 52.9,
           "us_aqi_max": 159
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 96.2,
+          "us_aqi_max": 175
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 161.3,
+          "us_aqi_max": 235
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 140.3,
+          "us_aqi_max": 237
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 96.8,
+          "us_aqi_max": 215
+        }
+      ]
+    },
+    {
+      "name": "Sirajganj",
+      "pm2_5": 31.7,
+      "pm10": 38.4,
+      "no2": 0.8,
+      "o3": 158.0,
+      "us_aqi": 150,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 45.8,
+          "us_aqi_max": 158
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 59.1,
+          "us_aqi_max": 149
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 121.3,
+          "us_aqi_max": 197
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 128.5,
+          "us_aqi_max": 216
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 112.2,
+          "us_aqi_max": 203
         }
       ]
     },
     {
       "name": "Panchagarh",
-      "pm2_5": 9.6,
-      "pm10": 10.0,
-      "no2": 0.0,
-      "o3": 142.0,
-      "us_aqi": 115,
+      "pm2_5": 38.3,
+      "pm10": 45.1,
+      "no2": 0.4,
+      "o3": 151.0,
+      "us_aqi": 148,
       "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 43.1,
-          "us_aqi_max": 119
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 45.4,
-          "us_aqi_max": 125
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 48.4,
-          "us_aqi_max": 135
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 58.5,
-          "us_aqi_max": 151
+          "pm2_5_mean": 62.4,
+          "us_aqi_max": 154
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 73.6,
-          "us_aqi_max": 164
+          "pm2_5_mean": 100.3,
+          "us_aqi_max": 181
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 104.5,
+          "us_aqi_max": 187
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 97.5,
+          "us_aqi_max": 186
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 65.8,
+          "us_aqi_max": 180
         }
       ]
     },
     {
       "name": "Thakurgaon",
-      "pm2_5": 12.7,
-      "pm10": 13.0,
-      "no2": 0.1,
-      "o3": 142.0,
-      "us_aqi": 115,
+      "pm2_5": 35.2,
+      "pm10": 40.9,
+      "no2": 0.2,
+      "o3": 146.0,
+      "us_aqi": 148,
       "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 44.6,
-          "us_aqi_max": 122
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 46.8,
-          "us_aqi_max": 128
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 51.6,
-          "us_aqi_max": 141
-        },
         {
           "date": "2026-11-13",
-          "pm2_5_mean": 57.7,
-          "us_aqi_max": 151
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 71.0,
-          "us_aqi_max": 164
-        }
-      ]
-    },
-    {
-      "name": "Kurigram",
-      "pm2_5": 14.7,
-      "pm10": 16.1,
-      "no2": 1.4,
-      "o3": 159.0,
-      "us_aqi": 111,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 40.7,
-          "us_aqi_max": 112
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 58.6,
-          "us_aqi_max": 152
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 52.9,
+          "pm2_5_mean": 61.6,
           "us_aqi_max": 154
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 42.6,
-          "us_aqi_max": 144
-        },
-        {
           "date": "2026-11-14",
-          "pm2_5_mean": 45.8,
-          "us_aqi_max": 130
-        }
-      ]
-    },
-    {
-      "name": "Lakshmipur",
-      "pm2_5": 19.2,
-      "pm10": 20.1,
-      "no2": 1.0,
-      "o3": 160.0,
-      "us_aqi": 101,
-      "aqi_category": "Unhealthy for Sensitive Groups",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 33.2,
-          "us_aqi_max": 148
+          "pm2_5_mean": 97.8,
+          "us_aqi_max": 179
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 18.5,
-          "us_aqi_max": 96
+          "date": "2026-11-15",
+          "pm2_5_mean": 120.3,
+          "us_aqi_max": 198
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 20.3,
-          "us_aqi_max": 68
+          "date": "2026-11-16",
+          "pm2_5_mean": 86.9,
+          "us_aqi_max": 196
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 49.7,
-          "us_aqi_max": 136
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 63.0,
-          "us_aqi_max": 155
-        }
-      ]
-    },
-    {
-      "name": "Barguna",
-      "pm2_5": 13.3,
-      "pm10": 14.8,
-      "no2": 0.6,
-      "o3": 113.0,
-      "us_aqi": 94,
-      "aqi_category": "Moderate",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 26.7,
-          "us_aqi_max": 153
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 14.9,
-          "us_aqi_max": 83
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 19.1,
-          "us_aqi_max": 66
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 49.5,
-          "us_aqi_max": 132
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 55.1,
-          "us_aqi_max": 152
-        }
-      ]
-    },
-    {
-      "name": "Bhola",
-      "pm2_5": 16.4,
-      "pm10": 17.2,
-      "no2": 0.8,
-      "o3": 142.0,
-      "us_aqi": 90,
-      "aqi_category": "Moderate",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 23.8,
-          "us_aqi_max": 135
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 11.6,
-          "us_aqi_max": 78
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 18.4,
-          "us_aqi_max": 63
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 42.7,
-          "us_aqi_max": 118
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 55.4,
-          "us_aqi_max": 149
+          "date": "2026-11-17",
+          "pm2_5_mean": 66.2,
+          "us_aqi_max": 172
         }
       ]
     },
     {
       "name": "Bagerhat",
-      "pm2_5": 20.4,
-      "pm10": 22.4,
-      "no2": 1.3,
-      "o3": 130.0,
-      "us_aqi": 89,
-      "aqi_category": "Moderate",
+      "pm2_5": 37.8,
+      "pm10": 41.4,
+      "no2": 1.0,
+      "o3": 173.0,
+      "us_aqi": 146,
+      "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 24.3,
-          "us_aqi_max": 144
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 20.7,
-          "us_aqi_max": 118
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 30.4,
-          "us_aqi_max": 101
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 60.0,
-          "us_aqi_max": 156
+          "pm2_5_mean": 60.6,
+          "us_aqi_max": 154
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 51.7,
-          "us_aqi_max": 153
+          "pm2_5_mean": 55.6,
+          "us_aqi_max": 154
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 100.1,
+          "us_aqi_max": 181
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 101.1,
+          "us_aqi_max": 189
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 86.1,
+          "us_aqi_max": 183
         }
       ]
     },
     {
       "name": "Khulna",
-      "pm2_5": 20.4,
-      "pm10": 22.4,
-      "no2": 1.3,
-      "o3": 130.0,
-      "us_aqi": 89,
-      "aqi_category": "Moderate",
+      "pm2_5": 37.8,
+      "pm10": 41.4,
+      "no2": 1.0,
+      "o3": 173.0,
+      "us_aqi": 146,
+      "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 24.3,
-          "us_aqi_max": 144
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 20.7,
-          "us_aqi_max": 118
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 30.4,
-          "us_aqi_max": 101
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 60.0,
-          "us_aqi_max": 156
+          "pm2_5_mean": 60.6,
+          "us_aqi_max": 154
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 51.7,
-          "us_aqi_max": 153
+          "pm2_5_mean": 55.6,
+          "us_aqi_max": 154
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 100.1,
+          "us_aqi_max": 181
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 101.1,
+          "us_aqi_max": 189
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 86.1,
+          "us_aqi_max": 183
+        }
+      ]
+    },
+    {
+      "name": "Bogra",
+      "pm2_5": 29.6,
+      "pm10": 34.7,
+      "no2": 0.1,
+      "o3": 143.0,
+      "us_aqi": 141,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 42.0,
+          "us_aqi_max": 161
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 79.5,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 150.0,
+          "us_aqi_max": 224
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 132.0,
+          "us_aqi_max": 225
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 105.9,
+          "us_aqi_max": 206
+        }
+      ]
+    },
+    {
+      "name": "Lakshmipur",
+      "pm2_5": 28.9,
+      "pm10": 31.8,
+      "no2": 1.3,
+      "o3": 183.0,
+      "us_aqi": 127,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 54.8,
+          "us_aqi_max": 150
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 57.8,
+          "us_aqi_max": 151
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 80.6,
+          "us_aqi_max": 167
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 106.5,
+          "us_aqi_max": 186
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 119.0,
+          "us_aqi_max": 198
         }
       ]
     },
     {
       "name": "Satkhira",
-      "pm2_5": 19.6,
-      "pm10": 21.2,
+      "pm2_5": 39.6,
+      "pm10": 43.1,
       "no2": 0.7,
-      "o3": 121.0,
-      "us_aqi": 89,
-      "aqi_category": "Moderate",
+      "o3": 163.0,
+      "us_aqi": 126,
+      "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 25.3,
-          "us_aqi_max": 121
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 22.7,
-          "us_aqi_max": 119
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 28.2,
-          "us_aqi_max": 113
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 52.0,
-          "us_aqi_max": 141
+          "pm2_5_mean": 55.4,
+          "us_aqi_max": 149
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 54.9,
-          "us_aqi_max": 147
+          "pm2_5_mean": 62.3,
+          "us_aqi_max": 153
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 112.4,
+          "us_aqi_max": 190
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 102.5,
+          "us_aqi_max": 194
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 81.2,
+          "us_aqi_max": 184
         }
       ]
     },
     {
-      "name": "Sunamganj",
-      "pm2_5": 11.2,
-      "pm10": 11.7,
-      "no2": 1.2,
-      "o3": 118.0,
-      "us_aqi": 89,
-      "aqi_category": "Moderate",
+      "name": "Nilphamari",
+      "pm2_5": 30.0,
+      "pm10": 34.5,
+      "no2": 0.2,
+      "o3": 143.0,
+      "us_aqi": 125,
+      "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 27.8,
-          "us_aqi_max": 89
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 24.6,
-          "us_aqi_max": 86
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 26.8,
-          "us_aqi_max": 118
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 39.8,
-          "us_aqi_max": 114
+          "pm2_5_mean": 52.5,
+          "us_aqi_max": 140
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 38.7,
-          "us_aqi_max": 115
+          "pm2_5_mean": 87.2,
+          "us_aqi_max": 171
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 110.8,
+          "us_aqi_max": 191
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 82.1,
+          "us_aqi_max": 190
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 66.0,
+          "us_aqi_max": 169
+        }
+      ]
+    },
+    {
+      "name": "Barguna",
+      "pm2_5": 32.2,
+      "pm10": 35.3,
+      "no2": 0.9,
+      "o3": 156.0,
+      "us_aqi": 123,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 55.4,
+          "us_aqi_max": 148
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 47.0,
+          "us_aqi_max": 150
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 74.2,
+          "us_aqi_max": 163
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 90.4,
+          "us_aqi_max": 174
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 90.1,
+          "us_aqi_max": 182
+        }
+      ]
+    },
+    {
+      "name": "Jamalpur",
+      "pm2_5": 27.1,
+      "pm10": 32.0,
+      "no2": 1.6,
+      "o3": 157.0,
+      "us_aqi": 123,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 35.6,
+          "us_aqi_max": 164
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 40.3,
+          "us_aqi_max": 109
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 95.2,
+          "us_aqi_max": 174
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 164.2,
+          "us_aqi_max": 238
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 116.4,
+          "us_aqi_max": 239
+        }
+      ]
+    },
+    {
+      "name": "Dinajpur",
+      "pm2_5": 26.9,
+      "pm10": 30.4,
+      "no2": 0.2,
+      "o3": 137.0,
+      "us_aqi": 120,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 50.4,
+          "us_aqi_max": 145
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 87.7,
+          "us_aqi_max": 171
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 118.8,
+          "us_aqi_max": 198
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 86.1,
+          "us_aqi_max": 195
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 70.8,
+          "us_aqi_max": 172
+        }
+      ]
+    },
+    {
+      "name": "Lalmonirhat",
+      "pm2_5": 19.6,
+      "pm10": 22.3,
+      "no2": 0.3,
+      "o3": 131.0,
+      "us_aqi": 115,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 42.8,
+          "us_aqi_max": 136
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 87.3,
+          "us_aqi_max": 170
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 120.0,
+          "us_aqi_max": 199
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 78.9,
+          "us_aqi_max": 196
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 65.2,
+          "us_aqi_max": 167
         }
       ]
     },
     {
       "name": "Sylhet",
-      "pm2_5": 9.6,
-      "pm10": 10.0,
-      "no2": 1.1,
-      "o3": 109.0,
-      "us_aqi": 88,
-      "aqi_category": "Moderate",
+      "pm2_5": 14.9,
+      "pm10": 17.4,
+      "no2": 1.2,
+      "o3": 139.0,
+      "us_aqi": 113,
+      "aqi_category": "Unhealthy for Sensitive Groups",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 31.2,
-          "us_aqi_max": 96
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 39.7,
-          "us_aqi_max": 107
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 46.7,
-          "us_aqi_max": 128
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 56.8,
-          "us_aqi_max": 151
+          "pm2_5_mean": 42.1,
+          "us_aqi_max": 120
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 54.8,
-          "us_aqi_max": 152
+          "pm2_5_mean": 52.3,
+          "us_aqi_max": 140
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 61.3,
+          "us_aqi_max": 154
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 80.8,
+          "us_aqi_max": 167
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 91.4,
+          "us_aqi_max": 179
+        }
+      ]
+    },
+    {
+      "name": "Joypurhat",
+      "pm2_5": 23.8,
+      "pm10": 27.5,
+      "no2": 0.6,
+      "o3": 135.0,
+      "us_aqi": 111,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 38.5,
+          "us_aqi_max": 154
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 70.6,
+          "us_aqi_max": 158
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 119.5,
+          "us_aqi_max": 197
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 84.5,
+          "us_aqi_max": 196
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 72.6,
+          "us_aqi_max": 175
+        }
+      ]
+    },
+    {
+      "name": "Bhola",
+      "pm2_5": 24.7,
+      "pm10": 27.2,
+      "no2": 0.9,
+      "o3": 165.0,
+      "us_aqi": 107,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 47.4,
+          "us_aqi_max": 126
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 57.7,
+          "us_aqi_max": 151
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 75.4,
+          "us_aqi_max": 164
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 91.3,
+          "us_aqi_max": 174
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 106.6,
+          "us_aqi_max": 190
+        }
+      ]
+    },
+    {
+      "name": "Rangpur",
+      "pm2_5": 21.1,
+      "pm10": 23.7,
+      "no2": 0.5,
+      "o3": 128.0,
+      "us_aqi": 107,
+      "aqi_category": "Unhealthy for Sensitive Groups",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 41.2,
+          "us_aqi_max": 146
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 71.5,
+          "us_aqi_max": 159
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 100.9,
+          "us_aqi_max": 185
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 75.4,
+          "us_aqi_max": 182
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 68.9,
+          "us_aqi_max": 166
+        }
+      ]
+    },
+    {
+      "name": "Brahamanbaria",
+      "pm2_5": 15.3,
+      "pm10": 18.2,
+      "no2": 2.0,
+      "o3": 171.0,
+      "us_aqi": 100,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 41.1,
+          "us_aqi_max": 123
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 65.5,
+          "us_aqi_max": 157
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 95.9,
+          "us_aqi_max": 177
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 128.9,
+          "us_aqi_max": 202
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 103.1,
+          "us_aqi_max": 204
+        }
+      ]
+    },
+    {
+      "name": "Kurigram",
+      "pm2_5": 21.6,
+      "pm10": 24.6,
+      "no2": 0.6,
+      "o3": 127.0,
+      "us_aqi": 97,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 36.8,
+          "us_aqi_max": 130
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 50.4,
+          "us_aqi_max": 133
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 77.9,
+          "us_aqi_max": 167
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 67.2,
+          "us_aqi_max": 166
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 65.8,
+          "us_aqi_max": 164
+        }
+      ]
+    },
+    {
+      "name": "Gaibandha",
+      "pm2_5": 25.4,
+      "pm10": 30.4,
+      "no2": 2.4,
+      "o3": 148.0,
+      "us_aqi": 96,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 32.8,
+          "us_aqi_max": 133
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 44.5,
+          "us_aqi_max": 120
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 81.8,
+          "us_aqi_max": 168
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 79.6,
+          "us_aqi_max": 170
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 76.1,
+          "us_aqi_max": 176
+        }
+      ]
+    },
+    {
+      "name": "Comilla",
+      "pm2_5": 14.2,
+      "pm10": 16.7,
+      "no2": 0.8,
+      "o3": 165.0,
+      "us_aqi": 95,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 40.1,
+          "us_aqi_max": 112
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 69.0,
+          "us_aqi_max": 159
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 96.7,
+          "us_aqi_max": 179
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 121.0,
+          "us_aqi_max": 196
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 106.8,
+          "us_aqi_max": 199
         }
       ]
     },
     {
       "name": "Habiganj",
-      "pm2_5": 13.2,
-      "pm10": 14.3,
-      "no2": 1.6,
-      "o3": 143.0,
-      "us_aqi": 87,
-      "aqi_category": "Moderate",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 28.5,
-          "us_aqi_max": 89
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 27.0,
-          "us_aqi_max": 93
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 29.9,
-          "us_aqi_max": 105
-        },
-        {
-          "date": "2026-11-13",
-          "pm2_5_mean": 45.4,
-          "us_aqi_max": 122
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 48.7,
-          "us_aqi_max": 157
-        }
-      ]
-    },
-    {
-      "name": "Noakhali",
-      "pm2_5": 18.1,
-      "pm10": 19.3,
+      "pm2_5": 12.7,
+      "pm10": 14.7,
       "no2": 0.9,
-      "o3": 157.0,
-      "us_aqi": 85,
+      "o3": 150.0,
+      "us_aqi": 94,
       "aqi_category": "Moderate",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 24.2,
-          "us_aqi_max": 114
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 16.9,
-          "us_aqi_max": 79
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 20.7,
-          "us_aqi_max": 69
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 37.8,
-          "us_aqi_max": 107
+          "pm2_5_mean": 35.1,
+          "us_aqi_max": 102
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 55.2,
+          "pm2_5_mean": 51.4,
           "us_aqi_max": 153
-        }
-      ]
-    },
-    {
-      "name": "Feni",
-      "pm2_5": 19.3,
-      "pm10": 19.8,
-      "no2": 0.9,
-      "o3": 162.0,
-      "us_aqi": 83,
-      "aqi_category": "Moderate",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 25.1,
-          "us_aqi_max": 115
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 14.3,
-          "us_aqi_max": 80
+          "date": "2026-11-15",
+          "pm2_5_mean": 68.7,
+          "us_aqi_max": 160
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 14.6,
-          "us_aqi_max": 60
+          "date": "2026-11-16",
+          "pm2_5_mean": 89.1,
+          "us_aqi_max": 194
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 23.9,
-          "us_aqi_max": 77
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 36.6,
-          "us_aqi_max": 134
+          "date": "2026-11-17",
+          "pm2_5_mean": 89.7,
+          "us_aqi_max": 179
         }
       ]
     },
     {
       "name": "Maulvibazar",
-      "pm2_5": 9.8,
-      "pm10": 10.4,
+      "pm2_5": 11.8,
+      "pm10": 14.1,
       "no2": 0.0,
-      "o3": 104.0,
-      "us_aqi": 79,
+      "o3": 119.0,
+      "us_aqi": 93,
       "aqi_category": "Moderate",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 26.2,
-          "us_aqi_max": 108
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 22.9,
-          "us_aqi_max": 83
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 24.8,
-          "us_aqi_max": 78
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 50.8,
-          "us_aqi_max": 135
+          "pm2_5_mean": 37.8,
+          "us_aqi_max": 105
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 49.3,
-          "us_aqi_max": 146
+          "pm2_5_mean": 52.2,
+          "us_aqi_max": 139
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 69.0,
+          "us_aqi_max": 159
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 90.5,
+          "us_aqi_max": 175
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 90.3,
+          "us_aqi_max": 180
+        }
+      ]
+    },
+    {
+      "name": "Noakhali",
+      "pm2_5": 14.2,
+      "pm10": 16.2,
+      "no2": 0.8,
+      "o3": 154.0,
+      "us_aqi": 89,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 31.6,
+          "us_aqi_max": 105
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 57.7,
+          "us_aqi_max": 151
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 76.4,
+          "us_aqi_max": 164
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 108.6,
+          "us_aqi_max": 187
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 110.5,
+          "us_aqi_max": 194
+        }
+      ]
+    },
+    {
+      "name": "Sherpur",
+      "pm2_5": 23.7,
+      "pm10": 28.5,
+      "no2": 2.0,
+      "o3": 155.0,
+      "us_aqi": 87,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 27.5,
+          "us_aqi_max": 129
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 27.1,
+          "us_aqi_max": 94
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 62.9,
+          "us_aqi_max": 160
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 82.4,
+          "us_aqi_max": 176
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 74.4,
+          "us_aqi_max": 179
+        }
+      ]
+    },
+    {
+      "name": "Sunamganj",
+      "pm2_5": 15.4,
+      "pm10": 18.0,
+      "no2": 1.0,
+      "o3": 145.0,
+      "us_aqi": 85,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 26.8,
+          "us_aqi_max": 101
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 41.2,
+          "us_aqi_max": 113
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 47.8,
+          "us_aqi_max": 131
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 61.4,
+          "us_aqi_max": 155
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 87.8,
+          "us_aqi_max": 171
         }
       ]
     },
     {
       "name": "Chittagong",
-      "pm2_5": 20.2,
-      "pm10": 20.8,
-      "no2": 3.4,
-      "o3": 177.0,
-      "us_aqi": 70,
+      "pm2_5": 10.0,
+      "pm10": 12.1,
+      "no2": 0.4,
+      "o3": 126.0,
+      "us_aqi": 78,
       "aqi_category": "Moderate",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 19.1,
-          "us_aqi_max": 131
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 9.2,
-          "us_aqi_max": 69
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 16.4,
-          "us_aqi_max": 61
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 25.4,
-          "us_aqi_max": 85
+          "pm2_5_mean": 23.0,
+          "us_aqi_max": 79
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 28.0,
-          "us_aqi_max": 107
-        }
-      ]
-    },
-    {
-      "name": "Khagrachhari",
-      "pm2_5": 15.0,
-      "pm10": 15.6,
-      "no2": 0.7,
-      "o3": 134.0,
-      "us_aqi": 62,
-      "aqi_category": "Moderate",
-      "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 14.4,
-          "us_aqi_max": 82
+          "pm2_5_mean": 31.8,
+          "us_aqi_max": 101
         },
         {
-          "date": "2026-11-11",
-          "pm2_5_mean": 7.0,
-          "us_aqi_max": 60
+          "date": "2026-11-15",
+          "pm2_5_mean": 53.8,
+          "us_aqi_max": 143
         },
         {
-          "date": "2026-11-12",
-          "pm2_5_mean": 8.3,
-          "us_aqi_max": 43
+          "date": "2026-11-16",
+          "pm2_5_mean": 76.7,
+          "us_aqi_max": 164
         },
         {
-          "date": "2026-11-13",
-          "pm2_5_mean": 15.1,
-          "us_aqi_max": 61
-        },
-        {
-          "date": "2026-11-14",
-          "pm2_5_mean": 20.8,
-          "us_aqi_max": 88
+          "date": "2026-11-17",
+          "pm2_5_mean": 75.4,
+          "us_aqi_max": 172
         }
       ]
     },
     {
       "name": "Cox's Bazar",
-      "pm2_5": 11.3,
-      "pm10": 11.6,
-      "no2": 2.6,
-      "o3": 161.0,
-      "us_aqi": 57,
+      "pm2_5": 16.3,
+      "pm10": 18.5,
+      "no2": 2.3,
+      "o3": 175.0,
+      "us_aqi": 67,
       "aqi_category": "Moderate",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 8.7,
-          "us_aqi_max": 113
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 2.5,
-          "us_aqi_max": 48
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 4.6,
-          "us_aqi_max": 56
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 9.9,
-          "us_aqi_max": 98
+          "pm2_5_mean": 16.9,
+          "us_aqi_max": 154
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 18.3,
-          "us_aqi_max": 158
+          "pm2_5_mean": 21.6,
+          "us_aqi_max": 159
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 39.2,
+          "us_aqi_max": 175
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 60.5,
+          "us_aqi_max": 198
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 62.7,
+          "us_aqi_max": 181
+        }
+      ]
+    },
+    {
+      "name": "Feni",
+      "pm2_5": 11.2,
+      "pm10": 13.3,
+      "no2": 0.3,
+      "o3": 122.0,
+      "us_aqi": 66,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 18.9,
+          "us_aqi_max": 75
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 41.2,
+          "us_aqi_max": 132
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 66.2,
+          "us_aqi_max": 157
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 89.3,
+          "us_aqi_max": 173
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 81.7,
+          "us_aqi_max": 176
         }
       ]
     },
     {
       "name": "Bandarban",
-      "pm2_5": 8.8,
-      "pm10": 9.2,
-      "no2": 0.9,
-      "o3": 91.0,
-      "us_aqi": 52,
+      "pm2_5": 8.6,
+      "pm10": 10.6,
+      "no2": 0.3,
+      "o3": 100.0,
+      "us_aqi": 60,
       "aqi_category": "Moderate",
       "forecast": [
         {
-          "date": "2026-11-10",
-          "pm2_5_mean": 7.9,
-          "us_aqi_max": 58
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 3.4,
-          "us_aqi_max": 44
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 6.0,
-          "us_aqi_max": 37
-        },
-        {
           "date": "2026-11-13",
-          "pm2_5_mean": 9.8,
-          "us_aqi_max": 51
+          "pm2_5_mean": 14.1,
+          "us_aqi_max": 63
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 14.6,
-          "us_aqi_max": 61
+          "pm2_5_mean": 19.5,
+          "us_aqi_max": 69
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 31.5,
+          "us_aqi_max": 94
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 49.8,
+          "us_aqi_max": 134
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 47.1,
+          "us_aqi_max": 147
+        }
+      ]
+    },
+    {
+      "name": "Khagrachhari",
+      "pm2_5": 9.3,
+      "pm10": 11.6,
+      "no2": 0.3,
+      "o3": 106.0,
+      "us_aqi": 55,
+      "aqi_category": "Moderate",
+      "forecast": [
+        {
+          "date": "2026-11-13",
+          "pm2_5_mean": 12.5,
+          "us_aqi_max": 56
+        },
+        {
+          "date": "2026-11-14",
+          "pm2_5_mean": 25.0,
+          "us_aqi_max": 98
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 44.6,
+          "us_aqi_max": 130
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 66.2,
+          "us_aqi_max": 157
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 65.3,
+          "us_aqi_max": 162
         }
       ]
     },
     {
       "name": "Rangamati",
-      "pm2_5": 8.8,
-      "pm10": 9.4,
-      "no2": 0.6,
-      "o3": 106.0,
-      "us_aqi": 48,
-      "aqi_category": "Good",
+      "pm2_5": 8.1,
+      "pm10": 10.3,
+      "no2": 0.1,
+      "o3": 103.0,
+      "us_aqi": 54,
+      "aqi_category": "Moderate",
       "forecast": [
-        {
-          "date": "2026-11-10",
-          "pm2_5_mean": 8.4,
-          "us_aqi_max": 51
-        },
-        {
-          "date": "2026-11-11",
-          "pm2_5_mean": 4.5,
-          "us_aqi_max": 47
-        },
-        {
-          "date": "2026-11-12",
-          "pm2_5_mean": 6.0,
-          "us_aqi_max": 37
-        },
         {
           "date": "2026-11-13",
           "pm2_5_mean": 11.6,
@@ -2303,14 +2288,29 @@
         },
         {
           "date": "2026-11-14",
-          "pm2_5_mean": 15.7,
-          "us_aqi_max": 63
+          "pm2_5_mean": 17.4,
+          "us_aqi_max": 65
+        },
+        {
+          "date": "2026-11-15",
+          "pm2_5_mean": 30.1,
+          "us_aqi_max": 117
+        },
+        {
+          "date": "2026-11-16",
+          "pm2_5_mean": 46.9,
+          "us_aqi_max": 127
+        },
+        {
+          "date": "2026-11-17",
+          "pm2_5_mean": 48.5,
+          "us_aqi_max": 142
         }
       ]
     }
   ],
-  "national_mean_pm2_5": 23.6,
-  "national_mean_us_aqi": 134,
+  "national_mean_pm2_5": 27.2,
+  "national_mean_us_aqi": 135,
   "source": "Open-Meteo Air Quality API (CAMS atmospheric model)",
   "disclosure": "Modelled atmospheric data, not ground-sensor readings. Resolution over Bangladesh is coarse (tens of km), so values are regional estimates and can differ from street-level conditions. AQI bands follow the US AQI index."
 }
